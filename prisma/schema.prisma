@@ -1,0 +1,325 @@
+// Schéma de données — Portail "Bibliothèque de dossiers de compétences"
+//
+// Choix de développement local : SQLite (fichier, zéro dépendance externe).
+// Pour la production, le cahier des charges impose un hébergement UE : basculez
+// `provider` sur "postgresql" et pointez DATABASE_URL vers une instance
+// PostgreSQL hébergée en UE. Aucun type spécifique à SQLite n'est utilisé
+// (pas d'enum natif, pas de tableau scalaire) : le schéma est portable tel quel.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Comptes et organisations
+// ---------------------------------------------------------------------------
+
+// Rôles applicatifs : ADMIN, BM (business manager), CLIENT.
+// Stocké en String (pas d'enum natif SQLite) ; les valeurs valides sont
+// centralisées dans src/lib/constants.ts.
+model User {
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  passwordHash        String
+  name                String
+  role                String // ADMIN | BM | CLIENT
+  active              Boolean  @default(true)
+  twoFactorEnabled    Boolean  @default(false)
+  twoFactorSecret     String?
+  lastLoginAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Renseigné uniquement pour les comptes CLIENT.
+  clientOrganizationId String?
+  clientOrganization    ClientOrganization? @relation(fields: [clientOrganizationId], references: [id])
+
+  consultantsSuivis    Consultant[]      @relation("BusinessManagerReferent")
+  contactRequests      ContactRequest[]  @relation("ClientDemandeur")
+  contactRequestsRecues ContactRequest[] @relation("BmNotifie")
+  loginLogs            LoginLog[]
+  consultationLogs     ConsultationLog[]
+  resetTokens          PasswordResetToken[]
+
+  @@index([role])
+  @@index([clientOrganizationId])
+}
+
+model ClientOrganization {
+  id        String   @id @default(cuid())
+  name      String
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Référentiels paramétrables par l'administrateur (§7)
+// ---------------------------------------------------------------------------
+
+model Secteur {
+  id       String  @id @default(cuid())
+  label    String  @unique
+  ordre    Int     @default(0)
+  active   Boolean @default(true)
+
+  consultants ConsultantSecteur[]
+}
+
+model Expertise {
+  id     String  @id @default(cuid())
+  label  String  @unique
+  ordre  Int     @default(0)
+  active Boolean @default(true)
+
+  consultants ConsultantExpertise[]
+}
+
+// Barème de séniorité (figé mais paramétrable par l'admin).
+model Seniorite {
+  id         String  @id @default(cuid())
+  label      String  @unique // ex. "Confirmé"
+  ordre      Int     @default(0) // ordre d'affichage / tri
+  anneesMin  Int?
+  anneesMax  Int?
+  active     Boolean @default(true)
+
+  consultants Consultant[]
+}
+
+model TypeMobilite {
+  id     String  @id @default(cuid())
+  label  String  @unique // sur site / hybride / full remote / mobilité nationale / régionale
+  ordre  Int     @default(0)
+  active Boolean @default(true)
+
+  consultants ConsultantTypeMobilite[]
+}
+
+model ZoneGeographique {
+  id     String  @id @default(cuid())
+  label  String  @unique // région ou département
+  ordre  Int     @default(0)
+  active Boolean @default(true)
+
+  consultants ConsultantZoneGeographique[]
+}
+
+model Competence {
+  id     String  @id @default(cuid())
+  label  String  @unique // étiquette libre : techno, outil, certification
+  active Boolean @default(true)
+
+  consultants ConsultantCompetence[]
+}
+
+model Langue {
+  id     String  @id @default(cuid())
+  label  String  @unique
+  active Boolean @default(true)
+
+  consultants ConsultantLangue[]
+}
+
+// ---------------------------------------------------------------------------
+// Dossier de compétences — enregistrement unique portant
+// champs internes (nominatifs) + champs exposables (projection anonymisée).
+// C'est la source unique de saisie (principe structurant §2).
+// ---------------------------------------------------------------------------
+
+model Consultant {
+  id String @id @default(cuid())
+
+  // --- Champs internes (jamais exposés au client) -------------------------
+  nom                    String
+  prenom                 String
+  email                  String?
+  telephone              String?
+  tjmMin                 Int?
+  tjmMax                 Int?
+  cvFileUrl              String?
+  notesEntretien         String?
+  businessManagerId      String
+  businessManager        User     @relation("BusinessManagerReferent", fields: [businessManagerId], references: [id])
+  dateRencontre          DateTime?
+  statutCandidatInterne  String   @default("EN_COURS") // EN_COURS | STAFFE | INDISPONIBLE | A_RECONTACTER
+
+  // RGPD (§8)
+  consentementRgpd       Boolean   @default(false)
+  consentementDate       DateTime?
+  consentementPublication Boolean  @default(false) // consentement spécifique à la publication anonymisée
+  dateCollecte           DateTime  @default(now())
+  dureeConservationMois  Int       @default(24)
+  dateConservationLimite DateTime?
+
+  // --- Champs exposables (projection anonymisée) --------------------------
+  referenceAnonyme       String   @unique // ex. IND-017, ne doit pas trahir l'identité
+  intitulePoste          String?
+  seniorityId            String?
+  seniority              Seniorite? @relation(fields: [seniorityId], references: [id])
+  anneesExperienceMin    Int?
+  anneesExperienceMax    Int?
+  resumeContexte         String?
+  disponibilite          String?  // IMMEDIATE | SOUS_1_MOIS | SOUS_2_MOIS | SUR_PREAVIS
+  disponibiliteConfirmeeLe DateTime?
+  typeContrat            String?  // REGIE | FORFAIT | TEMPS_PARTAGE
+
+  // Mobilité (§6.3)
+  rayonKm                Int?
+  ouvertGrandDeplacement Boolean  @default(false)
+  villeRattachementZoneLarge String? // ex. "Île-de-France" — jamais l'adresse précise
+
+  // Publication (§5.2 / §10)
+  statutPublication      String   @default("BROUILLON") // BROUILLON | PUBLIEE | DEPUBLIEE | ARCHIVEE
+  datePublication        DateTime?
+  dateDepublication      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  secteurs          ConsultantSecteur[]
+  expertises        ConsultantExpertise[]
+  competences       ConsultantCompetence[]
+  typesMobilite     ConsultantTypeMobilite[]
+  zonesGeographiques ConsultantZoneGeographique[]
+  langues           ConsultantLangue[]
+  contactRequests   ContactRequest[]
+  consultationLogs  ConsultationLog[]
+
+  @@index([statutPublication])
+  @@index([businessManagerId])
+  @@index([seniorityId])
+}
+
+// Tables de jointure explicites (relations n-n paramétrables) --------------
+
+model ConsultantSecteur {
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+  secteurId    String
+  secteur      Secteur    @relation(fields: [secteurId], references: [id], onDelete: Cascade)
+
+  @@id([consultantId, secteurId])
+}
+
+model ConsultantExpertise {
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+  expertiseId  String
+  expertise    Expertise  @relation(fields: [expertiseId], references: [id], onDelete: Cascade)
+
+  @@id([consultantId, expertiseId])
+}
+
+model ConsultantCompetence {
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+  competenceId String
+  competence   Competence @relation(fields: [competenceId], references: [id], onDelete: Cascade)
+
+  @@id([consultantId, competenceId])
+}
+
+model ConsultantTypeMobilite {
+  consultantId   String
+  consultant     Consultant   @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+  typeMobiliteId String
+  typeMobilite   TypeMobilite @relation(fields: [typeMobiliteId], references: [id], onDelete: Cascade)
+
+  @@id([consultantId, typeMobiliteId])
+}
+
+model ConsultantZoneGeographique {
+  consultantId       String
+  consultant         Consultant       @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+  zoneGeographiqueId String
+  zoneGeographique   ZoneGeographique @relation(fields: [zoneGeographiqueId], references: [id], onDelete: Cascade)
+
+  @@id([consultantId, zoneGeographiqueId])
+}
+
+model ConsultantLangue {
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+  langueId     String
+  langue       Langue     @relation(fields: [langueId], references: [id], onDelete: Cascade)
+
+  @@id([consultantId, langueId])
+}
+
+// ---------------------------------------------------------------------------
+// Génération de leads (§5.4)
+// ---------------------------------------------------------------------------
+
+model ContactRequest {
+  id           String   @id @default(cuid())
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+
+  clientUserId String
+  clientUser   User     @relation("ClientDemandeur", fields: [clientUserId], references: [id])
+
+  besoin                  String
+  localisation            String?
+  dateDemarrageSouhaitee  DateTime?
+
+  status String @default("NOUVELLE") // NOUVELLE | EN_COURS | TRAITEE | SANS_SUITE
+
+  // BM notifié au moment de la demande (le référent du consultant à cet instant).
+  bmNotifieId String?
+  bmNotifie   User?   @relation("BmNotifie", fields: [bmNotifieId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([consultantId])
+  @@index([clientUserId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Journalisation et traçabilité (§5.5)
+// ---------------------------------------------------------------------------
+
+model LoginLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  success   Boolean  @default(true)
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ConsultationLog {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([consultantId])
+  @@index([createdAt])
+}
