@@ -1,5 +1,4 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 
 export function isAiGenerationConfigured(): boolean {
@@ -15,130 +14,124 @@ export type ReferentialVocab = {
   langues: string[];
 };
 
-// Remarque : les champs contraints par un référentiel (secteurs, expertises,
-// séniorité, mobilité, zones) sont en texte libre (z.string()) et non en
-// z.enum(...) — avec des listes dynamiques, empiler plusieurs enums (dont
-// certains dans des tableaux) fait exploser la grammaire de sortie
-// structurée ("compiled grammar is too large" côté API). Le rapprochement
-// avec le référentiel se fait après coup, côté serveur (voir actions.ts).
-function buildSchema(vocab: ReferentialVocab) {
-  return z.object({
-    // --- Champs internes (nominatifs), pour gagner du temps de saisie -------
-    nom: z.string().nullable().describe("Nom de famille du candidat, tel que trouvé sur le CV"),
-    prenom: z.string().nullable().describe("Prénom du candidat, tel que trouvé sur le CV"),
-    email: z.string().nullable(),
-    telephone: z.string().nullable(),
+// Remarque : on ne force plus le format de sortie via output_config.format
+// (sortie structurée / "strict tool"). Avec un schéma aussi riche
+// (plusieurs tableaux d'objets imbriqués), l'API refusait la requête avec
+// "The compiled grammar is too large" — un plafond de complexité du côté du
+// décodage contraint, indépendant du nombre de valeurs de référentiel.
+// À la place : on demande un JSON via le prompt (le schéma JSON généré à
+// partir de ce même schéma Zod sert de spécification dans le prompt), puis
+// on parse et on valide la réponse avec ce schéma Zod côté serveur.
+const schema = z.object({
+  // --- Champs internes (nominatifs), pour gagner du temps de saisie -------
+  nom: z.string().nullable().describe("Nom de famille du candidat, tel que trouvé sur le CV"),
+  prenom: z.string().nullable().describe("Prénom du candidat, tel que trouvé sur le CV"),
+  email: z.string().nullable(),
+  telephone: z.string().nullable(),
 
-    // --- Champs exposables (projection anonymisée) --------------------------
-    intitulePoste: z.string().describe("Intitulé de poste / spécialité, ex. 'Ingénieur DevOps'"),
-    seniorite: z
-      .string()
-      .describe(
-        `Une valeur EXACTE parmi : ${vocab.seniorites.join(", ") || "(aucune configurée)"}`
-      ),
-    anneesExperienceMin: z.number().int().min(0),
-    anneesExperienceMax: z.number().int().min(0),
-    secteurs: z
-      .array(z.string())
-      .describe(
-        `Valeurs EXACTES parmi : ${vocab.secteurs.join(", ") || "(aucune configurée)"}`
-      ),
-    expertises: z
-      .array(z.string())
-      .describe(
-        `Valeurs EXACTES parmi : ${vocab.expertises.join(", ") || "(aucune configurée)"}`
-      ),
-    competencesTechnologies: z
-      .array(z.string())
-      .describe("Étiquettes libres : stack, outils, certifications (ex. AWS, Python, ISTQB)"),
-    competencesCles: z
-      .array(z.string())
-      .max(3)
-      .describe("Jusqu'à 3 compétences à mettre en avant dans l'en-tête, sous-ensemble de competencesTechnologies"),
-    typesMobilite: z
-      .array(z.string())
-      .describe(
-        `Valeurs EXACTES parmi : ${vocab.typesMobilite.join(", ") || "(aucune configurée)"}`
-      ),
-    zonesGeographiques: z
-      .array(z.string())
-      .describe(`Valeurs EXACTES parmi : ${vocab.zones.join(", ") || "(aucune configurée)"}`),
-    rayonKm: z.number().int().nullable(),
-    ouvertGrandDeplacement: z.boolean(),
-    villeRattachementZoneLarge: z
-      .string()
-      .nullable()
-      .describe("Zone large uniquement (ex. région), jamais une adresse précise"),
-    disponibilite: z.enum(["IMMEDIATE", "SOUS_1_MOIS", "SOUS_2_MOIS", "SUR_PREAVIS"]),
-    typeContrat: z.enum(["REGIE", "FORFAIT", "TEMPS_PARTAGE"]).nullable(),
-    resumeContexte: z
-      .string()
-      .describe("Résumé de 4 à 6 lignes, générique, sans aucune information identifiante"),
+  // --- Champs exposables (projection anonymisée) --------------------------
+  intitulePoste: z.string().describe("Intitulé de poste / spécialité, ex. 'Ingénieur DevOps'"),
+  seniorite: z.string().describe("Une valeur EXACTE parmi le référentiel « Séniorités » fourni"),
+  anneesExperienceMin: z.number().int().min(0),
+  anneesExperienceMax: z.number().int().min(0),
+  secteurs: z.array(z.string()).describe("Valeurs EXACTES parmi le référentiel « Secteurs » fourni"),
+  expertises: z.array(z.string()).describe("Valeurs EXACTES parmi le référentiel « Expertises » fourni"),
+  competencesTechnologies: z
+    .array(z.string())
+    .describe("Étiquettes libres : stack, outils, certifications (ex. AWS, Python, ISTQB)"),
+  competencesCles: z
+    .array(z.string())
+    .max(3)
+    .describe("Jusqu'à 3 compétences à mettre en avant dans l'en-tête, sous-ensemble de competencesTechnologies"),
+  typesMobilite: z
+    .array(z.string())
+    .describe("Valeurs EXACTES parmi le référentiel « Types de mobilité » fourni"),
+  zonesGeographiques: z
+    .array(z.string())
+    .describe("Valeurs EXACTES parmi le référentiel « Zones géographiques » fourni"),
+  rayonKm: z.number().int().nullable(),
+  ouvertGrandDeplacement: z.boolean(),
+  villeRattachementZoneLarge: z
+    .string()
+    .nullable()
+    .describe("Zone large uniquement (ex. région), jamais une adresse précise"),
+  disponibilite: z.enum(["IMMEDIATE", "SOUS_1_MOIS", "SOUS_2_MOIS", "SUR_PREAVIS"]),
+  typeContrat: z.enum(["REGIE", "FORFAIT", "TEMPS_PARTAGE"]).nullable(),
+  resumeContexte: z
+    .string()
+    .describe("Résumé de 4 à 6 lignes, générique, sans aucune information identifiante"),
 
-    langues: z.array(
+  langues: z.array(
+    z.object({
+      label: z.string(),
+      niveau: z.number().int().min(1).max(5).describe("1=notions à 5=expert"),
+      detail: z.string().nullable().describe("ex. 'Langue maternelle', 'TOEIC 850'"),
+    })
+  ),
+
+  competenceCategories: z
+    .array(
       z.object({
-        label: z.string(),
-        niveau: z.number().int().min(1).max(5).describe("1=notions à 5=expert"),
-        detail: z.string().nullable().describe("ex. 'Langue maternelle', 'TOEIC 850'"),
+        categorie: z.enum([
+          "DOMAINES",
+          "LOGICIELS_OUTILS",
+          "METHODES_NORMES",
+          "SECTEURS",
+          "MANAGEMENT",
+        ]),
+        contenu: z.string(),
+        niveau: z.number().int().min(1).max(5),
       })
-    ),
+    )
+    .describe("Une entrée par catégorie parmi les 5 (ne pas dupliquer une catégorie)"),
 
-    competenceCategories: z
-      .array(
-        z.object({
-          categorie: z.enum([
-            "DOMAINES",
-            "LOGICIELS_OUTILS",
-            "METHODES_NORMES",
-            "SECTEURS",
-            "MANAGEMENT",
-          ]),
-          contenu: z.string(),
-          niveau: z.number().int().min(1).max(5),
-        })
-      )
-      .describe("Une entrée par catégorie parmi les 5 (ne pas dupliquer une catégorie)"),
+  formations: z.array(
+    z.object({
+      type: z.enum(["FORMATION", "CERTIFICATION"]),
+      annee: z.string(),
+      intitule: z.string(),
+      etablissement: z.string().nullable(),
+    })
+  ),
 
-    formations: z.array(
+  experiences: z
+    .array(
       z.object({
-        type: z.enum(["FORMATION", "CERTIFICATION"]),
-        annee: z.string(),
-        intitule: z.string(),
-        etablissement: z.string().nullable(),
+        entreprise: z
+          .string()
+          .describe("Nom générique si NDA/confidentiel, ex. 'Entreprise cliente — secteur X'"),
+        secteurActivite: z.string().nullable(),
+        missionTitre: z.string(),
+        dateDebut: z.string().nullable().describe("Format AAAA-MM"),
+        dateFin: z.string().nullable().describe("Format AAAA-MM, null si mission en cours"),
+        contexteObjectif: z.string().nullable(),
+        realisations: z.array(z.string()).describe("2 à 4 réalisations, action + résultat mesurable si possible"),
+        environnementTechnique: z.string().nullable(),
       })
-    ),
+    )
+    .describe("De la plus récente à la plus ancienne"),
+});
 
-    experiences: z
-      .array(
-        z.object({
-          entreprise: z
-            .string()
-            .describe("Nom générique si NDA/confidentiel, ex. 'Entreprise cliente — secteur X'"),
-          secteurActivite: z.string().nullable(),
-          missionTitre: z.string(),
-          dateDebut: z.string().nullable().describe("Format AAAA-MM"),
-          dateFin: z.string().nullable().describe("Format AAAA-MM, null si mission en cours"),
-          contexteObjectif: z.string().nullable(),
-          realisations: z.array(z.string()).describe("2 à 4 réalisations, action + résultat mesurable si possible"),
-          environnementTechnique: z.string().nullable(),
-        })
-      )
-      .describe("De la plus récente à la plus ancienne"),
-  });
-}
+export type GeneratedDC = z.infer<typeof schema>;
 
-export type GeneratedDC = z.infer<ReturnType<typeof buildSchema>>;
+function buildSystemPrompt(): string {
+  const jsonSchema = JSON.stringify(z.toJSONSchema(schema), null, 2);
 
-const SYSTEM_PROMPT = `Tu es l'assistant interne d'HYPERION Group, société de conseil en ingénierie IT et industrie qui place des consultants en régie.
+  return `Tu es l'assistant interne d'HYPERION Group, société de conseil en ingénierie IT et industrie qui place des consultants en régie.
 Ta tâche : à partir d'un CV (ou d'un dossier de compétences existant, éventuellement dans un autre format que celui d'HYPERION) et, si elle est fournie, d'une transcription d'entretien de recrutement, générer un dossier de compétences (DC) structuré, prêt à être relu et publié par un business manager dans une bibliothèque de profils anonymisés.
 
 Règles impératives :
 - N'invente aucune information. Si une donnée n'est pas déductible des documents fournis, laisse le champ vide (null ou tableau vide) plutôt que d'halluciner.
 - Aucune transcription d'entretien n'est fournie ? Base-toi uniquement sur le CV/dossier existant ; c'est une situation normale (candidat déjà rencontré, dossier reçu tel quel).
 - Le résumé de contexte et les expériences détaillées ne doivent contenir AUCUNE information identifiante (pas de nom de personne, pas de nom d'entreprise cliente réel si un NDA est mentionné — utilise alors une formulation générique comme "Entreprise cliente du secteur X").
-- Pour les champs contraints par un référentiel (secteurs, expertises, séniorité, mobilité, zones), choisis uniquement parmi les valeurs fournies dans le référentiel — n'en invente pas de nouvelles.
+- Pour les champs contraints par un référentiel (secteurs, expertises, séniorité, mobilité, zones), choisis EXCLUSIVEMENT parmi les valeurs listées dans les référentiels fournis dans le message utilisateur — n'en invente pas de nouvelles, respecte l'orthographe exacte.
 - La séniorité et le niveau des compétences/langues doivent être cohérents avec les années d'expérience et les informations disponibles.
-- Sois factuel et concis, dans un français professionnel.`;
+- Sois factuel et concis, dans un français professionnel.
+
+Réponds UNIQUEMENT avec un objet JSON valide respectant exactement ce schéma JSON Schema (aucun texte avant/après, aucun bloc de code markdown, pas de commentaire) :
+
+${jsonSchema}`;
+}
 
 function describeAnthropicError(err: unknown): string {
   if (err instanceof Anthropic.AuthenticationError) {
@@ -163,6 +156,20 @@ function describeAnthropicError(err: unknown): string {
   return "Erreur inconnue.";
 }
 
+function extractJsonObject(text: string): unknown {
+  // Retire un éventuel bloc de code markdown (```json ... ``` ou ``` ... ```)
+  const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text);
+  const candidate = fenced ? fenced[1] : text;
+
+  const start = candidate.indexOf("{");
+  const end = candidate.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error("La réponse de l'IA ne contient pas de JSON exploitable.");
+  }
+
+  return JSON.parse(candidate.slice(start, end + 1));
+}
+
 export async function generateDCFromCvAndTranscript(params: {
   cvText: string;
   transcriptText: string | null;
@@ -177,7 +184,6 @@ export async function generateDCFromCvAndTranscript(params: {
       ? { defaultHeaders: { "anthropic-workspace-id": workspaceId } }
       : undefined
   );
-  const schema = buildSchema(params.vocab);
 
   const vocabBlock = `Référentiels disponibles (n'utilise que ces valeurs pour les champs concernés) :
 - Secteurs : ${params.vocab.secteurs.join(", ") || "(aucun configuré)"}
@@ -190,14 +196,14 @@ export async function generateDCFromCvAndTranscript(params: {
     ? `=== TRANSCRIPTION D'ENTRETIEN ===\n${params.transcriptText}`
     : "=== TRANSCRIPTION D'ENTRETIEN ===\n(non fournie — base-toi uniquement sur le CV/dossier ci-dessus)";
 
-  let response;
+  let responseText: string;
   try {
-    response = await client.messages.parse({
+    const response = await client.messages.create({
       model: "claude-opus-5",
       max_tokens: 16000,
       thinking: { type: "adaptive" },
-      output_config: { effort: "high", format: zodOutputFormat(schema) },
-      system: SYSTEM_PROMPT,
+      output_config: { effort: "high" },
+      system: buildSystemPrompt(),
       messages: [
         {
           role: "user",
@@ -210,15 +216,32 @@ ${transcriptBlock}`,
         },
       ],
     });
+    const textBlock = response.content.find((b) => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") {
+      throw new Error("La génération n'a produit aucun texte exploitable.");
+    }
+    responseText = textBlock.text;
   } catch (err) {
+    if (err instanceof Error && err.message.startsWith("La génération")) throw err;
     throw new Error(describeAnthropicError(err));
   }
 
-  if (!response.parsed_output) {
+  let parsedJson: unknown;
+  try {
+    parsedJson = extractJsonObject(responseText);
+  } catch {
     throw new Error(
-      "La génération n'a pas produit de résultat structuré exploitable. Réessayez, ou complétez le dossier manuellement."
+      "La réponse de l'IA n'était pas un JSON valide. Réessayez, ou complétez le dossier manuellement."
     );
   }
 
-  return response.parsed_output;
+  const result = schema.safeParse(parsedJson);
+  if (!result.success) {
+    console.error("[generation-ia] JSON reçu ne respecte pas le schéma", result.error.issues);
+    throw new Error(
+      "La réponse de l'IA ne correspondait pas au format attendu. Réessayez, ou complétez le dossier manuellement."
+    );
+  }
+
+  return result.data;
 }
