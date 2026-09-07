@@ -1,0 +1,73 @@
+import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { requireStaff } from "@/lib/guards";
+import { ROLES, STATUT_PUBLICATION_LABELS } from "@/lib/constants";
+import { consultantPublicSelect } from "@/lib/consultant-view";
+import ConsultantDetail from "@/components/consultant/ConsultantDetail";
+
+export const dynamic = "force-dynamic";
+
+export default async function ConsultantApercuPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const session = await requireStaff();
+  const { id } = await params;
+
+  const consultant = await prisma.consultant.findUnique({
+    where: { id },
+    select: {
+      ...consultantPublicSelect,
+      nom: true,
+      prenom: true,
+      businessManagerId: true,
+    },
+  });
+
+  if (!consultant) notFound();
+  if (
+    session.user.role !== ROLES.ADMIN &&
+    consultant.businessManagerId !== session.user.id
+  ) {
+    redirect("/admin/consultants");
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-4">
+      <div className="flex items-center justify-between">
+        <Link href="/admin/consultants" className="text-sm text-brand-gray underline">
+          ← Retour à la liste
+        </Link>
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+            Aperçu vue client — {consultant.prenom} {consultant.nom} (
+            {STATUT_PUBLICATION_LABELS[
+              consultant.statutPublication as keyof typeof STATUT_PUBLICATION_LABELS
+            ] ?? consultant.statutPublication}
+            )
+          </span>
+          <Link
+            href={`/admin/consultants/${id}`}
+            className="rounded-md bg-brand-ink px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-blue-dark"
+          >
+            Modifier ce dossier
+          </Link>
+        </div>
+      </div>
+
+      {consultant.statutPublication !== "PUBLIEE" && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Cette fiche n&apos;est pas encore publiée : elle n&apos;est pas
+          visible dans la bibliothèque client. Ce qui suit est exactement ce
+          qu&apos;un client verrait une fois la fiche publiée.
+        </div>
+      )}
+
+      <div className="rounded-lg border border-slate-200 bg-white p-6">
+        <ConsultantDetail consultant={consultant} />
+      </div>
+    </div>
+  );
+}

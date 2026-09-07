@@ -179,9 +179,17 @@ export default async function ConsultantEditPage({
               <h2 className="text-sm font-semibold text-brand-ink">
                 Aperçu — ce que voit le client
               </h2>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-brand-gray">
-                anonymisé
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-brand-gray">
+                  anonymisé
+                </span>
+                <Link
+                  href={`/admin/consultants/${id}/apercu`}
+                  className="text-xs text-brand-blue underline hover:text-brand-blue-dark"
+                >
+                  Plein écran
+                </Link>
+              </div>
             </div>
             {publicView && <ConsultantDetail consultant={publicView} />}
           </div>

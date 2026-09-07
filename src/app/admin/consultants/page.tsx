@@ -108,6 +108,7 @@ export default async function ConsultantsListPage({
               <th className="px-4 py-2">BM référent</th>
               <th className="px-4 py-2">Statut</th>
               <th className="px-4 py-2">Dernière maj</th>
+              <th className="px-4 py-2"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -142,12 +143,27 @@ export default async function ConsultantsListPage({
                       {isStale ? " · à actualiser" : ""}
                     </span>
                   </td>
+                  <td className="px-4 py-2 whitespace-nowrap text-right">
+                    <Link
+                      href={`/admin/consultants/${c.id}/apercu`}
+                      className="text-sm text-brand-blue underline hover:text-brand-blue-dark"
+                    >
+                      Aperçu
+                    </Link>
+                    <span className="mx-1.5 text-slate-300">·</span>
+                    <Link
+                      href={`/admin/consultants/${c.id}`}
+                      className="text-sm text-brand-body underline hover:text-brand-ink"
+                    >
+                      Modifier
+                    </Link>
+                  </td>
                 </tr>
               );
             })}
             {consultants.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-brand-gray">
+                <td colSpan={7} className="px-4 py-6 text-center text-brand-gray">
                   Aucun dossier trouvé.
                 </td>
               </tr>
