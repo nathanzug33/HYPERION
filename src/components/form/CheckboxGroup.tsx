@@ -10,7 +10,7 @@ export default function CheckboxGroup({
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1.5 rounded-md border border-slate-200 p-2.5">
       {options.map((opt) => (
-        <label key={opt.id} className="flex items-center gap-1.5 text-sm text-slate-700">
+        <label key={opt.id} className="flex items-center gap-1.5 text-sm text-brand-body">
           <input
             type="checkbox"
             name={name}
@@ -22,7 +22,7 @@ export default function CheckboxGroup({
         </label>
       ))}
       {options.length === 0 && (
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-brand-gray">
           Aucune valeur active dans ce référentiel.
         </span>
       )}

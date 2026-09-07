@@ -10,7 +10,7 @@ export default function LogoutButton() {
     >
       <button
         type="submit"
-        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
+        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-brand-body hover:bg-brand-blue-bg"
       >
         Déconnexion
       </button>

@@ -1,4 +1,5 @@
 import type {
+  CompetenceCategorie,
   Consultant,
   ConsultantCompetence,
   ConsultantExpertise,
@@ -6,11 +7,18 @@ import type {
   ConsultantSecteur,
   ConsultantTypeMobilite,
   ConsultantZoneGeographique,
+  Experience,
+  Formation,
   User,
 } from "@prisma/client";
 import CheckboxGroup from "@/components/form/CheckboxGroup";
+import LangueNiveauGroup from "@/components/form/LangueNiveauGroup";
 import {
+  COMPETENCE_CATEGORIES,
+  COMPETENCE_CATEGORIE_LABELS,
   DISPONIBILITE_LABELS,
+  FORMATION_TYPE,
+  NIVEAU_LABELS,
   STATUT_CANDIDAT_INTERNE_LABELS,
   TYPE_CONTRAT_LABELS,
 } from "@/lib/constants";
@@ -23,7 +31,13 @@ type ConsultantWithRelations = Consultant & {
   typesMobilite: ConsultantTypeMobilite[];
   zonesGeographiques: ConsultantZoneGeographique[];
   langues: ConsultantLangue[];
+  competenceCategories: CompetenceCategorie[];
+  formations: Formation[];
+  experiences: Experience[];
 };
+
+const FORMATION_SLOTS = 6;
+const EXPERIENCE_SLOTS = 4;
 
 type Referential = { id: string; label: string };
 
@@ -53,7 +67,7 @@ export default function ConsultantEditForm({
       <input type="hidden" name="id" value={consultant.id} />
 
       <fieldset className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
-        <legend className="px-1 text-sm font-semibold text-slate-900">
+        <legend className="px-1 text-sm font-semibold text-brand-ink">
           Champs internes (jamais exposés)
         </legend>
 
@@ -116,7 +130,7 @@ export default function ConsultantEditForm({
         </Field>
 
         <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm text-brand-body">
             <input
               type="checkbox"
               name="consentementRgpd"
@@ -125,7 +139,7 @@ export default function ConsultantEditForm({
             />
             Consentement RGPD (vivier interne)
           </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm text-brand-body">
             <input
               type="checkbox"
               name="consentementPublication"
@@ -142,7 +156,7 @@ export default function ConsultantEditForm({
               className="input"
             />
           </Field>
-          <div className="text-xs text-slate-500 self-end pb-1.5">
+          <div className="text-xs text-brand-gray self-end pb-1.5">
             Collecté le {fmtDate(consultant.dateCollecte)} · purge prévue le{" "}
             {fmtDate(consultant.dateConservationLimite)}
           </div>
@@ -150,7 +164,7 @@ export default function ConsultantEditForm({
       </fieldset>
 
       <fieldset className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
-        <legend className="px-1 text-sm font-semibold text-slate-900">
+        <legend className="px-1 text-sm font-semibold text-brand-ink">
           Champs exposables (projection anonymisée)
         </legend>
 
@@ -265,16 +279,19 @@ export default function ConsultantEditForm({
           />
         </Field>
 
-        <Field label="Langues">
-          <CheckboxGroup
-            name="langueIds"
+        <Field label="Langues (niveau 1 à 5, détail optionnel)">
+          <LangueNiveauGroup
             options={referentials.langues}
-            selectedIds={new Set(consultant.langues.map((l) => l.langueId))}
+            existing={consultant.langues.map((l) => ({
+              langueId: l.langueId,
+              niveau: l.niveau,
+              detail: l.detail,
+            }))}
           />
         </Field>
 
         <div className="border-t border-slate-100 pt-4">
-          <h3 className="text-sm font-medium text-slate-800 mb-2">
+          <h3 className="text-sm font-medium text-brand-ink mb-2">
             Mobilité (critère éliminatoire — à renseigner avec soin)
           </h3>
           <div className="space-y-3">
@@ -309,7 +326,7 @@ export default function ConsultantEditForm({
                 />
               </Field>
             </div>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-brand-body">
               <input
                 type="checkbox"
                 name="ouvertGrandDeplacement"
@@ -322,9 +339,108 @@ export default function ConsultantEditForm({
         </div>
       </fieldset>
 
+      <fieldset className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+        <legend className="px-1 text-sm font-semibold text-brand-ink">
+          Compétences détaillées (gabarit HYPERION — 02)
+        </legend>
+        {Object.values(COMPETENCE_CATEGORIES).map((cat) => {
+          const existing = consultant.competenceCategories.find((c) => c.categorie === cat);
+          return (
+            <div key={cat} className="grid grid-cols-[10rem_1fr_8rem] items-center gap-2">
+              <span className="text-xs font-medium text-brand-body">
+                {COMPETENCE_CATEGORIE_LABELS[cat]}
+              </span>
+              <input
+                name={`compCat_${cat}_contenu`}
+                defaultValue={existing?.contenu ?? ""}
+                placeholder="Ex. conception mécanique, calcul…"
+                className="input"
+              />
+              <select
+                name={`compCat_${cat}_niveau`}
+                defaultValue={existing?.niveau ?? 3}
+                className="input"
+              >
+                {Object.entries(NIVEAU_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+          );
+        })}
+      </fieldset>
+
+      <fieldset className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+        <legend className="px-1 text-sm font-semibold text-brand-ink">
+          Formations & certifications (gabarit HYPERION — 03)
+        </legend>
+        <p className="text-xs text-brand-gray">
+          Laissez un bloc vide (intitulé) pour qu&apos;il soit ignoré à l&apos;enregistrement.
+        </p>
+        {Array.from({ length: FORMATION_SLOTS }).map((_, i) => {
+          const existing = consultant.formations[i];
+          return (
+            <div key={i} className="grid grid-cols-[7rem_7rem_1fr_1fr] gap-2">
+              <select name={`formationType_${i}`} defaultValue={existing?.type ?? FORMATION_TYPE.FORMATION} className="input">
+                <option value={FORMATION_TYPE.FORMATION}>Formation</option>
+                <option value={FORMATION_TYPE.CERTIFICATION}>Certification</option>
+              </select>
+              <input name={`formationAnnee_${i}`} defaultValue={existing?.annee ?? ""} placeholder="Année" className="input" />
+              <input name={`formationIntitule_${i}`} defaultValue={existing?.intitule ?? ""} placeholder="Intitulé" className="input" />
+              <input name={`formationEtablissement_${i}`} defaultValue={existing?.etablissement ?? ""} placeholder="Établissement" className="input" />
+            </div>
+          );
+        })}
+      </fieldset>
+
+      <fieldset className="rounded-lg border border-slate-200 bg-white p-4 space-y-6">
+        <legend className="px-1 text-sm font-semibold text-brand-ink">
+          Expériences détaillées (gabarit HYPERION — 05)
+        </legend>
+        <p className="text-xs text-brand-gray">
+          De la plus récente à la plus ancienne. {EXPERIENCE_SLOTS} blocs sont
+          prévus ; laissez un bloc vide (entreprise + mission) pour
+          qu&apos;il soit ignoré à l&apos;enregistrement. Une réalisation par
+          ligne.
+        </p>
+        {Array.from({ length: EXPERIENCE_SLOTS }).map((_, i) => {
+          const existing = consultant.experiences[i];
+          const toMonthInput = (d: Date | null | undefined) =>
+            d ? new Date(d).toISOString().slice(0, 7) : "";
+          return (
+            <div key={i} className="space-y-2 border-t border-slate-100 pt-4 first:border-0 first:pt-0">
+              <div className="grid grid-cols-2 gap-2">
+                <input name={`expEntreprise_${i}`} defaultValue={existing?.entreprise ?? ""} placeholder="Entreprise (générique si NDA)" className="input" />
+                <input name={`expSecteur_${i}`} defaultValue={existing?.secteurActivite ?? ""} placeholder="Secteur d'activité" className="input" />
+              </div>
+              <input name={`expMission_${i}`} defaultValue={existing?.missionTitre ?? ""} placeholder="Intitulé de la mission" className="input" />
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="Début">
+                  <input type="month" name={`expDebut_${i}`} defaultValue={toMonthInput(existing?.dateDebut)} className="input" />
+                </Field>
+                <Field label="Fin (vide = en cours)">
+                  <input type="month" name={`expFin_${i}`} defaultValue={toMonthInput(existing?.dateFin)} className="input" />
+                </Field>
+              </div>
+              <textarea name={`expContexte_${i}`} defaultValue={existing?.contexteObjectif ?? ""} placeholder="Contexte & objectif" rows={2} className="input" />
+              <textarea
+                name={`expRealisations_${i}`}
+                defaultValue={existing?.realisations ?? ""}
+                placeholder={"Réalisations (une par ligne)"}
+                rows={3}
+                className="input"
+              />
+              <input name={`expEnvTech_${i}`} defaultValue={existing?.environnementTechnique ?? ""} placeholder="Environnement technique" className="input" />
+            </div>
+          );
+        })}
+      </fieldset>
+
       <button
         type="submit"
-        className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-700"
+        className="rounded-md bg-brand-ink px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-blue-dark"
       >
         Enregistrer les modifications
       </button>
@@ -335,7 +451,7 @@ export default function ConsultantEditForm({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-slate-700 mb-1">{label}</span>
+      <span className="block text-xs font-medium text-brand-body mb-1">{label}</span>
       {children}
     </label>
   );

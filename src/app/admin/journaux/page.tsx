@@ -23,10 +23,10 @@ export default async function JournauxPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">
+        <h1 className="text-xl font-semibold text-brand-ink">
           Journaux et traçabilité
         </h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-brand-gray">
           Réservé à l&apos;administrateur. Les 50 dernières entrées sont
           affichées ; utilisez les exports pour l&apos;historique complet.
         </p>
@@ -34,12 +34,12 @@ export default async function JournauxPage() {
 
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">
+          <h2 className="text-sm font-semibold text-brand-ink">
             Connexions
           </h2>
           <a
             href="/admin/journaux/export/connexions"
-            className="text-sm text-slate-600 underline hover:text-slate-900"
+            className="text-sm text-brand-body underline hover:text-brand-ink"
           >
             Exporter en CSV
           </a>
@@ -56,12 +56,12 @@ export default async function JournauxPage() {
 
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">
+          <h2 className="text-sm font-semibold text-brand-ink">
             Fiches consultées
           </h2>
           <a
             href="/admin/journaux/export/consultations"
-            className="text-sm text-slate-600 underline hover:text-slate-900"
+            className="text-sm text-brand-body underline hover:text-brand-ink"
           >
             Exporter en CSV
           </a>
@@ -78,17 +78,17 @@ export default async function JournauxPage() {
 
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">
+          <h2 className="text-sm font-semibold text-brand-ink">
             Demandes de contact ({demandes} au total)
           </h2>
           <a
             href="/admin/journaux/export/demandes"
-            className="text-sm text-slate-600 underline hover:text-slate-900"
+            className="text-sm text-brand-body underline hover:text-brand-ink"
           >
             Exporter en CSV
           </a>
         </div>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-brand-gray">
           Le détail des demandes se gère dans{" "}
           <a href="/admin/demandes" className="underline">
             Demandes de contact
@@ -104,7 +104,7 @@ function LogTable({ headers, rows }: { headers: string[]; rows: (string | null)[
   return (
     <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
       <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+        <thead className="bg-brand-blue-bg-soft text-left text-xs uppercase tracking-wide text-brand-gray">
           <tr>
             {headers.map((h) => (
               <th key={h} className="px-4 py-2">
@@ -117,7 +117,7 @@ function LogTable({ headers, rows }: { headers: string[]; rows: (string | null)[
           {rows.map((row, i) => (
             <tr key={i}>
               {row.map((cell, j) => (
-                <td key={j} className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                <td key={j} className="px-4 py-2 text-brand-body whitespace-nowrap">
                   {cell}
                 </td>
               ))}
@@ -125,7 +125,7 @@ function LogTable({ headers, rows }: { headers: string[]; rows: (string | null)[
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={headers.length} className="px-4 py-6 text-center text-slate-400">
+              <td colSpan={headers.length} className="px-4 py-6 text-center text-brand-gray">
                 Aucune entrée.
               </td>
             </tr>

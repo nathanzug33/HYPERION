@@ -46,20 +46,28 @@ export default async function ConsultantsListPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">
+          <h1 className="text-xl font-semibold text-brand-ink">
             Dossiers de compétences
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-brand-gray">
             Vue interne — noms et coordonnées visibles ici uniquement.
             {purge && " Filtré sur les dossiers ayant dépassé leur durée de conservation RGPD."}
           </p>
         </div>
-        <Link
-          href="/admin/consultants/nouveau"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-        >
-          + Nouveau dossier
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/consultants/nouveau"
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-brand-body hover:bg-brand-blue-bg-soft"
+          >
+            + Saisie manuelle
+          </Link>
+          <Link
+            href="/admin/consultants/generer-ia"
+            className="rounded-md bg-brand-ink px-4 py-2 text-sm font-medium text-white hover:bg-brand-blue-dark"
+          >
+            Générer avec l&apos;IA
+          </Link>
+        </div>
       </div>
 
       <form className="flex flex-wrap gap-2">
@@ -68,12 +76,12 @@ export default async function ConsultantsListPage({
           name="q"
           defaultValue={q}
           placeholder="Rechercher (nom, référence, poste)…"
-          className="w-64 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-900 focus:outline-none"
+          className="w-64 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
         />
         <select
           name="statut"
           defaultValue={statut ?? ""}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-900 focus:outline-none"
+          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
         >
           <option value="">Tous les statuts</option>
           {Object.entries(STATUT_PUBLICATION_LABELS).map(([k, v]) => (
@@ -84,7 +92,7 @@ export default async function ConsultantsListPage({
         </select>
         <button
           type="submit"
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100"
+          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-brand-blue-bg"
         >
           Filtrer
         </button>
@@ -92,7 +100,7 @@ export default async function ConsultantsListPage({
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-brand-blue-bg-soft text-left text-xs uppercase tracking-wide text-brand-gray">
             <tr>
               <th className="px-4 py-2">Référence</th>
               <th className="px-4 py-2">Nom</th>
@@ -107,28 +115,28 @@ export default async function ConsultantsListPage({
               const isStale =
                 c.statutPublication === "PUBLIEE" && c.updatedAt < staleThreshold;
               return (
-                <tr key={c.id} className="hover:bg-slate-50">
+                <tr key={c.id} className="hover:bg-brand-blue-bg-soft">
                   <td className="px-4 py-2">
                     <Link
                       href={`/admin/consultants/${c.id}`}
-                      className="font-medium text-slate-900 hover:underline"
+                      className="font-medium text-brand-ink hover:underline"
                     >
                       {c.referenceAnonyme}
                     </Link>
                   </td>
-                  <td className="px-4 py-2 text-slate-600">
+                  <td className="px-4 py-2 text-brand-body">
                     {c.prenom} {c.nom}
                   </td>
-                  <td className="px-4 py-2 text-slate-600">
+                  <td className="px-4 py-2 text-brand-body">
                     {c.intitulePoste ?? "—"}
                   </td>
-                  <td className="px-4 py-2 text-slate-600">
+                  <td className="px-4 py-2 text-brand-body">
                     {c.businessManager.name}
                   </td>
                   <td className="px-4 py-2">
                     <StatusBadge statut={c.statutPublication} />
                   </td>
-                  <td className="px-4 py-2 text-slate-500">
+                  <td className="px-4 py-2 text-brand-gray">
                     <span className={isStale ? "text-amber-700 font-medium" : ""}>
                       {new Date(c.updatedAt).toLocaleDateString("fr-FR")}
                       {isStale ? " · à actualiser" : ""}
@@ -139,7 +147,7 @@ export default async function ConsultantsListPage({
             })}
             {consultants.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-6 text-center text-brand-gray">
                   Aucun dossier trouvé.
                 </td>
               </tr>
@@ -153,10 +161,10 @@ export default async function ConsultantsListPage({
 
 function StatusBadge({ statut }: { statut: string }) {
   const styles: Record<string, string> = {
-    BROUILLON: "bg-slate-100 text-slate-600",
+    BROUILLON: "bg-slate-100 text-brand-body",
     PUBLIEE: "bg-emerald-50 text-emerald-700",
     DEPUBLIEE: "bg-amber-50 text-amber-700",
-    ARCHIVEE: "bg-slate-100 text-slate-400",
+    ARCHIVEE: "bg-slate-100 text-brand-gray",
   };
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${styles[statut] ?? ""}`}>

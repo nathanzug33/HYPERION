@@ -21,7 +21,10 @@ export const consultantPublicSelect = {
   secteurs: { select: { secteur: { select: { id: true, label: true } } } },
   expertises: { select: { expertise: { select: { id: true, label: true } } } },
   competences: {
-    select: { competence: { select: { id: true, label: true } } },
+    select: {
+      estCle: true,
+      competence: { select: { id: true, label: true } },
+    },
   },
   typesMobilite: {
     select: { typeMobilite: { select: { id: true, label: true } } },
@@ -29,7 +32,35 @@ export const consultantPublicSelect = {
   zonesGeographiques: {
     select: { zoneGeographique: { select: { id: true, label: true } } },
   },
-  langues: { select: { langue: { select: { id: true, label: true } } } },
+  langues: {
+    select: {
+      niveau: true,
+      detail: true,
+      langue: { select: { id: true, label: true } },
+    },
+  },
+  competenceCategories: {
+    orderBy: { ordre: "asc" },
+    select: { id: true, categorie: true, contenu: true, niveau: true },
+  },
+  formations: {
+    orderBy: { ordre: "asc" },
+    select: { id: true, type: true, annee: true, intitule: true, etablissement: true },
+  },
+  experiences: {
+    orderBy: { ordre: "asc" },
+    select: {
+      id: true,
+      entreprise: true,
+      secteurActivite: true,
+      missionTitre: true,
+      dateDebut: true,
+      dateFin: true,
+      contexteObjectif: true,
+      realisations: true,
+      environnementTechnique: true,
+    },
+  },
 } satisfies Prisma.ConsultantSelect;
 
 export type ConsultantPublic = Prisma.ConsultantGetPayload<{

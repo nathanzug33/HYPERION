@@ -5,10 +5,16 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff, requireAdmin } from "@/lib/guards";
 import { generateNextReference } from "@/lib/reference-generator";
-import { ROLES, STATUT_PUBLICATION } from "@/lib/constants";
+import { COMPETENCE_CATEGORIES, ROLES, STATUT_PUBLICATION } from "@/lib/constants";
 
 function getMulti(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
+}
+
+function parseMonthInput(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, 1);
 }
 
 function computeRetentionDate(dateCollecte: Date, dureeMois: number): Date {
@@ -128,6 +134,51 @@ export async function updateConsultantAction(formData: FormData) {
   const zoneIds = getMulti(formData, "zoneIds");
   const langueIds = getMulti(formData, "langueIds");
 
+  const langueRows = langueIds.map((langueId) => ({
+    consultantId: id,
+    langueId,
+    niveau: Number(formData.get(`langueNiveau_${langueId}`)) || 3,
+    detail: String(formData.get(`langueDetail_${langueId}`) ?? "").trim() || null,
+  }));
+
+  const competenceCategorieRows = Object.values(COMPETENCE_CATEGORIES)
+    .map((cat, ordre) => ({
+      consultantId: id,
+      categorie: cat,
+      contenu: String(formData.get(`compCat_${cat}_contenu`) ?? "").trim(),
+      niveau: Number(formData.get(`compCat_${cat}_niveau`)) || 3,
+      ordre,
+    }))
+    .filter((row) => row.contenu);
+
+  const formationRows = Array.from({ length: 6 })
+    .map((_, i) => ({
+      consultantId: id,
+      type: String(formData.get(`formationType_${i}`) ?? "FORMATION"),
+      annee: String(formData.get(`formationAnnee_${i}`) ?? "").trim(),
+      intitule: String(formData.get(`formationIntitule_${i}`) ?? "").trim(),
+      etablissement:
+        String(formData.get(`formationEtablissement_${i}`) ?? "").trim() || null,
+      ordre: i,
+    }))
+    .filter((row) => row.intitule);
+
+  const experienceRows = Array.from({ length: 4 })
+    .map((_, i) => ({
+      consultantId: id,
+      entreprise: String(formData.get(`expEntreprise_${i}`) ?? "").trim(),
+      secteurActivite: String(formData.get(`expSecteur_${i}`) ?? "").trim() || null,
+      missionTitre: String(formData.get(`expMission_${i}`) ?? "").trim(),
+      dateDebut: parseMonthInput(String(formData.get(`expDebut_${i}`) ?? "")),
+      dateFin: parseMonthInput(String(formData.get(`expFin_${i}`) ?? "")),
+      contexteObjectif: String(formData.get(`expContexte_${i}`) ?? "").trim() || null,
+      realisations: String(formData.get(`expRealisations_${i}`) ?? "").trim() || null,
+      environnementTechnique:
+        String(formData.get(`expEnvTech_${i}`) ?? "").trim() || null,
+      ordre: i,
+    }))
+    .filter((row) => row.entreprise && row.missionTitre);
+
   await prisma.$transaction([
     prisma.consultant.update({ where: { id }, data }),
     prisma.consultantSecteur.deleteMany({ where: { consultantId: id } }),
@@ -165,9 +216,16 @@ export async function updateConsultantAction(formData: FormData) {
       })),
     }),
     prisma.consultantLangue.deleteMany({ where: { consultantId: id } }),
-    prisma.consultantLangue.createMany({
-      data: langueIds.map((langueId) => ({ consultantId: id, langueId })),
-    }),
+    prisma.consultantLangue.createMany({ data: langueRows }),
+
+    prisma.competenceCategorie.deleteMany({ where: { consultantId: id } }),
+    prisma.competenceCategorie.createMany({ data: competenceCategorieRows }),
+
+    prisma.formation.deleteMany({ where: { consultantId: id } }),
+    prisma.formation.createMany({ data: formationRows }),
+
+    prisma.experience.deleteMany({ where: { consultantId: id } }),
+    prisma.experience.createMany({ data: experienceRows }),
   ]);
 
   revalidatePath(`/admin/consultants/${id}`);

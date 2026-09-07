@@ -21,11 +21,11 @@ export default async function ConsultantEditPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ia?: string }>;
 }) {
   const session = await requireStaff();
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, ia } = await searchParams;
 
   const consultant = await prisma.consultant.findUnique({
     where: { id },
@@ -37,6 +37,9 @@ export default async function ConsultantEditPage({
       zonesGeographiques: true,
       langues: true,
       businessManager: true,
+      competenceCategories: { orderBy: { ordre: "asc" } },
+      formations: { orderBy: { ordre: "asc" } },
+      experiences: { orderBy: { ordre: "asc" } },
     },
   });
 
@@ -76,15 +79,15 @@ export default async function ConsultantEditPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">
+          <h1 className="text-xl font-semibold text-brand-ink">
             {consultant.prenom} {consultant.nom}{" "}
-            <span className="text-slate-400 font-normal">
+            <span className="text-brand-gray font-normal">
               — {consultant.referenceAnonyme}
             </span>
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-brand-gray">
             Statut :{" "}
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-brand-body">
               {STATUT_PUBLICATION_LABELS[
                 consultant.statutPublication as keyof typeof STATUT_PUBLICATION_LABELS
               ] ?? consultant.statutPublication}
@@ -92,10 +95,20 @@ export default async function ConsultantEditPage({
             {" · "}BM référent : {consultant.businessManager.name}
           </p>
         </div>
-        <Link href="/admin/consultants" className="text-sm text-slate-500 underline">
+        <Link href="/admin/consultants" className="text-sm text-brand-gray underline">
           Retour à la liste
         </Link>
       </div>
+
+      {ia && consultant.genereParIA && (
+        <div className="rounded-md border border-brand-blue-light bg-brand-blue-bg px-4 py-3 text-sm text-brand-ink">
+          Dossier pré-rempli par l&apos;IA à partir du CV et de la
+          transcription d&apos;entretien. Vérifiez les informations
+          (notamment l&apos;absence de donnée identifiante dans le contexte
+          des missions), complétez le nom si besoin, cochez les
+          consentements RGPD, puis publiez.
+        </div>
+      )}
 
       {error && (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -117,7 +130,7 @@ export default async function ConsultantEditPage({
           <input type="hidden" name="id" value={id} />
           <button
             type="submit"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-brand-blue-bg"
           >
             Dépublier
           </button>
@@ -126,7 +139,7 @@ export default async function ConsultantEditPage({
           <input type="hidden" name="id" value={id} />
           <button
             type="submit"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-brand-blue-bg"
           >
             Archiver
           </button>
@@ -157,10 +170,10 @@ export default async function ConsultantEditPage({
         <div className="lg:sticky lg:top-6 lg:self-start">
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-900">
+              <h2 className="text-sm font-semibold text-brand-ink">
                 Aperçu — ce que voit le client
               </h2>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-brand-gray">
                 anonymisé
               </span>
             </div>

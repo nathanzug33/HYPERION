@@ -20,17 +20,17 @@ export default async function DemandesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">
+        <h1 className="text-xl font-semibold text-brand-ink">
           Demandes de contact
         </h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-brand-gray">
           Suivi commercial des demandes générées par la bibliothèque.
         </p>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-brand-blue-bg-soft text-left text-xs uppercase tracking-wide text-brand-gray">
             <tr>
               <th className="px-4 py-2">Date</th>
               <th className="px-4 py-2">Profil</th>
@@ -43,27 +43,27 @@ export default async function DemandesPage() {
           <tbody className="divide-y divide-slate-100">
             {requests.map((r) => (
               <tr key={r.id}>
-                <td className="px-4 py-2 text-slate-500 whitespace-nowrap">
+                <td className="px-4 py-2 text-brand-gray whitespace-nowrap">
                   {new Date(r.createdAt).toLocaleString("fr-FR")}
                 </td>
-                <td className="px-4 py-2 font-mono text-slate-700">
+                <td className="px-4 py-2 font-mono text-brand-body">
                   {r.consultant.referenceAnonyme}
                 </td>
-                <td className="px-4 py-2 text-slate-600">
+                <td className="px-4 py-2 text-brand-body">
                   {r.clientUser.name}
                   {r.clientUser.clientOrganization && (
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-brand-gray">
                       {r.clientUser.clientOrganization.name}
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-2 max-w-xs text-slate-600">
+                <td className="px-4 py-2 max-w-xs text-brand-body">
                   <div className="line-clamp-2">{r.besoin}</div>
                   {r.localisation && (
-                    <div className="text-xs text-slate-400">{r.localisation}</div>
+                    <div className="text-xs text-brand-gray">{r.localisation}</div>
                   )}
                 </td>
-                <td className="px-4 py-2 text-slate-500 whitespace-nowrap">
+                <td className="px-4 py-2 text-brand-gray whitespace-nowrap">
                   {r.dateDemarrageSouhaitee
                     ? new Date(r.dateDemarrageSouhaitee).toLocaleDateString("fr-FR")
                     : "—"}
@@ -75,7 +75,7 @@ export default async function DemandesPage() {
             ))}
             {requests.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-6 text-center text-brand-gray">
                   Aucune demande pour le moment.
                 </td>
               </tr>

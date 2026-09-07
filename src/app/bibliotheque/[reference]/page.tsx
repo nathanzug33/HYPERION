@@ -32,7 +32,7 @@ export default async function ConsultantDetailPage({
 
   return (
     <div className="max-w-2xl">
-      <Link href="/bibliotheque" className="text-sm text-slate-500 underline">
+      <Link href="/bibliotheque" className="text-sm text-brand-gray underline">
         ← Retour à la bibliothèque
       </Link>
 

@@ -14,6 +14,11 @@ dans le cahier des charges (`cahierdeschargesbibliothequedc.md`).
 - **NextAuth v5** (Credentials + JWT), pas d'auto-inscription
 - Aucune dépendance externe pour l'envoi d'email en développement (les
   emails sont journalisés en console — voir `src/lib/mail.ts`)
+- **Génération de dossiers assistée par IA** (`@anthropic-ai/sdk`, modèle
+  Claude Opus) : CV + transcription d'entretien → dossier structuré
+  pré-rempli, optionnelle (nécessite `ANTHROPIC_API_KEY`)
+- **Charte graphique HYPERION** appliquée (bleus/vert extraits du gabarit
+  officiel), sans logo — voir `src/app/globals.css`
 
 ## Démarrage
 
@@ -76,6 +81,32 @@ Application sur http://localhost:3000.
   `src/lib/guards.ts`), accès à la bibliothèque strictement authentifié
   (pas de scraping anonyme).
 
+## Génération de dossiers assistée par IA
+
+Depuis `Dossiers de compétences → Générer avec l'IA` (`/admin/consultants/generer-ia`),
+un BM/admin colle ou dépose le CV (texte, `.txt` ou `.pdf`) et la
+transcription de l'entretien (texte ou `.txt`) : l'IA (Claude, extraction
+structurée stricte via `output_config.format`) génère un dossier complet
+au gabarit HYPERION — poste, séniorité, mobilité, disponibilité, résumé,
+compétences par catégorie avec niveaux, langues avec niveaux, formations
+et jusqu'à 4 expériences détaillées avec réalisations. Les valeurs des
+référentiels paramétrables (secteurs, expertises, séniorité, mobilité,
+zones) sont fournies au modèle comme vocabulaire fermé pour rester
+cohérentes avec l'existant ; les compétences/langues libres sont
+créées automatiquement si absentes du référentiel.
+
+Le dossier est **toujours créé en brouillon** : conformément au principe
+« aperçu obligatoire avant publication » du cahier des charges (§5.2/§8),
+la génération IA ne peut pas certifier elle-même le consentement RGPD ni
+garantir l'absence totale de donnée identifiante dans un texte libre — le
+BM doit relire l'aperçu, cocher les consentements, compléter le nom si
+besoin, puis publier. La création manuelle reste disponible en parallèle
+(`+ Saisie manuelle`).
+
+Fonctionnalité optionnelle : sans `ANTHROPIC_API_KEY` dans `.env`, la page
+affiche un message et redirige vers la saisie manuelle — le reste de
+l'application n'est pas impacté.
+
 ## Passage en production
 
 - **Base de données** : changer `provider = "sqlite"` en `"postgresql"`
@@ -86,6 +117,7 @@ Application sur http://localhost:3000.
   `src/lib/mail.ts` (SMTP, Resend, Postmark…) — actuellement les emails
   sont uniquement journalisés côté serveur.
 - **Secrets** : générer un `AUTH_SECRET` fort et dédié par environnement.
+  Ajouter `ANTHROPIC_API_KEY` pour activer la génération assistée par IA.
 - **Synchronisation ATS/CRM (hors MVP, §3.2/§9)** : le modèle de données
   sépare déjà nettement champs internes/exposables et référentiels ; un
   point d'API d'import/synchronisation peut être ajouté sans refonte, par

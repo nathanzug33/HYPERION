@@ -360,8 +360,9 @@ async function main() {
           })),
         },
         competences: {
-          create: s.competences.map((label) => ({
+          create: s.competences.map((label, i) => ({
             competenceId: findComp(label).id,
+            estCle: i < 2,
           })),
         },
         typesMobilite: {
@@ -375,13 +376,65 @@ async function main() {
           })),
         },
         langues: {
-          create: s.langues.map((label) => ({
+          create: s.langues.map((label, i) => ({
             langueId: findLangue(label).id,
+            niveau: i === 0 ? 5 : 4,
+            detail: i === 0 ? "Langue maternelle" : null,
           })),
         },
       },
     });
     console.log(`  ✓ ${consultant.referenceAnonyme} — ${consultant.intitulePoste}`);
+
+    if (s.ref === "IND-017") {
+      await prisma.competenceCategorie.createMany({
+        data: [
+          { consultantId: consultant.id, categorie: "DOMAINES", contenu: "Automatisme industriel, robotique, mise en service de lignes de production", niveau: 5, ordre: 0 },
+          { consultantId: consultant.id, categorie: "LOGICIELS_OUTILS", contenu: "Siemens TIA Portal, SCADA, WinCC", niveau: 4, ordre: 1 },
+          { consultantId: consultant.id, categorie: "METHODES_NORMES", contenu: "ISO 13849, Lean manufacturing", niveau: 4, ordre: 2 },
+          { consultantId: consultant.id, categorie: "SECTEURS", contenu: "Automobile, industrie lourde", niveau: 4, ordre: 3 },
+          { consultantId: consultant.id, categorie: "MANAGEMENT", contenu: "Pilotage d'équipe de 4 techniciens, relation client", niveau: 3, ordre: 4 },
+        ],
+      });
+      await prisma.formation.createMany({
+        data: [
+          { consultantId: consultant.id, type: "FORMATION", annee: "2014", intitule: "Diplôme d'ingénieur en automatisme", etablissement: "École nationale d'ingénieurs", ordre: 0 },
+          { consultantId: consultant.id, type: "CERTIFICATION", annee: "2020", intitule: "Certification Siemens TIA Portal Expert", etablissement: "Siemens", ordre: 1 },
+        ],
+      });
+      await prisma.experience.createMany({
+        data: [
+          {
+            consultantId: consultant.id,
+            entreprise: "Entreprise cliente — équipementier automobile",
+            secteurActivite: "Automobile",
+            missionTitre: "Ingénieur automaticien senior",
+            dateDebut: new Date(2023, 2, 1),
+            dateFin: null,
+            contexteObjectif:
+              "Mise en service d'une nouvelle ligne d'assemblage pour un site de production à forte cadence.",
+            realisations:
+              "Réduction de 15% du temps d'arrêt machine grâce à l'optimisation des programmes automates\nMise en place de la supervision SCADA temps réel sur 3 lignes\nFormation de 6 techniciens de maintenance",
+            environnementTechnique: "Siemens TIA Portal, SCADA, S7-1500",
+            ordre: 0,
+          },
+          {
+            consultantId: consultant.id,
+            entreprise: "Entreprise cliente — sous-traitant aéronautique",
+            secteurActivite: "Aéronautique",
+            missionTitre: "Ingénieur automaticien",
+            dateDebut: new Date(2020, 5, 1),
+            dateFin: new Date(2023, 1, 1),
+            contexteObjectif:
+              "Modernisation du parc automates d'un atelier de production de pièces composites.",
+            realisations:
+              "Migration de 12 automates vers une architecture S7-1500\nRédaction des dossiers de sécurité machine (ISO 13849)",
+            environnementTechnique: "Siemens TIA Portal, TwinCAT",
+            ordre: 1,
+          },
+        ],
+      });
+    }
   }
 
   console.log("\nComptes de démonstration (mot de passe : ChangeMe!2024) :");

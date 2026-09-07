@@ -46,8 +46,8 @@ export default async function ReferentielsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Référentiels</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-xl font-semibold text-brand-ink">Référentiels</h1>
+        <p className="text-sm text-brand-gray">
           Ces listes alimentent les filtres de la bibliothèque client et les
           formulaires de saisie des dossiers. Désactiver une valeur ne
           supprime pas l&apos;historique, elle disparaît simplement des
@@ -75,14 +75,14 @@ function ReferentialSection({
 }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-slate-900 mb-3">{title}</h2>
+      <h2 className="text-sm font-semibold text-brand-ink mb-3">{title}</h2>
       <ul className="space-y-1.5 mb-3">
         {items.map((item) => (
           <li
             key={item.id}
             className="flex items-center justify-between gap-2 text-sm"
           >
-            <span className={item.active ? "text-slate-700" : "text-slate-400 line-through"}>
+            <span className={item.active ? "text-brand-body" : "text-brand-gray line-through"}>
               {item.label}
             </span>
             <form action={toggleReferentialActive}>
@@ -91,7 +91,7 @@ function ReferentialSection({
               <input type="hidden" name="active" value={String(item.active)} />
               <button
                 type="submit"
-                className="text-xs text-slate-500 underline hover:text-slate-800"
+                className="text-xs text-brand-gray underline hover:text-brand-ink"
               >
                 {item.active ? "Désactiver" : "Réactiver"}
               </button>
@@ -99,7 +99,7 @@ function ReferentialSection({
           </li>
         ))}
         {items.length === 0 && (
-          <li className="text-sm text-slate-400">Aucune valeur.</li>
+          <li className="text-sm text-brand-gray">Aucune valeur.</li>
         )}
       </ul>
       <form action={addReferentialItem} className="flex gap-2">
@@ -109,11 +109,11 @@ function ReferentialSection({
           name="label"
           placeholder="Ajouter une valeur…"
           required
-          className="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-slate-900 focus:outline-none"
+          className="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
         />
         <button
           type="submit"
-          className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
+          className="rounded-md bg-brand-ink px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-blue-dark"
         >
           Ajouter
         </button>

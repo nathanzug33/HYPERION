@@ -37,7 +37,7 @@ export default function CookieBanner() {
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-4 shadow-lg">
       <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-brand-body">
           Ce site utilise uniquement des cookies techniques nécessaires à
           l&apos;authentification (aucun traceur publicitaire). Voir notre{" "}
           <Link href="/legal/confidentialite" className="underline">
@@ -47,7 +47,7 @@ export default function CookieBanner() {
         </p>
         <button
           onClick={accept}
-          className="shrink-0 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+          className="shrink-0 rounded-md bg-brand-ink px-4 py-2 text-sm font-medium text-white hover:bg-brand-blue-dark"
         >
           J&apos;ai compris
         </button>

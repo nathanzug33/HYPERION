@@ -57,8 +57,8 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Tableau de bord</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-xl font-semibold text-brand-ink">Tableau de bord</h1>
+        <p className="text-sm text-brand-gray">
           Bienvenue {session.user.name}. Rituel hebdomadaire : vérifiez les
           fiches à actualiser et traitez les nouvelles demandes.
         </p>
@@ -86,12 +86,12 @@ export default async function AdminDashboardPage() {
       )}
 
       <section>
-        <h2 className="text-sm font-semibold text-slate-900 mb-3">
+        <h2 className="text-sm font-semibold text-brand-ink mb-3">
           Fiches publiées à actualiser (non modifiées depuis plus de{" "}
           {FICHE_FRAICHEUR_SEUIL_JOURS} jours)
         </h2>
         {aRafraichir.length === 0 ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-brand-gray">
             Aucune fiche signalée. Bien joué.
           </p>
         ) : (
@@ -99,14 +99,14 @@ export default async function AdminDashboardPage() {
             {aRafraichir.map((c) => (
               <li key={c.id} className="flex items-center justify-between px-4 py-2.5">
                 <div className="text-sm">
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-brand-ink">
                     {c.referenceAnonyme}
                   </span>{" "}
-                  <span className="text-slate-500">— {c.intitulePoste}</span>
+                  <span className="text-brand-gray">— {c.intitulePoste}</span>
                 </div>
                 <Link
                   href={`/admin/consultants/${c.id}`}
-                  className="text-sm text-slate-600 underline hover:text-slate-900"
+                  className="text-sm text-brand-body underline hover:text-brand-ink"
                 >
                   Actualiser
                 </Link>
@@ -117,27 +117,27 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold text-slate-900 mb-3">
+        <h2 className="text-sm font-semibold text-brand-ink mb-3">
           Dernières demandes de contact non traitées
         </h2>
         {demandesNouvelles.length === 0 ? (
-          <p className="text-sm text-slate-500">Aucune demande en attente.</p>
+          <p className="text-sm text-brand-gray">Aucune demande en attente.</p>
         ) : (
           <ul className="divide-y divide-slate-200 rounded-md border border-slate-200 bg-white">
             {demandesNouvelles.map((d) => (
               <li key={d.id} className="px-4 py-2.5">
                 <div className="flex items-center justify-between">
                   <div className="text-sm">
-                    <span className="font-medium text-slate-900">
+                    <span className="font-medium text-brand-ink">
                       {d.consultant.referenceAnonyme}
                     </span>{" "}
-                    <span className="text-slate-500">
+                    <span className="text-brand-gray">
                       — demandé par {d.clientUser.name}
                     </span>
                   </div>
                   <Link
                     href="/admin/demandes"
-                    className="text-sm text-slate-600 underline hover:text-slate-900"
+                    className="text-sm text-brand-body underline hover:text-brand-ink"
                   >
                     Traiter
                   </Link>
@@ -168,8 +168,8 @@ function StatCard({
           : "border-slate-200 bg-white"
       }`}
     >
-      <div className="text-2xl font-semibold text-slate-900">{value}</div>
-      <div className="text-xs text-slate-500 mt-1">{label}</div>
+      <div className="text-2xl font-semibold text-brand-ink">{value}</div>
+      <div className="text-xs text-brand-gray mt-1">{label}</div>
     </div>
   );
 }

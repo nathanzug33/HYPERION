@@ -16,10 +16,10 @@ export default async function NouveauConsultantPage() {
   return (
     <div className="max-w-lg space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">
+        <h1 className="text-xl font-semibold text-brand-ink">
           Nouveau dossier de compétences
         </h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-brand-gray">
           Renseignez d&apos;abord l&apos;identité du candidat. La référence
           anonyme est générée automatiquement ; les champs exposables se
           complètent à l&apos;étape suivante.
@@ -32,46 +32,46 @@ export default async function NouveauConsultantPage() {
       >
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-slate-700">Prénom</label>
+            <label className="block text-xs font-medium text-brand-body">Prénom</label>
             <input
               name="prenom"
               required
-              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-slate-900 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700">Nom</label>
+            <label className="block text-xs font-medium text-brand-body">Nom</label>
             <input
               name="nom"
               required
-              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-slate-900 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
             />
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-700">Email</label>
+          <label className="block text-xs font-medium text-brand-body">Email</label>
           <input
             name="email"
             type="email"
-            className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-slate-900 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-700">Téléphone</label>
+          <label className="block text-xs font-medium text-brand-body">Téléphone</label>
           <input
             name="telephone"
-            className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-slate-900 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
           />
         </div>
         {session.user.role === ROLES.ADMIN && (
           <div>
-            <label className="block text-xs font-medium text-slate-700">
+            <label className="block text-xs font-medium text-brand-body">
               Business manager référent
             </label>
             <select
               name="businessManagerId"
               required
-              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-slate-900 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
             >
               {bms.map((bm) => (
                 <option key={bm.id} value={bm.id}>
@@ -83,7 +83,7 @@ export default async function NouveauConsultantPage() {
         )}
         <button
           type="submit"
-          className="w-full rounded-md bg-slate-900 py-2 text-sm font-medium text-white hover:bg-slate-700"
+          className="w-full rounded-md bg-brand-ink py-2 text-sm font-medium text-white hover:bg-brand-blue-dark"
         >
           Créer le dossier
         </button>

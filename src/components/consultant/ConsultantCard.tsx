@@ -14,6 +14,9 @@ export default function ConsultantCard({
 }) {
   const mobilites = consultant.typesMobilite.map((m) => m.typeMobilite.label);
   const secteurs = consultant.secteurs.map((s) => s.secteur.label);
+  const competencesTriees = [...consultant.competences].sort(
+    (a, b) => Number(b.estCle) - Number(a.estCle)
+  );
   const anneesLabel =
     consultant.anneesExperienceMin != null
       ? consultant.anneesExperienceMax != null &&
@@ -27,24 +30,24 @@ export default function ConsultantCard({
       <Link href={href} className="block">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <div className="text-xs font-mono text-slate-400">
+            <div className="text-xs font-mono text-brand-gray">
               {consultant.referenceAnonyme}
             </div>
-            <h3 className="text-base font-semibold text-slate-900">
+            <h3 className="text-base font-semibold text-brand-ink">
               {consultant.intitulePoste ?? "Poste non renseigné"}
             </h3>
           </div>
           <DisponibiliteBadge value={consultant.disponibilite} />
         </div>
 
-        <div className="mt-1.5 text-sm text-slate-500">
+        <div className="mt-1.5 text-sm text-brand-gray">
           {consultant.seniority?.label}
           {anneesLabel ? ` · ${anneesLabel}` : ""}
           {mobilites.length > 0 ? ` · ${mobilites.join(", ")}` : ""}
         </div>
 
         {consultant.resumeContexte && (
-          <p className="mt-2 line-clamp-2 text-sm text-slate-600">
+          <p className="mt-2 line-clamp-2 text-sm text-brand-body">
             {consultant.resumeContexte}
           </p>
         )}
@@ -53,14 +56,14 @@ export default function ConsultantCard({
           {secteurs.map((s) => (
             <Tag key={s}>{s}</Tag>
           ))}
-          {consultant.competences.slice(0, 5).map((c) => (
+          {competencesTriees.slice(0, 5).map((c) => (
             <Tag key={c.competence.id}>{c.competence.label}</Tag>
           ))}
         </div>
       </Link>
 
       <div className="mt-3 flex items-center gap-3 border-t border-slate-100 pt-3">
-        <Link href={href} className="text-sm text-slate-500 underline hover:text-slate-800">
+        <Link href={href} className="text-sm text-brand-gray underline hover:text-brand-ink">
           Voir la fiche complète
         </Link>
         {canContact && (

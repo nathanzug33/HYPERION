@@ -195,6 +195,11 @@ model Consultant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Génération assistée par IA (§ gabarit HYPERION)
+  genereParIA    Boolean @default(false)
+  sourceCvTexte  String? // texte du CV fourni pour la génération
+  sourceTranscriptTexte String? // transcription d'entretien fournie
+
   secteurs          ConsultantSecteur[]
   expertises        ConsultantExpertise[]
   competences       ConsultantCompetence[]
@@ -203,6 +208,9 @@ model Consultant {
   langues           ConsultantLangue[]
   contactRequests   ContactRequest[]
   consultationLogs  ConsultationLog[]
+  competenceCategories CompetenceCategorie[]
+  formations        Formation[]
+  experiences       Experience[]
 
   @@index([statutPublication])
   @@index([businessManagerId])
@@ -235,6 +243,9 @@ model ConsultantCompetence {
   competenceId String
   competence   Competence @relation(fields: [competenceId], references: [id], onDelete: Cascade)
 
+  // Mise en avant dans le bandeau d'en-tête de la fiche ("compétences clés").
+  estCle Boolean @default(false)
+
   @@id([consultantId, competenceId])
 }
 
@@ -262,7 +273,67 @@ model ConsultantLangue {
   langueId     String
   langue       Langue     @relation(fields: [langueId], references: [id], onDelete: Cascade)
 
+  // Niveau 1 (notions) à 5 (expert) — cf. gabarit HYPERION (points de niveau).
+  niveau Int     @default(3)
+  detail String? // ex. "Langue maternelle", "TOEIC 850"
+
   @@id([consultantId, langueId])
+}
+
+// ---------------------------------------------------------------------------
+// Gabarit HYPERION — sections détaillées du dossier de compétences
+// ---------------------------------------------------------------------------
+
+// "02 — Compétences" : 5 catégories fixes, chacune avec un contenu libre et
+// un niveau (points). Distinct des étiquettes filtrable `Competence` ci-dessus.
+model CompetenceCategorie {
+  id           String     @id @default(cuid())
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+
+  categorie String // DOMAINES | LOGICIELS_OUTILS | METHODES_NORMES | SECTEURS | MANAGEMENT
+  contenu   String
+  niveau    Int    @default(3) // 1 (notions) à 5 (expert)
+  ordre     Int    @default(0)
+
+  @@index([consultantId])
+}
+
+// "03 — Formations & certifications"
+model Formation {
+  id           String     @id @default(cuid())
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+
+  type        String // FORMATION | CERTIFICATION
+  annee       String
+  intitule    String
+  etablissement String?
+  ordre       Int    @default(0)
+
+  @@index([consultantId])
+}
+
+// "05 — Expériences détaillées" (missions), 01 se déduit des N premières.
+model Experience {
+  id           String     @id @default(cuid())
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+
+  entreprise            String // "Entreprise cliente" générique si NDA
+  secteurActivite       String?
+  missionTitre          String
+  dateDebut             DateTime?
+  dateFin               DateTime? // null = mission en cours
+  contexteObjectif      String?
+  realisations          String? // une réalisation par ligne
+  environnementTechnique String?
+  ordre                 Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([consultantId])
 }
 
 // ---------------------------------------------------------------------------

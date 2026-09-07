@@ -7,13 +7,13 @@ export default function ConnexionPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-brand-blue-bg-soft px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-xl font-semibold text-slate-900">
+          <h1 className="text-xl font-semibold text-brand-ink">
             Bibliothèque de dossiers de compétences
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-brand-gray">
             Accès réservé et journalisé. Chaque connexion est associée
             nominativement à votre compte.
           </p>
@@ -21,7 +21,7 @@ export default function ConnexionPage({
         <Suspense>
           <LoginFormWrapper searchParams={searchParams} />
         </Suspense>
-        <p className="mt-6 text-center text-xs text-slate-400">
+        <p className="mt-6 text-center text-xs text-brand-gray">
           Accès non ouvert ? Contactez votre business manager.
         </p>
       </div>

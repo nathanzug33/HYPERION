@@ -33,8 +33,8 @@ export default function ContactRequestButton({
         }}
         className={
           compact
-            ? "text-sm font-medium text-slate-900 underline hover:text-slate-700"
-            : "rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            ? "text-sm font-medium text-brand-ink underline hover:text-brand-body"
+            : "rounded-md bg-brand-ink px-4 py-2 text-sm font-medium text-white hover:bg-brand-blue-dark"
         }
       >
         Ce profil m&apos;intéresse
@@ -42,7 +42,7 @@ export default function ContactRequestButton({
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-brand-ink/40 p-4"
           onClick={() => setOpen(false)}
         >
           <div
@@ -51,10 +51,10 @@ export default function ContactRequestButton({
           >
             {state.success ? (
               <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-lg font-semibold text-brand-ink">
                   Demande envoyée
                 </h3>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-brand-body">
                   Votre business manager a été notifié pour le profil{" "}
                   <span className="font-mono">{reference}</span> et reviendra
                   vers vous rapidement avec les disponibilités confirmées.
@@ -62,7 +62,7 @@ export default function ContactRequestButton({
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="w-full rounded-md bg-slate-900 py-2 text-sm font-medium text-white hover:bg-slate-700"
+                  className="w-full rounded-md bg-brand-ink py-2 text-sm font-medium text-white hover:bg-brand-blue-dark"
                 >
                   Fermer
                 </button>
@@ -70,13 +70,13 @@ export default function ContactRequestButton({
             ) : (
               <form action={formAction} className="space-y-3">
                 <div className="flex items-start justify-between">
-                  <h3 className="text-lg font-semibold text-slate-900">
+                  <h3 className="text-lg font-semibold text-brand-ink">
                     Profil {reference}
                   </h3>
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="text-slate-400 hover:text-slate-700"
+                    className="text-brand-gray hover:text-brand-body"
                     aria-label="Fermer"
                   >
                     ✕
@@ -84,7 +84,7 @@ export default function ContactRequestButton({
                 </div>
                 <input type="hidden" name="consultantId" value={consultantId} />
                 <div>
-                  <label className="block text-xs font-medium text-slate-700">
+                  <label className="block text-xs font-medium text-brand-body">
                     Votre besoin
                   </label>
                   <textarea
@@ -97,13 +97,13 @@ export default function ContactRequestButton({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700">
+                    <label className="block text-xs font-medium text-brand-body">
                       Localisation
                     </label>
                     <input name="localisation" className="input mt-1" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700">
+                    <label className="block text-xs font-medium text-brand-body">
                       Démarrage souhaité
                     </label>
                     <input
@@ -119,7 +119,7 @@ export default function ContactRequestButton({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="w-full rounded-md bg-slate-900 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-60"
+                  className="w-full rounded-md bg-brand-ink py-2 text-sm font-medium text-white hover:bg-brand-blue-dark disabled:opacity-60"
                 >
                   {pending ? "Envoi…" : "Envoyer la demande"}
                 </button>

@@ -1,5 +1,7 @@
 import type { ConsultantPublic } from "@/lib/consultant-view";
-import { DisponibiliteBadge, Tag, TypeContratBadge } from "./badges";
+import { DisponibiliteBadge, NiveauDots, Tag, TypeContratBadge } from "./badges";
+import { COMPETENCE_CATEGORIE_LABELS, NIVEAU_LABELS } from "@/lib/constants";
+import { formatDuree, formatMoisAnnee } from "@/lib/experience-format";
 
 export default function ConsultantDetail({
   consultant,
@@ -10,7 +12,7 @@ export default function ConsultantDetail({
   const secteurs = consultant.secteurs.map((s) => s.secteur.label);
   const expertises = consultant.expertises.map((e) => e.expertise.label);
   const zones = consultant.zonesGeographiques.map((z) => z.zoneGeographique.label);
-  const langues = consultant.langues.map((l) => l.langue.label);
+  const competencesCles = consultant.competences.filter((c) => c.estCle);
   const anneesLabel =
     consultant.anneesExperienceMin != null
       ? consultant.anneesExperienceMax != null &&
@@ -20,104 +22,202 @@ export default function ConsultantDetail({
       : null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="text-xs font-mono text-slate-400">
+    <div className="space-y-8">
+      {/* En-tête façon gabarit HYPERION */}
+      <div className="rounded-lg bg-brand-blue-bg px-4 py-4 sm:px-6 sm:py-5">
+        <div className="text-xs font-mono text-brand-gray">
           {consultant.referenceAnonyme}
         </div>
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-xl font-semibold text-brand-ink sm:text-2xl">
           {consultant.intitulePoste ?? "Poste non renseigné"}
         </h1>
-        <div className="mt-1 text-sm text-slate-500">
+        <div className="mt-1 text-sm text-brand-body">
           {consultant.seniority?.label}
           {anneesLabel ? ` · ${anneesLabel}` : ""}
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <DisponibiliteBadge value={consultant.disponibilite} />
           <TypeContratBadge value={consultant.typeContrat} />
+          {competencesCles.map((c) => (
+            <Tag key={c.competence.id}>{c.competence.label}</Tag>
+          ))}
         </div>
       </div>
 
       {consultant.resumeContexte && (
         <section>
-          <h2 className="text-sm font-semibold text-slate-900 mb-1">
-            Contexte de mission
-          </h2>
-          <p className="text-sm leading-6 text-slate-700 whitespace-pre-line">
+          <p className="text-sm leading-6 text-brand-body whitespace-pre-line">
             {consultant.resumeContexte}
           </p>
         </section>
       )}
 
-      {expertises.length > 0 && (
+      {consultant.experiences.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-slate-900 mb-1.5">
-            Expertise / domaine
-          </h2>
-          <div className="flex flex-wrap gap-1.5">
-            {expertises.map((e) => (
-              <Tag key={e}>{e}</Tag>
+          <SectionTitle n="01" title="Expériences clés" />
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {consultant.experiences.slice(0, 3).map((exp) => (
+              <div key={exp.id} className="rounded-md bg-brand-blue-bg-soft p-3">
+                <div className="text-xs text-brand-blue-dark font-medium">
+                  {formatMoisAnnee(exp.dateDebut)}
+                </div>
+                <div className="text-sm font-medium text-brand-ink">{exp.missionTitre}</div>
+                <div className="text-xs text-brand-gray">{exp.entreprise}</div>
+              </div>
             ))}
           </div>
         </section>
       )}
 
-      {secteurs.length > 0 && (
+      {(expertises.length > 0 || consultant.competenceCategories.length > 0) && (
         <section>
-          <h2 className="text-sm font-semibold text-slate-900 mb-1.5">Secteurs</h2>
-          <div className="flex flex-wrap gap-1.5">
-            {secteurs.map((s) => (
-              <Tag key={s}>{s}</Tag>
+          <SectionTitle n="02" title="Compétences" />
+          <div className="mt-3 space-y-2">
+            {consultant.competenceCategories.map((c) => (
+              <div key={c.id} className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2 text-sm">
+                <div>
+                  <div className="font-medium text-brand-ink">
+                    {COMPETENCE_CATEGORIE_LABELS[
+                      c.categorie as keyof typeof COMPETENCE_CATEGORIE_LABELS
+                    ] ?? c.categorie}
+                  </div>
+                  <div className="text-brand-body">{c.contenu}</div>
+                </div>
+                <NiveauDots niveau={c.niveau} label={NIVEAU_LABELS[c.niveau]} />
+              </div>
+            ))}
+          </div>
+          {(expertises.length > 0 || secteurs.length > 0) && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {expertises.map((e) => (
+                <Tag key={e}>{e}</Tag>
+              ))}
+              {secteurs.map((s) => (
+                <Tag key={s}>{s}</Tag>
+              ))}
+            </div>
+          )}
+          {consultant.competences.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {consultant.competences.map((c) => (
+                <Tag key={c.competence.id}>{c.competence.label}</Tag>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {consultant.formations.length > 0 && (
+        <section>
+          <SectionTitle n="03" title="Formations & certifications" />
+          <ul className="mt-3 space-y-1.5 text-sm">
+            {consultant.formations.map((f) => (
+              <li key={f.id} className="flex gap-3">
+                <span className="w-14 shrink-0 text-brand-gray">{f.annee}</span>
+                <span className="text-brand-body">
+                  {f.intitule}
+                  {f.etablissement ? ` — ${f.etablissement}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {consultant.langues.length > 0 && (
+        <section>
+          <SectionTitle n="04" title="Langues" />
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+            {consultant.langues.map((l) => (
+              <div key={l.langue.id} className="text-sm">
+                <div className="font-medium text-brand-ink">{l.langue.label}</div>
+                <NiveauDots niveau={l.niveau} label={l.detail ?? NIVEAU_LABELS[l.niveau]} />
+              </div>
             ))}
           </div>
         </section>
       )}
 
-      {consultant.competences.length > 0 && (
+      {consultant.experiences.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-slate-900 mb-1.5">
-            Compétences / technologies
-          </h2>
-          <div className="flex flex-wrap gap-1.5">
-            {consultant.competences.map((c) => (
-              <Tag key={c.competence.id}>{c.competence.label}</Tag>
+          <SectionTitle n="05" title="Expériences détaillées" />
+          <div className="mt-3 space-y-5">
+            {consultant.experiences.map((exp) => (
+              <div key={exp.id} className="border-b border-slate-100 pb-4 last:border-0">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                  <div className="text-sm font-semibold text-brand-ink">
+                    {exp.entreprise} — {formatMoisAnnee(exp.dateDebut)} à{" "}
+                    {formatMoisAnnee(exp.dateFin)}
+                  </div>
+                  <div className="text-xs text-brand-blue-light font-medium">
+                    {formatDuree(exp.dateDebut, exp.dateFin)}
+                  </div>
+                </div>
+                {exp.secteurActivite && (
+                  <div className="mt-1 text-sm text-brand-body">
+                    Secteur : {exp.secteurActivite}
+                  </div>
+                )}
+                <div className="text-sm text-brand-body">Mission : {exp.missionTitre}</div>
+                {exp.contexteObjectif && (
+                  <div className="mt-1 text-sm text-brand-body">
+                    Contexte &amp; objectif : {exp.contexteObjectif}
+                  </div>
+                )}
+                {exp.realisations && (
+                  <div className="mt-2">
+                    <div className="text-xs font-semibold text-brand-blue">Réalisations</div>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-brand-body">
+                      {exp.realisations.split("\n").filter(Boolean).map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {exp.environnementTechnique && (
+                  <div className="mt-2 text-sm text-brand-body">
+                    Environnement technique : {exp.environnementTechnique}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </section>
       )}
 
-      <section>
-        <h2 className="text-sm font-semibold text-slate-900 mb-1.5">Mobilité</h2>
-        <div className="flex flex-wrap gap-1.5 mb-1.5">
-          {mobilites.map((m) => (
-            <Tag key={m}>{m}</Tag>
-          ))}
-        </div>
-        <p className="text-sm text-slate-600">
-          {zones.length > 0 && `Zones : ${zones.join(", ")}. `}
-          {consultant.villeRattachementZoneLarge &&
-            `Rattachement : ${consultant.villeRattachementZoneLarge}. `}
-          {consultant.rayonKm && `Rayon accepté : jusqu'à ${consultant.rayonKm} km. `}
-          {consultant.ouvertGrandDeplacement &&
-            "Ouvert aux déplacements avec découchés."}
-        </p>
-      </section>
-
-      {langues.length > 0 && (
+      {mobilites.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-slate-900 mb-1.5">Langues</h2>
-          <div className="flex flex-wrap gap-1.5">
-            {langues.map((l) => (
-              <Tag key={l}>{l}</Tag>
+          <h2 className="text-sm font-semibold text-brand-ink mb-1.5">Mobilité</h2>
+          <div className="flex flex-wrap gap-1.5 mb-1.5">
+            {mobilites.map((m) => (
+              <Tag key={m}>{m}</Tag>
             ))}
           </div>
+          <p className="text-sm text-brand-body">
+            {zones.length > 0 && `Zones : ${zones.join(", ")}. `}
+            {consultant.villeRattachementZoneLarge &&
+              `Rattachement : ${consultant.villeRattachementZoneLarge}. `}
+            {consultant.rayonKm && `Rayon accepté : jusqu'à ${consultant.rayonKm} km. `}
+            {consultant.ouvertGrandDeplacement &&
+              "Ouvert aux déplacements avec découchés."}
+          </p>
         </section>
       )}
 
-      <p className="text-xs text-slate-400 border-t border-slate-200 pt-3">
+      <p className="text-xs text-brand-gray border-t border-slate-200 pt-3">
         La disponibilité affichée est indicative ; elle est confirmée par
         votre business manager au moment du contact.
       </p>
+    </div>
+  );
+}
+
+function SectionTitle({ n, title }: { n: string; title: string }) {
+  return (
+    <div className="section-title">
+      <span className="n">{n}</span>
+      <span>—</span>
+      <span>{title}</span>
     </div>
   );
 }

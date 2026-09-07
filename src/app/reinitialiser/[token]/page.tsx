@@ -7,9 +7,9 @@ export default async function ResetPasswordPage({
 }) {
   const { token } = await params;
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-brand-blue-bg-soft px-4">
       <div className="w-full max-w-sm bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-        <h1 className="text-lg font-semibold text-slate-900 mb-4">
+        <h1 className="text-lg font-semibold text-brand-ink mb-4">
           Nouveau mot de passe
         </h1>
         <ResetForm token={token} />

@@ -107,20 +107,20 @@ export default async function BibliothequePage({
 
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-slate-900">
+          <h1 className="text-xl font-semibold text-brand-ink">
             Bibliothèque de profils
           </h1>
-          <span className="text-sm text-slate-500">
+          <span className="text-sm text-brand-gray">
             {sorted.length} profil{sorted.length > 1 ? "s" : ""}
           </span>
         </div>
 
         {sorted.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
-            <p className="text-slate-600">
+            <p className="text-brand-body">
               Aucun profil ne correspond à ces critères pour le moment.
             </p>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-brand-gray">
               Élargissez vos filtres, ou décrivez-nous votre besoin
               directement — nous avons peut-être un profil non encore publié
               qui correspond.

@@ -15,7 +15,7 @@ export default async function BibliothequeLayout({
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
-          <Link href="/bibliotheque" className="font-semibold text-slate-900">
+          <Link href="/bibliotheque" className="font-semibold text-brand-ink">
             Bibliothèque de compétences
           </Link>
           <div className="flex items-center gap-3">
@@ -24,8 +24,8 @@ export default async function BibliothequeLayout({
                 Aperçu vue client (compte {session.user.role === ROLES.ADMIN ? "admin" : "BM"})
               </span>
             )}
-            <div className="text-right text-xs text-slate-500">
-              <div className="font-medium text-slate-700">{session.user.name}</div>
+            <div className="text-right text-xs text-brand-gray">
+              <div className="font-medium text-brand-body">{session.user.name}</div>
             </div>
             <LogoutButton />
           </div>
@@ -34,7 +34,7 @@ export default async function BibliothequeLayout({
       <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6 pb-20">
         {children}
       </main>
-      <footer className="border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+      <footer className="border-t border-slate-200 py-4 text-center text-xs text-brand-gray">
         <Link href="/legal/mentions-legales" className="underline">
           Mentions légales
         </Link>{" "}

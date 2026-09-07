@@ -1,13 +1,34 @@
 @import "tailwindcss";
 
+/* Palette HYPERION — extraite du gabarit officiel du dossier de compétences.
+   Pas de logo ici : uniquement la charte de couleurs. */
 :root {
   --background: #f8fafc;
-  --foreground: #0f172a;
+  --foreground: #222d3c;
+
+  --brand-ink: #222d3c; /* titres, texte fort */
+  --brand-body: #26303f; /* texte courant */
+  --brand-gray: #5a6678; /* texte secondaire / aide */
+  --brand-blue: #6387ad; /* accent principal, liens, boutons */
+  --brand-blue-dark: #4d6f94; /* hover de l'accent */
+  --brand-blue-light: #9dc0ec; /* accent clair (dates, highlights) */
+  --brand-blue-bg: #eaf1f9; /* fond bandeau clair */
+  --brand-blue-bg-soft: #f4f7fb; /* fond carte / étiquette */
+  --brand-green: #1f5f4a; /* disponibilité / succès */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-body: var(--brand-body);
+  --color-brand-gray: var(--brand-gray);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-dark: var(--brand-blue-dark);
+  --color-brand-blue-light: var(--brand-blue-light);
+  --color-brand-blue-bg: var(--brand-blue-bg);
+  --color-brand-blue-bg-soft: var(--brand-blue-bg-soft);
+  --color-brand-green: var(--brand-green);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
 }
@@ -24,8 +45,24 @@ body {
   padding: 0.375rem 0.625rem;
   font-size: 0.875rem;
   background: #fff;
+  color: var(--brand-body);
 }
 .input:focus {
   outline: none;
-  border-color: #0f172a;
+  border-color: var(--brand-blue);
+}
+
+/* Titres de section numérotés façon gabarit HYPERION ("01 — ..."). */
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--brand-ink);
+  text-transform: uppercase;
+}
+.section-title .n {
+  color: var(--brand-blue);
 }

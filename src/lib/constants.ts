@@ -95,6 +95,39 @@ export const CONTACT_REQUEST_STATUS_LABELS: Record<
   SANS_SUITE: "Sans suite",
 };
 
+// Niveaux 1 (notions) à 5 (expert) — gabarit HYPERION (compétences & langues).
+export const NIVEAU_LABELS: Record<number, string> = {
+  1: "Notions",
+  2: "Junior",
+  3: "Confirmé",
+  4: "Senior",
+  5: "Expert",
+};
+
+export const COMPETENCE_CATEGORIES = {
+  DOMAINES: "DOMAINES",
+  LOGICIELS_OUTILS: "LOGICIELS_OUTILS",
+  METHODES_NORMES: "METHODES_NORMES",
+  SECTEURS: "SECTEURS",
+  MANAGEMENT: "MANAGEMENT",
+} as const;
+export type CompetenceCategorieType =
+  (typeof COMPETENCE_CATEGORIES)[keyof typeof COMPETENCE_CATEGORIES];
+
+export const COMPETENCE_CATEGORIE_LABELS: Record<CompetenceCategorieType, string> = {
+  DOMAINES: "Domaines",
+  LOGICIELS_OUTILS: "Logiciels & outils",
+  METHODES_NORMES: "Méthodes & normes",
+  SECTEURS: "Secteurs",
+  MANAGEMENT: "Management",
+};
+
+export const FORMATION_TYPE = {
+  FORMATION: "FORMATION",
+  CERTIFICATION: "CERTIFICATION",
+} as const;
+export type FormationType = (typeof FORMATION_TYPE)[keyof typeof FORMATION_TYPE];
+
 // Seuil de fraîcheur (§5.2 / §10) : au-delà, une fiche publiée est signalée.
 export const FICHE_FRAICHEUR_SEUIL_JOURS = Number(
   process.env.FICHE_FRAICHEUR_SEUIL_JOURS ?? 30

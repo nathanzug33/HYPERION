@@ -96,7 +96,7 @@ export default function FilterForm({
       />
 
       <div>
-        <label className="block text-xs font-medium text-slate-700 mb-1">Trier par</label>
+        <label className="block text-xs font-medium text-brand-body mb-1">Trier par</label>
         <select
           name="tri"
           defaultValue={defaults.tri}
@@ -112,13 +112,13 @@ export default function FilterForm({
       <div className="flex gap-2">
         <button
           type="submit"
-          className="flex-1 rounded-md bg-slate-900 py-2 text-sm font-medium text-white hover:bg-slate-700"
+          className="flex-1 rounded-md bg-brand-ink py-2 text-sm font-medium text-white hover:bg-brand-blue-dark"
         >
           Filtrer
         </button>
         <Link
           href="/bibliotheque"
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100"
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm hover:bg-brand-blue-bg"
         >
           Réinitialiser
         </Link>
@@ -144,10 +144,10 @@ function FilterGroup({
   const selectedSet = new Set(selected);
   return (
     <div>
-      <span className="block text-xs font-medium text-slate-700 mb-1.5">{title}</span>
+      <span className="block text-xs font-medium text-brand-body mb-1.5">{title}</span>
       <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
         {options.map((opt) => (
-          <label key={opt.id} className="flex items-center gap-1.5 text-sm text-slate-600">
+          <label key={opt.id} className="flex items-center gap-1.5 text-sm text-brand-body">
             <input
               type="checkbox"
               name={name}

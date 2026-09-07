@@ -23,8 +23,8 @@ export default async function UtilisateursPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Utilisateurs</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-xl font-semibold text-brand-ink">Utilisateurs</h1>
+        <p className="text-sm text-brand-gray">
           Les comptes sont créés uniquement par un administrateur — pas
           d&apos;auto-inscription. Un accès peut être révoqué à tout moment.
         </p>
@@ -34,7 +34,7 @@ export default async function UtilisateursPage() {
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-brand-blue-bg-soft text-left text-xs uppercase tracking-wide text-brand-gray">
             <tr>
               <th className="px-4 py-2">Nom</th>
               <th className="px-4 py-2">Email</th>
@@ -48,15 +48,15 @@ export default async function UtilisateursPage() {
           <tbody className="divide-y divide-slate-100">
             {users.map((u) => (
               <tr key={u.id}>
-                <td className="px-4 py-2 font-medium text-slate-900">{u.name}</td>
-                <td className="px-4 py-2 text-slate-600">{u.email}</td>
-                <td className="px-4 py-2 text-slate-600">
+                <td className="px-4 py-2 font-medium text-brand-ink">{u.name}</td>
+                <td className="px-4 py-2 text-brand-body">{u.email}</td>
+                <td className="px-4 py-2 text-brand-body">
                   {ROLE_LABELS[u.role as keyof typeof ROLE_LABELS] ?? u.role}
                 </td>
-                <td className="px-4 py-2 text-slate-600">
+                <td className="px-4 py-2 text-brand-body">
                   {u.clientOrganization?.name ?? "—"}
                 </td>
-                <td className="px-4 py-2 text-slate-500">
+                <td className="px-4 py-2 text-brand-gray">
                   {u.lastLoginAt
                     ? new Date(u.lastLoginAt).toLocaleString("fr-FR")
                     : "Jamais connecté"}
@@ -66,7 +66,7 @@ export default async function UtilisateursPage() {
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       u.active
                         ? "bg-emerald-50 text-emerald-700"
-                        : "bg-slate-100 text-slate-500"
+                        : "bg-slate-100 text-brand-gray"
                     }`}
                   >
                     {u.active ? "Actif" : "Désactivé"}
@@ -78,7 +78,7 @@ export default async function UtilisateursPage() {
                     <input type="hidden" name="active" value={String(u.active)} />
                     <button
                       type="submit"
-                      className="text-xs text-slate-500 underline hover:text-slate-800"
+                      className="text-xs text-brand-gray underline hover:text-brand-ink"
                     >
                       {u.active ? "Révoquer l'accès" : "Réactiver"}
                     </button>
