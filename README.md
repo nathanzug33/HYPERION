@@ -123,6 +123,15 @@ Fonctionnalité optionnelle : sans `ANTHROPIC_API_KEY` dans `.env`, la page
 affiche un message et redirige vers la saisie manuelle — le reste de
 l'application n'est pas impacté.
 
+**Erreur « This API key is not scoped to a workspace »** : certaines clés
+API Anthropic créées au niveau organisation (et non d'un workspace précis)
+exigent un en-tête supplémentaire. Deux solutions :
+- **Recommandé** : dans la Console Anthropic, créez une clé API rattachée
+  directement à un workspace.
+- **Alternative** : renseignez `ANTHROPIC_WORKSPACE_ID` dans `.env` avec
+  l'identifiant du workspace à utiliser (la clé existante fonctionne alors
+  telle quelle).
+
 ## Passage en production
 
 - **Base de données** : changer `provider = "sqlite"` en `"postgresql"`

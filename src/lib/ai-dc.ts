@@ -145,6 +145,9 @@ function describeAnthropicError(err: unknown): string {
   if (err instanceof Anthropic.APIConnectionError) {
     return "Impossible de joindre l'API Anthropic (réseau). Vérifiez votre connexion internet.";
   }
+  if (err instanceof Anthropic.BadRequestError && err.message.includes("workspace")) {
+    return "Cette clé API Anthropic est une clé d'organisation non rattachée à un workspace. Solution la plus simple : créez une clé API scopée à un workspace dans la Console Anthropic. Alternative : renseignez ANTHROPIC_WORKSPACE_ID dans .env avec l'identifiant du workspace à utiliser.";
+  }
   if (err instanceof Anthropic.APIError) {
     return `Erreur API Anthropic (${err.status ?? "?"}) : ${err.message}`;
   }
@@ -157,7 +160,15 @@ export async function generateDCFromCvAndTranscript(params: {
   transcriptText: string | null;
   vocab: ReferentialVocab;
 }): Promise<GeneratedDC> {
-  const client = new Anthropic();
+  // Nécessaire si la clé API est une clé d'organisation non rattachée à un
+  // workspace précis (l'API renvoie alors une 400 demandant cet en-tête).
+  // Non requis pour une clé déjà scopée à un workspace.
+  const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID;
+  const client = new Anthropic(
+    workspaceId
+      ? { defaultHeaders: { "anthropic-workspace-id": workspaceId } }
+      : undefined
+  );
   const schema = buildSchema(params.vocab);
 
   const vocabBlock = `Référentiels disponibles (n'utilise que ces valeurs pour les champs concernés) :
