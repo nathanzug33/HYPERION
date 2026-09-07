@@ -19,8 +19,9 @@ dans le cahier des charges (`cahierdeschargesbibliothequedc.md`).
   pré-rempli, optionnelle (nécessite `ANTHROPIC_API_KEY`)
 - **Charte graphique HYPERION** appliquée (bleus/vert extraits du gabarit
   officiel), sans logo — voir `src/app/globals.css`
-- **Export Word (.docx)** du dossier au gabarit HYPERION (`docx` npm),
-  généré à la volée, réservé au back-office — voir `src/lib/dc-docx.ts`
+- **Export Word (.docx)** : remplit directement le fichier gabarit
+  officiel HYPERION (logo, encadrés, styles inchangés — voir plus bas),
+  réservé au back-office — `src/lib/dc-docx.ts`
 
 ## Démarrage
 
@@ -137,17 +138,35 @@ exigent un en-tête supplémentaire. Deux solutions :
 ## Export Word (.docx) du dossier
 
 Sur la fiche d'un dossier (`/admin/consultants/{id}`), le bouton
-« Télécharger le DC (Word) » génère à la volée un `.docx` modifiable
-reprenant les sections du gabarit HYPERION (couleurs, 01 à 05), avec les
+« Télécharger le DC (Word) » génère un `.docx` modifiable avec les
 **données nominatives complètes** (nom, contact, TJM) — c'est le
 « dossier nominatif complet » présenté au client en fin de cycle
 commercial (§1 du cahier des charges), à envoyer manuellement (email…)
 une fois la mission confirmée.
 
+**Principe : le fichier gabarit officiel HYPERION n'est jamais recréé,
+seulement rempli.** `src/lib/templates/hyperion-dc-template.docx` est le
+fichier `.docx` original fourni par HYPERION Group, stocké tel quel. À la
+génération, `src/lib/dc-docx.ts` ouvre son archive (`jszip`), repère les
+158 placeholders du gabarit (`[Prénom NOM]`, `⟦LVL⟧●●●●●  Expert`, etc. —
+chacun isolé dans son propre nœud `<w:t>` XML) et remplace uniquement leur
+texte par les données du dossier, par position. Le reste du fichier —
+logo, tableaux, couleurs, styles, pied de page — n'est jamais touché :
+le résultat est visuellement identique au gabarit, pas une reconstruction
+approximative. Sections à cardinalité variable (jusqu'à 3 expériences
+clés/langues, 3 formations, 4 expériences détaillées) : les emplacements
+non utilisés sont laissés vides plutôt que de casser la mise en page.
+
+Si le gabarit officiel est un jour modifié par HYPERION Group (nouveaux
+champs, mise en page différente), il faut ré-extraire la liste des
+placeholders (nombre et ordre des nœuds `<w:t>`) et mettre à jour le
+tableau `buildValues()` en conséquence — voir les commentaires en tête de
+`src/lib/dc-docx.ts`.
+
 **Ce bouton n'existe que dans le back-office.** Il n'est jamais exposé
 dans la bibliothèque client — la fiche que voient les clients reste la
-projection anonymisée habituelle. Génération : `src/lib/dc-docx.ts`
-(librairie `docx`), route `src/app/admin/consultants/[id]/export-word/route.ts`.
+projection anonymisée habituelle. Route :
+`src/app/admin/consultants/[id]/export-word/route.ts`.
 
 ## Passage en production
 
