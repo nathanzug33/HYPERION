@@ -15,12 +15,12 @@ export type ReferentialVocab = {
   langues: string[];
 };
 
-function enumOrString(values: string[]) {
-  return values.length > 0
-    ? z.enum(values as [string, ...string[]])
-    : z.string();
-}
-
+// Remarque : les champs contraints par un référentiel (secteurs, expertises,
+// séniorité, mobilité, zones) sont en texte libre (z.string()) et non en
+// z.enum(...) — avec des listes dynamiques, empiler plusieurs enums (dont
+// certains dans des tableaux) fait exploser la grammaire de sortie
+// structurée ("compiled grammar is too large" côté API). Le rapprochement
+// avec le référentiel se fait après coup, côté serveur (voir actions.ts).
 function buildSchema(vocab: ReferentialVocab) {
   return z.object({
     // --- Champs internes (nominatifs), pour gagner du temps de saisie -------
@@ -31,17 +31,23 @@ function buildSchema(vocab: ReferentialVocab) {
 
     // --- Champs exposables (projection anonymisée) --------------------------
     intitulePoste: z.string().describe("Intitulé de poste / spécialité, ex. 'Ingénieur DevOps'"),
-    seniorite: enumOrString(vocab.seniorites).describe(
-      "Choisir la valeur la plus proche parmi le référentiel fourni"
-    ),
+    seniorite: z
+      .string()
+      .describe(
+        `Une valeur EXACTE parmi : ${vocab.seniorites.join(", ") || "(aucune configurée)"}`
+      ),
     anneesExperienceMin: z.number().int().min(0),
     anneesExperienceMax: z.number().int().min(0),
-    secteurs: z.array(enumOrString(vocab.secteurs)).describe(
-      "Secteurs pertinents, uniquement parmi le référentiel fourni"
-    ),
-    expertises: z.array(enumOrString(vocab.expertises)).describe(
-      "Expertises / domaines, uniquement parmi le référentiel fourni"
-    ),
+    secteurs: z
+      .array(z.string())
+      .describe(
+        `Valeurs EXACTES parmi : ${vocab.secteurs.join(", ") || "(aucune configurée)"}`
+      ),
+    expertises: z
+      .array(z.string())
+      .describe(
+        `Valeurs EXACTES parmi : ${vocab.expertises.join(", ") || "(aucune configurée)"}`
+      ),
     competencesTechnologies: z
       .array(z.string())
       .describe("Étiquettes libres : stack, outils, certifications (ex. AWS, Python, ISTQB)"),
@@ -49,12 +55,14 @@ function buildSchema(vocab: ReferentialVocab) {
       .array(z.string())
       .max(3)
       .describe("Jusqu'à 3 compétences à mettre en avant dans l'en-tête, sous-ensemble de competencesTechnologies"),
-    typesMobilite: z.array(enumOrString(vocab.typesMobilite)).describe(
-      "Uniquement parmi le référentiel fourni"
-    ),
-    zonesGeographiques: z.array(enumOrString(vocab.zones)).describe(
-      "Uniquement parmi le référentiel fourni"
-    ),
+    typesMobilite: z
+      .array(z.string())
+      .describe(
+        `Valeurs EXACTES parmi : ${vocab.typesMobilite.join(", ") || "(aucune configurée)"}`
+      ),
+    zonesGeographiques: z
+      .array(z.string())
+      .describe(`Valeurs EXACTES parmi : ${vocab.zones.join(", ") || "(aucune configurée)"}`),
     rayonKm: z.number().int().nullable(),
     ouvertGrandDeplacement: z.boolean(),
     villeRattachementZoneLarge: z

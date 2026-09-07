@@ -144,19 +144,25 @@ export async function generateConsultantFromAI(
     return { error: `La génération par IA a échoué : ${message}` };
   }
 
-  const seniorityId = seniorites.find((s) => s.label === generated.seniorite)?.id ?? null;
-  const secteurIds = secteurs
-    .filter((s) => generated.secteurs.includes(s.label))
-    .map((s) => s.id);
-  const expertiseIds = expertises
-    .filter((e) => generated.expertises.includes(e.label))
-    .map((e) => e.id);
-  const typeMobiliteIds = typesMobilite
-    .filter((m) => generated.typesMobilite.includes(m.label))
-    .map((m) => m.id);
-  const zoneIds = zones
-    .filter((z) => generated.zonesGeographiques.includes(z.label))
-    .map((z) => z.id);
+  // Rapprochement insensible à la casse/aux espaces : le champ n'est plus
+  // forcé par un enum côté modèle (voir ai-dc.ts), juste fortement suggéré
+  // par le prompt — les valeurs non reconnues sont simplement ignorées
+  // (référentiels non modifiés automatiquement).
+  const norm = (s: string) => s.trim().toLowerCase();
+  const matchIds = <T extends { id: string; label: string }>(
+    items: T[],
+    labels: string[]
+  ): string[] => {
+    const wanted = new Set(labels.map(norm));
+    return items.filter((i) => wanted.has(norm(i.label))).map((i) => i.id);
+  };
+
+  const seniorityId =
+    seniorites.find((s) => norm(s.label) === norm(generated.seniorite))?.id ?? null;
+  const secteurIds = matchIds(secteurs, generated.secteurs);
+  const expertiseIds = matchIds(expertises, generated.expertises);
+  const typeMobiliteIds = matchIds(typesMobilite, generated.typesMobilite);
+  const zoneIds = matchIds(zones, generated.zonesGeographiques);
 
   const competenceIdByLabel = await findOrCreateByLabel(
     prisma.competence,
