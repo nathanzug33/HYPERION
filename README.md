@@ -84,16 +84,28 @@ Application sur http://localhost:3000.
 ## Génération de dossiers assistée par IA
 
 Depuis `Dossiers de compétences → Générer avec l'IA` (`/admin/consultants/generer-ia`),
-un BM/admin colle ou dépose le CV (texte, `.txt` ou `.pdf`) et la
-transcription de l'entretien (texte ou `.txt`) : l'IA (Claude, extraction
-structurée stricte via `output_config.format`) génère un dossier complet
-au gabarit HYPERION — poste, séniorité, mobilité, disponibilité, résumé,
-compétences par catégorie avec niveaux, langues avec niveaux, formations
-et jusqu'à 4 expériences détaillées avec réalisations. Les valeurs des
-référentiels paramétrables (secteurs, expertises, séniorité, mobilité,
-zones) sont fournies au modèle comme vocabulaire fermé pour rester
-cohérentes avec l'existant ; les compétences/langues libres sont
-créées automatiquement si absentes du référentiel.
+un BM/admin dépose un fichier CV (ou un dossier déjà existant, même dans un
+autre format que celui d'HYPERION) — `.pdf`, `.doc`, `.docx` ou `.txt` —
+c'est le seul document obligatoire. La transcription de l'entretien est
+facultative (même formats) : pas encore fait l'entretien, ou dossier reçu
+directement du candidat ? On peut générer avec le CV seul. L'IA (Claude,
+extraction structurée stricte via `output_config.format`) génère un
+dossier complet au gabarit HYPERION — poste, séniorité, mobilité,
+disponibilité, résumé, compétences par catégorie avec niveaux, langues
+avec niveaux, formations et jusqu'à 4 expériences détaillées avec
+réalisations. Les valeurs des référentiels paramétrables (secteurs,
+expertises, séniorité, mobilité, zones) sont fournies au modèle comme
+vocabulaire fermé pour rester cohérentes avec l'existant ; les
+compétences/langues libres sont créées automatiquement si absentes du
+référentiel.
+
+Extraction de texte : `.pdf` et `.docx` sont gérés nativement (aucune
+dépendance système). Les `.doc` (ancien format binaire Word) passent par
+une conversion LibreOffice (`soffice`) si elle est installée sur la
+machine qui exécute le serveur — sinon un message explicite invite à
+enregistrer le fichier en `.docx`/`.pdf`. Un PDF scanné (image sans texte
+sélectionnable) est aussi signalé explicitement plutôt que de générer un
+dossier vide.
 
 Le dossier est **toujours créé en brouillon** : conformément au principe
 « aperçu obligatoire avant publication » du cahier des charges (§5.2/§8),
@@ -102,6 +114,10 @@ garantir l'absence totale de donnée identifiante dans un texte libre — le
 BM doit relire l'aperçu, cocher les consentements, compléter le nom si
 besoin, puis publier. La création manuelle reste disponible en parallèle
 (`+ Saisie manuelle`).
+
+La limite de taille des fichiers envoyés est portée à 20 Mo
+(`next.config.ts` → `experimental.serverActions.bodySizeLimit`, le défaut
+Next.js de 1 Mo est trop juste pour un CV PDF avec photo).
 
 Fonctionnalité optionnelle : sans `ANTHROPIC_API_KEY` dans `.env`, la page
 affiche un message et redirige vers la saisie manuelle — le reste de

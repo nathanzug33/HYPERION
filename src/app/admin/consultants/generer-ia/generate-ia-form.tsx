@@ -6,7 +6,7 @@ import { generateConsultantFromAI, type GenerateIaState } from "./actions";
 const initialState: GenerateIaState = {};
 
 const ACCEPT =
-  ".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
+  ".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
 
 export default function GenerateIaForm({
   bms,
@@ -46,7 +46,7 @@ export default function GenerateIaForm({
 
       <div>
         <label className="block text-xs font-medium text-brand-body mb-1">
-          CV ou dossier existant (obligatoire) — .pdf, .docx ou .txt
+          CV ou dossier existant (obligatoire) — .pdf, .doc, .docx ou .txt
         </label>
         <input
           type="file"
@@ -63,7 +63,7 @@ export default function GenerateIaForm({
 
       <div>
         <label className="block text-xs font-medium text-brand-body mb-1">
-          Transcription de l&apos;entretien (facultatif) — .pdf, .docx ou .txt
+          Transcription de l&apos;entretien (facultatif) — .pdf, .doc, .docx ou .txt
         </label>
         <input
           type="file"

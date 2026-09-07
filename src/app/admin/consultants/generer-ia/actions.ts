@@ -7,6 +7,7 @@ import { ROLES, STATUT_PUBLICATION } from "@/lib/constants";
 import { generateDCFromCvAndTranscript, isAiGenerationConfigured } from "@/lib/ai-dc";
 import { extractPdfText } from "@/lib/pdf-text";
 import { extractDocxText } from "@/lib/docx-text";
+import { extractDocText } from "@/lib/doc-text";
 import { generateNextReference } from "@/lib/reference-generator";
 
 export type GenerateIaState = { error?: string };
@@ -26,6 +27,9 @@ async function textFromFile(fileValue: FormDataEntryValue | null): Promise<strin
     name.endsWith(".docx")
   ) {
     return (await extractDocxText(buffer)).trim();
+  }
+  if (fileValue.type === "application/msword" || name.endsWith(".doc")) {
+    return (await extractDocText(buffer)).trim();
   }
   return buffer.toString("utf-8").trim();
 }
@@ -89,22 +93,27 @@ export async function generateConsultantFromAI(
       : session.user.id;
 
   let cvText: string;
-  let transcriptText: string;
   try {
     cvText = await textFromFile(formData.get("cvFile"));
-    transcriptText = await textFromFile(formData.get("transcriptFile"));
   } catch (err) {
-    console.error("[generation-ia] échec lecture fichier", err);
-    return {
-      error:
-        "Impossible de lire le fichier fourni (format non pris en charge ou fichier corrompu). Formats acceptés : .pdf, .docx, .txt.",
-    };
+    console.error("[generation-ia] échec lecture CV", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return { error: `CV : ${message}` };
   }
 
   if (!cvText) {
     return {
       error: "Merci de joindre le CV (ou dossier existant) — c'est le seul document obligatoire.",
     };
+  }
+
+  let transcriptText: string;
+  try {
+    transcriptText = await textFromFile(formData.get("transcriptFile"));
+  } catch (err) {
+    console.error("[generation-ia] échec lecture transcription", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return { error: `Transcription d'entretien : ${message}` };
   }
 
   const [secteurs, expertises, seniorites, typesMobilite, zones] = await Promise.all([
