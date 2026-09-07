@@ -19,6 +19,8 @@ dans le cahier des charges (`cahierdeschargesbibliothequedc.md`).
   pré-rempli, optionnelle (nécessite `ANTHROPIC_API_KEY`)
 - **Charte graphique HYPERION** appliquée (bleus/vert extraits du gabarit
   officiel), sans logo — voir `src/app/globals.css`
+- **Export Word (.docx)** du dossier au gabarit HYPERION (`docx` npm),
+  généré à la volée, réservé au back-office — voir `src/lib/dc-docx.ts`
 
 ## Démarrage
 
@@ -131,6 +133,21 @@ exigent un en-tête supplémentaire. Deux solutions :
 - **Alternative** : renseignez `ANTHROPIC_WORKSPACE_ID` dans `.env` avec
   l'identifiant du workspace à utiliser (la clé existante fonctionne alors
   telle quelle).
+
+## Export Word (.docx) du dossier
+
+Sur la fiche d'un dossier (`/admin/consultants/{id}`), le bouton
+« Télécharger le DC (Word) » génère à la volée un `.docx` modifiable
+reprenant les sections du gabarit HYPERION (couleurs, 01 à 05), avec les
+**données nominatives complètes** (nom, contact, TJM) — c'est le
+« dossier nominatif complet » présenté au client en fin de cycle
+commercial (§1 du cahier des charges), à envoyer manuellement (email…)
+une fois la mission confirmée.
+
+**Ce bouton n'existe que dans le back-office.** Il n'est jamais exposé
+dans la bibliothèque client — la fiche que voient les clients reste la
+projection anonymisée habituelle. Génération : `src/lib/dc-docx.ts`
+(librairie `docx`), route `src/app/admin/consultants/[id]/export-word/route.ts`.
 
 ## Passage en production
 

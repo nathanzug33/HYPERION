@@ -144,6 +144,12 @@ export default async function ConsultantEditPage({
             Archiver
           </button>
         </form>
+        <a
+          href={`/admin/consultants/${id}/export-word`}
+          className="rounded-md border border-brand-blue px-3 py-1.5 text-sm text-brand-blue hover:bg-brand-blue-bg"
+        >
+          Télécharger le DC (Word)
+        </a>
         {session.user.role === ROLES.ADMIN && (
           <form
             action={purgeConsultantAction}
