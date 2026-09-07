@@ -6,26 +6,28 @@ import { requireStaff } from "@/lib/guards";
 import { ROLES, STATUT_PUBLICATION } from "@/lib/constants";
 import { generateDCFromCvAndTranscript, isAiGenerationConfigured } from "@/lib/ai-dc";
 import { extractPdfText } from "@/lib/pdf-text";
+import { extractDocxText } from "@/lib/docx-text";
 import { generateNextReference } from "@/lib/reference-generator";
 
 export type GenerateIaState = { error?: string };
 
-async function textFromInput(
-  textValue: FormDataEntryValue | null,
-  fileValue: FormDataEntryValue | null
-): Promise<string> {
-  const text = String(textValue ?? "").trim();
-  if (text) return text;
+async function textFromFile(fileValue: FormDataEntryValue | null): Promise<string> {
+  if (!(fileValue instanceof File) || fileValue.size === 0) return "";
 
-  if (fileValue instanceof File && fileValue.size > 0) {
-    const buffer = Buffer.from(await fileValue.arrayBuffer());
-    if (fileValue.type === "application/pdf" || fileValue.name.toLowerCase().endsWith(".pdf")) {
-      return (await extractPdfText(buffer)).trim();
-    }
-    return buffer.toString("utf-8").trim();
+  const name = fileValue.name.toLowerCase();
+  const buffer = Buffer.from(await fileValue.arrayBuffer());
+
+  if (fileValue.type === "application/pdf" || name.endsWith(".pdf")) {
+    return (await extractPdfText(buffer)).trim();
   }
-
-  return "";
+  if (
+    fileValue.type ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    name.endsWith(".docx")
+  ) {
+    return (await extractDocxText(buffer)).trim();
+  }
+  return buffer.toString("utf-8").trim();
 }
 
 function computeRetentionDate(dateCollecte: Date, dureeMois: number): Date {
@@ -89,19 +91,19 @@ export async function generateConsultantFromAI(
   let cvText: string;
   let transcriptText: string;
   try {
-    cvText = await textFromInput(formData.get("cvText"), formData.get("cvFile"));
-    transcriptText = await textFromInput(
-      formData.get("transcriptText"),
-      formData.get("transcriptFile")
-    );
-  } catch {
-    return { error: "Impossible de lire le fichier fourni (CV ou transcription)." };
-  }
-
-  if (!cvText || !transcriptText) {
+    cvText = await textFromFile(formData.get("cvFile"));
+    transcriptText = await textFromFile(formData.get("transcriptFile"));
+  } catch (err) {
+    console.error("[generation-ia] échec lecture fichier", err);
     return {
       error:
-        "Merci de fournir à la fois le CV et la transcription d'entretien (texte collé ou fichier).",
+        "Impossible de lire le fichier fourni (format non pris en charge ou fichier corrompu). Formats acceptés : .pdf, .docx, .txt.",
+    };
+  }
+
+  if (!cvText) {
+    return {
+      error: "Merci de joindre le CV (ou dossier existant) — c'est le seul document obligatoire.",
     };
   }
 
@@ -117,7 +119,7 @@ export async function generateConsultantFromAI(
   try {
     generated = await generateDCFromCvAndTranscript({
       cvText,
-      transcriptText,
+      transcriptText: transcriptText || null,
       vocab: {
         secteurs: secteurs.map((s) => s.label),
         expertises: expertises.map((e) => e.label),
@@ -129,10 +131,8 @@ export async function generateConsultantFromAI(
     });
   } catch (err) {
     console.error("[generation-ia] échec appel Claude", err);
-    return {
-      error:
-        "La génération par IA a échoué (service indisponible ou réponse invalide). Réessayez, ou créez le dossier manuellement.",
-    };
+    const message = err instanceof Error ? err.message : String(err);
+    return { error: `La génération par IA a échoué : ${message}` };
   }
 
   const seniorityId = seniorites.find((s) => s.label === generated.seniorite)?.id ?? null;
@@ -190,7 +190,7 @@ export async function generateConsultantFromAI(
 
       genereParIA: true,
       sourceCvTexte: cvText,
-      sourceTranscriptTexte: transcriptText,
+      sourceTranscriptTexte: transcriptText || null,
 
       secteurs: { create: secteurIds.map((secteurId) => ({ secteurId })) },
       expertises: { create: expertiseIds.map((expertiseId) => ({ expertiseId })) },

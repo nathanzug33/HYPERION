@@ -5,6 +5,9 @@ import { generateConsultantFromAI, type GenerateIaState } from "./actions";
 
 const initialState: GenerateIaState = {};
 
+const ACCEPT =
+  ".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
+
 export default function GenerateIaForm({
   bms,
   isAdmin,
@@ -43,39 +46,36 @@ export default function GenerateIaForm({
 
       <div>
         <label className="block text-xs font-medium text-brand-body mb-1">
-          CV — coller le texte ou déposer un fichier (.pdf, .txt)
+          CV ou dossier existant (obligatoire) — .pdf, .docx ou .txt
         </label>
-        <textarea
-          name="cvText"
-          rows={6}
-          placeholder="Collez ici le contenu du CV…"
-          className="input"
-        />
         <input
           type="file"
           name="cvFile"
-          accept=".pdf,.txt,application/pdf,text/plain"
-          className="mt-1.5 block w-full text-xs text-brand-gray"
+          required
+          accept={ACCEPT}
+          className="block w-full text-xs text-brand-gray file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue-bg-soft file:px-3 file:py-1.5 file:text-brand-body"
         />
+        <p className="mt-1 text-xs text-brand-gray">
+          Un CV brut ou un dossier déjà rédigé par une autre société, dans un
+          autre format que le gabarit HYPERION — les deux fonctionnent.
+        </p>
       </div>
 
       <div>
         <label className="block text-xs font-medium text-brand-body mb-1">
-          Transcription de l&apos;entretien — coller le texte ou déposer un
-          fichier (.txt)
+          Transcription de l&apos;entretien (facultatif) — .pdf, .docx ou .txt
         </label>
-        <textarea
-          name="transcriptText"
-          rows={8}
-          placeholder="Collez ici la transcription de l'entretien…"
-          className="input"
-        />
         <input
           type="file"
           name="transcriptFile"
-          accept=".txt,text/plain"
-          className="mt-1.5 block w-full text-xs text-brand-gray"
+          accept={ACCEPT}
+          className="block w-full text-xs text-brand-gray file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue-bg-soft file:px-3 file:py-1.5 file:text-brand-body"
         />
+        <p className="mt-1 text-xs text-brand-gray">
+          Pas encore d&apos;entretien, ou dossier reçu directement du
+          candidat ? Laissez ce champ vide, l&apos;IA travaillera à partir du
+          CV seul.
+        </p>
       </div>
 
       {state.error && (

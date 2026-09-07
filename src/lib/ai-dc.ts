@@ -122,18 +122,39 @@ function buildSchema(vocab: ReferentialVocab) {
 export type GeneratedDC = z.infer<ReturnType<typeof buildSchema>>;
 
 const SYSTEM_PROMPT = `Tu es l'assistant interne d'HYPERION Group, société de conseil en ingénierie IT et industrie qui place des consultants en régie.
-Ta tâche : à partir du CV et de la transcription d'un entretien de recrutement, générer un dossier de compétences (DC) structuré, prêt à être relu et publié par un business manager dans une bibliothèque de profils anonymisés.
+Ta tâche : à partir d'un CV (ou d'un dossier de compétences existant, éventuellement dans un autre format que celui d'HYPERION) et, si elle est fournie, d'une transcription d'entretien de recrutement, générer un dossier de compétences (DC) structuré, prêt à être relu et publié par un business manager dans une bibliothèque de profils anonymisés.
 
 Règles impératives :
-- N'invente aucune information. Si une donnée n'est pas déductible du CV/transcript, laisse le champ vide (null ou tableau vide) plutôt que d'halluciner.
-- Le résumé de contexte et les expériences détaillées ne doivent contenir AUCUNE information identifiante (pas de nom de personne, pas de nom d'entreprise cliente réel si l'entretien mentionne un NDA — utilise alors une formulation générique comme "Entreprise cliente du secteur X").
+- N'invente aucune information. Si une donnée n'est pas déductible des documents fournis, laisse le champ vide (null ou tableau vide) plutôt que d'halluciner.
+- Aucune transcription d'entretien n'est fournie ? Base-toi uniquement sur le CV/dossier existant ; c'est une situation normale (candidat déjà rencontré, dossier reçu tel quel).
+- Le résumé de contexte et les expériences détaillées ne doivent contenir AUCUNE information identifiante (pas de nom de personne, pas de nom d'entreprise cliente réel si un NDA est mentionné — utilise alors une formulation générique comme "Entreprise cliente du secteur X").
 - Pour les champs contraints par un référentiel (secteurs, expertises, séniorité, mobilité, zones), choisis uniquement parmi les valeurs fournies dans le référentiel — n'en invente pas de nouvelles.
-- La séniorité et le niveau des compétences/langues doivent être cohérents avec les années d'expérience et les propos de l'entretien.
+- La séniorité et le niveau des compétences/langues doivent être cohérents avec les années d'expérience et les informations disponibles.
 - Sois factuel et concis, dans un français professionnel.`;
+
+function describeAnthropicError(err: unknown): string {
+  if (err instanceof Anthropic.AuthenticationError) {
+    return "Clé ANTHROPIC_API_KEY invalide ou refusée. Vérifiez la valeur dans .env et relancez le serveur.";
+  }
+  if (err instanceof Anthropic.PermissionDeniedError) {
+    return "Accès refusé par l'API Anthropic (permissions/organisation). Vérifiez votre compte Anthropic.";
+  }
+  if (err instanceof Anthropic.RateLimitError) {
+    return "Limite de requêtes Anthropic atteinte. Réessayez dans quelques instants.";
+  }
+  if (err instanceof Anthropic.APIConnectionError) {
+    return "Impossible de joindre l'API Anthropic (réseau). Vérifiez votre connexion internet.";
+  }
+  if (err instanceof Anthropic.APIError) {
+    return `Erreur API Anthropic (${err.status ?? "?"}) : ${err.message}`;
+  }
+  if (err instanceof Error) return err.message;
+  return "Erreur inconnue.";
+}
 
 export async function generateDCFromCvAndTranscript(params: {
   cvText: string;
-  transcriptText: string;
+  transcriptText: string | null;
   vocab: ReferentialVocab;
 }): Promise<GeneratedDC> {
   const client = new Anthropic();
@@ -146,25 +167,33 @@ export async function generateDCFromCvAndTranscript(params: {
 - Types de mobilité : ${params.vocab.typesMobilite.join(", ") || "(aucun configuré)"}
 - Zones géographiques : ${params.vocab.zones.join(", ") || "(aucun configuré)"}`;
 
-  const response = await client.messages.parse({
-    model: "claude-opus-5",
-    max_tokens: 16000,
-    thinking: { type: "adaptive" },
-    output_config: { effort: "high", format: zodOutputFormat(schema) },
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: `${vocabBlock}
+  const transcriptBlock = params.transcriptText
+    ? `=== TRANSCRIPTION D'ENTRETIEN ===\n${params.transcriptText}`
+    : "=== TRANSCRIPTION D'ENTRETIEN ===\n(non fournie — base-toi uniquement sur le CV/dossier ci-dessus)";
 
-=== CV ===
+  let response;
+  try {
+    response = await client.messages.parse({
+      model: "claude-opus-5",
+      max_tokens: 16000,
+      thinking: { type: "adaptive" },
+      output_config: { effort: "high", format: zodOutputFormat(schema) },
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: `${vocabBlock}
+
+=== CV / DOSSIER EXISTANT ===
 ${params.cvText}
 
-=== TRANSCRIPTION D'ENTRETIEN ===
-${params.transcriptText}`,
-      },
-    ],
-  });
+${transcriptBlock}`,
+        },
+      ],
+    });
+  } catch (err) {
+    throw new Error(describeAnthropicError(err));
+  }
 
   if (!response.parsed_output) {
     throw new Error(

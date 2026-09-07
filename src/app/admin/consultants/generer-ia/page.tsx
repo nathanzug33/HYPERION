@@ -22,10 +22,11 @@ export default async function GenererIaPage() {
           Générer un dossier avec l&apos;IA
         </h1>
         <p className="text-sm text-brand-gray">
-          Déposez le CV et la transcription de l&apos;entretien : l&apos;IA
-          pré-remplit un dossier complet au format HYPERION (poste,
-          séniorité, mobilité, disponibilité, expériences, compétences,
-          formations, langues). Le dossier est créé en{" "}
+          Déposez le CV (ou un dossier déjà existant, même dans un autre
+          format) — la transcription de l&apos;entretien est facultative :
+          l&apos;IA pré-remplit un dossier complet au format HYPERION
+          (poste, séniorité, mobilité, disponibilité, expériences,
+          compétences, formations, langues). Le dossier est créé en{" "}
           <strong>brouillon</strong> — vérifiez-le et complétez le nom avant
           de le publier.
         </p>
