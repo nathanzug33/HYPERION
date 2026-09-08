@@ -14,6 +14,7 @@ import {
 } from "../actions";
 import { STATUT_PUBLICATION_LABELS } from "@/lib/constants";
 import { canAccessConsultant } from "@/lib/consultant-access";
+import SuiviSection from "./suivi-section";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,12 @@ export default async function ConsultantEditPage({
       : Promise.resolve([]),
     prisma.consultant.findUnique({ where: { id }, select: consultantPublicSelect }),
   ]);
+
+  const suivis = await prisma.suiviCandidat.findMany({
+    where: { consultantId: id },
+    orderBy: { createdAt: "desc" },
+    include: { createdBy: { select: { name: true } } },
+  });
 
   return (
     <div className="space-y-6">
@@ -157,7 +164,9 @@ export default async function ConsultantEditPage({
           isAdmin={session.user.role === ROLES.ADMIN}
         />
 
-        <div className="lg:sticky lg:top-20 lg:self-start">
+        <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">
+          <SuiviSection consultantId={id} suivis={suivis} />
+
           <div className="card p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-brand-ink">

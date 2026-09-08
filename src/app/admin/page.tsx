@@ -18,8 +18,16 @@ export default async function AdminDashboardPage() {
 
   const bmFilter = consultantVisibilityWhere(session.user);
 
-  const [total, publiees, brouillons, aRafraichir, demandesNouvelles, demandesBesoinNouvelles, aPurger] =
-    await Promise.all([
+  const [
+    total,
+    publiees,
+    brouillons,
+    aRafraichir,
+    demandesNouvelles,
+    demandesBesoinNouvelles,
+    aPurger,
+    rappelsAVenir,
+  ] = await Promise.all([
       prisma.consultant.count({ where: bmFilter }),
       prisma.consultant.count({
         where: { ...bmFilter, statutPublication: STATUT_PUBLICATION.PUBLIEE },
@@ -60,7 +68,21 @@ export default async function AdminDashboardPage() {
             },
           })
         : Promise.resolve(0),
+      prisma.suiviCandidat.findMany({
+        where: {
+          fait: false,
+          dateProgrammee: { not: null },
+          type: { in: ["RDV", "RAPPEL"] },
+          consultant: bmFilter,
+        },
+        orderBy: { dateProgrammee: "asc" },
+        take: 8,
+        include: { consultant: { select: { id: true, referenceAnonyme: true, intitulePoste: true } } },
+      }),
     ]);
+
+  const now = new Date();
+  const rappelsEnRetard = rappelsAVenir.filter((r) => r.dateProgrammee! < now).length;
 
   return (
     <div className="space-y-8">
@@ -72,7 +94,7 @@ export default async function AdminDashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard
           label="Dossiers suivis"
           value={total}
@@ -98,6 +120,12 @@ export default async function AdminDashboardPage() {
           value={demandesNouvelles.length + demandesBesoinNouvelles.length}
           accent={demandesNouvelles.length + demandesBesoinNouvelles.length > 0 ? "amber" : "gray"}
           icon={<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v10a1.5 1.5 0 0 1-1.5 1.5H9l-4.5 3.5V17H5.5A1.5 1.5 0 0 1 4 15.5v-10Z" />}
+        />
+        <StatCard
+          label="Rappels en retard"
+          value={rappelsEnRetard}
+          accent={rappelsEnRetard > 0 ? "amber" : "gray"}
+          icon={<path d="M12 7v5l3.5 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />}
         />
       </div>
 
@@ -193,6 +221,49 @@ export default async function AdminDashboardPage() {
           )}
         </section>
       </div>
+
+      <section className="card p-5">
+        <h2 className="text-sm font-semibold text-brand-ink mb-3">
+          Rappels &amp; RDV à venir
+        </h2>
+        {rappelsAVenir.length === 0 ? (
+          <p className="text-sm text-brand-gray">Aucun rappel programmé.</p>
+        ) : (
+          <ul className="-mx-2 divide-y divide-slate-100">
+            {rappelsAVenir.map((r) => {
+              const overdue = r.dateProgrammee! < now;
+              return (
+                <li
+                  key={r.id}
+                  className="flex items-center justify-between rounded-lg px-2 py-2.5 transition-colors hover:bg-brand-blue-bg-soft"
+                >
+                  <div className="text-sm">
+                    <span className="font-medium text-brand-ink">
+                      {r.consultant.referenceAnonyme}
+                    </span>{" "}
+                    <span className="text-brand-gray">— {r.titre}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xs ${overdue ? "font-medium text-red-600" : "text-brand-gray"}`}>
+                      {new Date(r.dateProgrammee!).toLocaleString("fr-FR", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}
+                      {overdue ? " · en retard" : ""}
+                    </span>
+                    <Link
+                      href={`/admin/consultants/${r.consultant.id}`}
+                      className="link-underline text-sm text-brand-blue-dark"
+                    >
+                      Voir
+                    </Link>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

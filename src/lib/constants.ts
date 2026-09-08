@@ -48,6 +48,32 @@ export const STATUT_CANDIDAT_INTERNE_LABELS: Record<
   A_RECONTACTER: "À recontacter",
 };
 
+// Suivi ATS d'un candidat (§ étoffement ATS interne).
+export const SUIVI_TYPE = {
+  NOTE: "NOTE",
+  APPEL: "APPEL",
+  RDV: "RDV",
+  RAPPEL: "RAPPEL",
+  STATUT: "STATUT", // généré automatiquement, jamais saisi manuellement
+} as const;
+export type SuiviType = (typeof SUIVI_TYPE)[keyof typeof SUIVI_TYPE];
+
+export const SUIVI_TYPE_LABELS: Record<SuiviType, string> = {
+  NOTE: "Note",
+  APPEL: "Appel",
+  RDV: "Rendez-vous",
+  RAPPEL: "Rappel",
+  STATUT: "Changement de statut",
+};
+
+// Types saisissables manuellement (STATUT est réservé au log automatique).
+export const SUIVI_TYPE_SAISISSABLES = [
+  SUIVI_TYPE.NOTE,
+  SUIVI_TYPE.APPEL,
+  SUIVI_TYPE.RDV,
+  SUIVI_TYPE.RAPPEL,
+] as const;
+
 export const DISPONIBILITE = {
   IMMEDIATE: "IMMEDIATE",
   SOUS_1_MOIS: "SOUS_1_MOIS",

@@ -48,6 +48,7 @@ model User {
   contactRequestsRecues ContactRequest[] @relation("BmNotifie")
   demandesBesoin       DemandeBesoin[]   @relation("ClientDemandeurBesoin")
   accesConsultants     ConsultantAccess[]
+  suivisCrees          SuiviCandidat[]
   loginLogs            LoginLog[]
   consultationLogs     ConsultationLog[]
   resetTokens          PasswordResetToken[]
@@ -225,10 +226,39 @@ model Consultant {
   formations        Formation[]
   experiences       Experience[]
   accesEquipe       ConsultantAccess[]
+  suivis            SuiviCandidat[]
 
   @@index([statutPublication])
   @@index([businessManagerId])
   @@index([seniorityId])
+}
+
+// Suivi ATS d'un candidat : notes libres, appels, RDV, rappels programmés,
+// et changements de statut du pipeline (loggés automatiquement) — un seul
+// modèle plutôt que plusieurs pour garder un historique chronologique
+// unifié, simple à afficher en fil d'activité sur la fiche.
+model SuiviCandidat {
+  id           String     @id @default(cuid())
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+
+  type  String // NOTE | APPEL | RDV | RAPPEL | STATUT
+  titre String
+  notes String?
+
+  // Échéance (RDV/RAPPEL) ; null pour une note, un appel déjà passé, ou un
+  // changement de statut (toujours déjà survenu).
+  dateProgrammee DateTime?
+  fait           Boolean   @default(false)
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([consultantId])
+  @@index([dateProgrammee])
 }
 
 // Accès élargi à un dossier candidat, au-delà du BM référent (§ ATS interne).

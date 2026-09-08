@@ -70,6 +70,15 @@ Application sur http://localhost:3000.
   tout le vivier — `src/lib/consultant-access.ts` centralise la règle de
   visibilité et est utilisée par toutes les pages/actions concernées (liste,
   fiche, aperçu, export Word, demandes, tableau de bord).
+- **ATS interne — suivi & rappels** — sur la fiche d'un candidat, un fil
+  d'activité chronologique (`SuiviCandidat`) permet de logger notes libres,
+  appels, RDV et rappels programmés (avec échéance, mise en évidence des
+  retards, marquage « fait »). Les changements de statut de pipeline
+  (`statutCandidatInterne` : en cours / staffé / indisponible / à
+  recontacter) sont journalisés automatiquement dans ce même fil — historique
+  de pipeline sans saisie supplémentaire. Le tableau de bord admin agrège les
+  rappels/RDV à venir et en retard de tous les dossiers visibles par
+  l'utilisateur (§ accès par dossier ci-dessus).
 - **§5.3/§7 Bibliothèque client** — `src/app/bibliotheque` : espace client
   complet avec tableau de bord (`/bibliotheque`), recherche
   (`/bibliotheque/dossiers` — cartes, recherche plein texte, filtres

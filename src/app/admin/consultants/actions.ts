@@ -5,7 +5,13 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff, requireAdmin } from "@/lib/guards";
 import { generateNextReference } from "@/lib/reference-generator";
-import { COMPETENCE_CATEGORIES, ROLES, STATUT_PUBLICATION } from "@/lib/constants";
+import {
+  COMPETENCE_CATEGORIES,
+  ROLES,
+  STATUT_PUBLICATION,
+  STATUT_CANDIDAT_INTERNE_LABELS,
+  SUIVI_TYPE,
+} from "@/lib/constants";
 import { findVille } from "@/lib/villes-france";
 import { canAccessConsultant } from "@/lib/consultant-access";
 
@@ -198,8 +204,37 @@ export async function updateConsultantAction(formData: FormData) {
     }))
     .filter((row) => row.entreprise && row.missionTitre);
 
+  const statutChange =
+    data.statutCandidatInterne !== consultant.statutCandidatInterne
+      ? {
+          from: consultant.statutCandidatInterne,
+          to: data.statutCandidatInterne,
+        }
+      : null;
+
   await prisma.$transaction([
     prisma.consultant.update({ where: { id }, data }),
+    ...(statutChange
+      ? [
+          prisma.suiviCandidat.create({
+            data: {
+              consultantId: id,
+              type: SUIVI_TYPE.STATUT,
+              titre: `Statut candidat : ${
+                STATUT_CANDIDAT_INTERNE_LABELS[
+                  statutChange.from as keyof typeof STATUT_CANDIDAT_INTERNE_LABELS
+                ] ?? statutChange.from
+              } → ${
+                STATUT_CANDIDAT_INTERNE_LABELS[
+                  statutChange.to as keyof typeof STATUT_CANDIDAT_INTERNE_LABELS
+                ] ?? statutChange.to
+              }`,
+              fait: true,
+              createdById: session.user.id,
+            },
+          }),
+        ]
+      : []),
     ...(accesEquipeIds !== null
       ? [
           prisma.consultantAccess.deleteMany({ where: { consultantId: id } }),
