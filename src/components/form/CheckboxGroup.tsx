@@ -8,7 +8,7 @@ export default function CheckboxGroup({
   selectedIds: Set<string>;
 }) {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5 rounded-md border border-slate-200 p-2.5">
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5 rounded-lg border border-slate-200 bg-brand-blue-bg-soft/40 p-3">
       {options.map((opt) => (
         <label key={opt.id} className="flex items-center gap-1.5 text-sm text-brand-body">
           <input
@@ -16,7 +16,7 @@ export default function CheckboxGroup({
             name={name}
             value={opt.id}
             defaultChecked={selectedIds.has(opt.id)}
-            className="rounded border-slate-300"
+            className="h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue"
           />
           {opt.label}
         </label>

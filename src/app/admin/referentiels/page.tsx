@@ -46,8 +46,8 @@ export default async function ReferentielsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-brand-ink">Référentiels</h1>
-        <p className="text-sm text-brand-gray">
+        <h1 className="text-2xl font-semibold text-brand-ink">Référentiels</h1>
+        <p className="mt-1 text-sm text-brand-gray">
           Ces listes alimentent les filtres de la bibliothèque client et les
           formulaires de saisie des dossiers. Désactiver une valeur ne
           supprime pas l&apos;historique, elle disparaît simplement des
@@ -74,13 +74,13 @@ function ReferentialSection({
   items: Item[];
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="card p-5">
       <h2 className="text-sm font-semibold text-brand-ink mb-3">{title}</h2>
       <ul className="space-y-1.5 mb-3">
         {items.map((item) => (
           <li
             key={item.id}
-            className="flex items-center justify-between gap-2 text-sm"
+            className="flex items-center justify-between gap-2 rounded px-1.5 py-1 text-sm transition-colors hover:bg-brand-blue-bg-soft"
           >
             <span className={item.active ? "text-brand-body" : "text-brand-gray line-through"}>
               {item.label}
@@ -91,7 +91,7 @@ function ReferentialSection({
               <input type="hidden" name="active" value={String(item.active)} />
               <button
                 type="submit"
-                className="text-xs text-brand-gray underline hover:text-brand-ink"
+                className="link-underline text-xs text-brand-gray hover:text-brand-ink"
               >
                 {item.active ? "Désactiver" : "Réactiver"}
               </button>
@@ -109,11 +109,11 @@ function ReferentialSection({
           name="label"
           placeholder="Ajouter une valeur…"
           required
-          className="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
+          className="input flex-1"
         />
         <button
           type="submit"
-          className="rounded-md bg-brand-ink px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-blue-dark"
+          className="btn btn-primary"
         >
           Ajouter
         </button>

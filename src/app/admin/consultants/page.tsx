@@ -44,45 +44,35 @@ export default async function ConsultantsListPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-brand-ink">
+          <h1 className="text-2xl font-semibold text-brand-ink">
             Dossiers de compétences
           </h1>
-          <p className="text-sm text-brand-gray">
+          <p className="mt-1 text-sm text-brand-gray">
             Vue interne — noms et coordonnées visibles ici uniquement.
             {purge && " Filtré sur les dossiers ayant dépassé leur durée de conservation RGPD."}
           </p>
         </div>
         <div className="flex gap-2">
-          <Link
-            href="/admin/consultants/nouveau"
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-brand-body hover:bg-brand-blue-bg-soft"
-          >
+          <Link href="/admin/consultants/nouveau" className="btn btn-secondary">
             + Saisie manuelle
           </Link>
-          <Link
-            href="/admin/consultants/generer-ia"
-            className="rounded-md bg-brand-ink px-4 py-2 text-sm font-medium text-white hover:bg-brand-blue-dark"
-          >
-            Générer avec l&apos;IA
+          <Link href="/admin/consultants/generer-ia" className="btn btn-primary">
+            ✨ Générer avec l&apos;IA
           </Link>
         </div>
       </div>
 
-      <form className="flex flex-wrap gap-2">
+      <form className="card flex flex-wrap items-center gap-2 p-3">
         <input
           type="text"
           name="q"
           defaultValue={q}
           placeholder="Rechercher (nom, référence, poste)…"
-          className="w-64 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
+          className="input w-64"
         />
-        <select
-          name="statut"
-          defaultValue={statut ?? ""}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
-        >
+        <select name="statut" defaultValue={statut ?? ""} className="input w-auto">
           <option value="">Tous les statuts</option>
           {Object.entries(STATUT_PUBLICATION_LABELS).map(([k, v]) => (
             <option key={k} value={k}>
@@ -90,25 +80,22 @@ export default async function ConsultantsListPage({
             </option>
           ))}
         </select>
-        <button
-          type="submit"
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-brand-blue-bg"
-        >
+        <button type="submit" className="btn btn-secondary">
           Filtrer
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="card overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-brand-blue-bg-soft text-left text-xs uppercase tracking-wide text-brand-gray">
+          <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
             <tr>
-              <th className="px-4 py-2">Référence</th>
-              <th className="px-4 py-2">Nom</th>
-              <th className="px-4 py-2">Poste</th>
-              <th className="px-4 py-2">BM référent</th>
-              <th className="px-4 py-2">Statut</th>
-              <th className="px-4 py-2">Dernière maj</th>
-              <th className="px-4 py-2"></th>
+              <th className="px-4 py-3">Référence</th>
+              <th className="px-4 py-3">Nom</th>
+              <th className="px-4 py-3">Poste</th>
+              <th className="px-4 py-3">BM référent</th>
+              <th className="px-4 py-3">Statut</th>
+              <th className="px-4 py-3">Dernière maj</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -116,44 +103,44 @@ export default async function ConsultantsListPage({
               const isStale =
                 c.statutPublication === "PUBLIEE" && c.updatedAt < staleThreshold;
               return (
-                <tr key={c.id} className="hover:bg-brand-blue-bg-soft">
-                  <td className="px-4 py-2">
+                <tr key={c.id} className="transition-colors hover:bg-brand-blue-bg-soft">
+                  <td className="px-4 py-3">
                     <Link
                       href={`/admin/consultants/${c.id}`}
-                      className="font-medium text-brand-ink hover:underline"
+                      className="font-mono text-sm font-medium text-brand-ink hover:text-brand-blue-dark"
                     >
                       {c.referenceAnonyme}
                     </Link>
                   </td>
-                  <td className="px-4 py-2 text-brand-body">
+                  <td className="px-4 py-3 text-brand-body">
                     {c.prenom} {c.nom}
                   </td>
-                  <td className="px-4 py-2 text-brand-body">
+                  <td className="px-4 py-3 text-brand-body">
                     {c.intitulePoste ?? "—"}
                   </td>
-                  <td className="px-4 py-2 text-brand-body">
+                  <td className="px-4 py-3 text-brand-body">
                     {c.businessManager.name}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-3">
                     <StatusBadge statut={c.statutPublication} />
                   </td>
-                  <td className="px-4 py-2 text-brand-gray">
-                    <span className={isStale ? "text-amber-700 font-medium" : ""}>
+                  <td className="px-4 py-3 text-brand-gray">
+                    <span className={isStale ? "font-medium text-amber-700" : ""}>
                       {new Date(c.updatedAt).toLocaleDateString("fr-FR")}
                       {isStale ? " · à actualiser" : ""}
                     </span>
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-right">
+                  <td className="px-4 py-3 whitespace-nowrap text-right">
                     <Link
                       href={`/admin/consultants/${c.id}/apercu`}
-                      className="text-sm text-brand-blue underline hover:text-brand-blue-dark"
+                      className="link-underline text-sm text-brand-blue-dark"
                     >
                       Aperçu
                     </Link>
                     <span className="mx-1.5 text-slate-300">·</span>
                     <Link
                       href={`/admin/consultants/${c.id}`}
-                      className="text-sm text-brand-body underline hover:text-brand-ink"
+                      className="link-underline text-sm text-brand-body hover:text-brand-ink"
                     >
                       Modifier
                     </Link>
@@ -163,7 +150,7 @@ export default async function ConsultantsListPage({
             })}
             {consultants.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-brand-gray">
+                <td colSpan={7} className="px-4 py-10 text-center text-brand-gray">
                   Aucun dossier trouvé.
                 </td>
               </tr>
@@ -178,12 +165,13 @@ export default async function ConsultantsListPage({
 function StatusBadge({ statut }: { statut: string }) {
   const styles: Record<string, string> = {
     BROUILLON: "bg-slate-100 text-brand-body",
-    PUBLIEE: "bg-emerald-50 text-emerald-700",
+    PUBLIEE: "bg-brand-green/10 text-brand-green",
     DEPUBLIEE: "bg-amber-50 text-amber-700",
     ARCHIVEE: "bg-slate-100 text-brand-gray",
   };
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${styles[statut] ?? ""}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${styles[statut] ?? ""}`}>
+      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
       {STATUT_PUBLICATION_LABELS[statut as keyof typeof STATUT_PUBLICATION_LABELS] ?? statut}
     </span>
   );

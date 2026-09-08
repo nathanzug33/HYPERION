@@ -21,10 +21,7 @@ export default function GenerateIaForm({
   );
 
   return (
-    <form
-      action={formAction}
-      className="space-y-5 rounded-lg border border-slate-200 bg-white p-4"
-    >
+    <form action={formAction} className="card space-y-5 p-5">
       {isAdmin && (
         <div>
           <label className="block text-xs font-medium text-brand-body">
@@ -53,7 +50,7 @@ export default function GenerateIaForm({
           name="cvFile"
           required
           accept={ACCEPT}
-          className="block w-full text-xs text-brand-gray file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue-bg-soft file:px-3 file:py-1.5 file:text-brand-body"
+          className="block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-3 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
         />
         <p className="mt-1 text-xs text-brand-gray">
           Un CV brut ou un dossier déjà rédigé par une autre société, dans un
@@ -69,7 +66,7 @@ export default function GenerateIaForm({
           type="file"
           name="transcriptFile"
           accept={ACCEPT}
-          className="block w-full text-xs text-brand-gray file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue-bg-soft file:px-3 file:py-1.5 file:text-brand-body"
+          className="block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-3 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
         />
         <p className="mt-1 text-xs text-brand-gray">
           Pas encore d&apos;entretien, ou dossier reçu directement du
@@ -87,7 +84,7 @@ export default function GenerateIaForm({
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-brand-ink py-2.5 text-sm font-medium text-white hover:bg-brand-blue-dark disabled:opacity-60"
+        className="btn btn-primary w-full py-2.5 disabled:opacity-60"
       >
         {pending ? "Génération en cours… (peut prendre une minute)" : "Générer le dossier"}
       </button>

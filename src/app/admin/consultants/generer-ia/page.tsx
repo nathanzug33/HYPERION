@@ -18,10 +18,10 @@ export default async function GenererIaPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-brand-ink">
-          Générer un dossier avec l&apos;IA
+        <h1 className="text-2xl font-semibold text-brand-ink">
+          ✨ Générer un dossier avec l&apos;IA
         </h1>
-        <p className="text-sm text-brand-gray">
+        <p className="mt-1 text-sm text-brand-gray">
           Déposez le CV (ou un dossier déjà existant, même dans un autre
           format) — la transcription de l&apos;entretien est facultative :
           l&apos;IA pré-remplit un dossier complet au format HYPERION
@@ -33,7 +33,7 @@ export default async function GenererIaPage() {
       </div>
 
       {!isAiGenerationConfigured() && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           La génération par IA n&apos;est pas configurée sur cet
           environnement (clé <code>ANTHROPIC_API_KEY</code> absente).
           Utilisez la{" "}

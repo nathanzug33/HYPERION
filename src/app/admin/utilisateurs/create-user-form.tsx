@@ -19,7 +19,7 @@ export default function CreateUserForm({
   return (
     <form
       action={formAction}
-      className="rounded-lg border border-slate-200 bg-white p-4 space-y-3"
+      className="card p-5 space-y-3"
     >
       <h2 className="text-sm font-semibold text-brand-ink">
         Créer un compte
@@ -30,7 +30,7 @@ export default function CreateUserForm({
           <input
             name="name"
             required
-            className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
+            className="input mt-1.5"
           />
         </div>
         <div>
@@ -39,7 +39,7 @@ export default function CreateUserForm({
             name="email"
             type="email"
             required
-            className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
+            className="input mt-1.5"
           />
         </div>
         <div>
@@ -48,7 +48,7 @@ export default function CreateUserForm({
             name="role"
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
+            className="input mt-1.5"
           >
             <option value="CLIENT">Client / prospect</option>
             <option value="BM">Business manager</option>
@@ -62,7 +62,7 @@ export default function CreateUserForm({
             </label>
             <select
               name="clientOrganizationId"
-              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
+              className="input mt-1.5"
             >
               <option value="">— Nouvelle organisation ci-dessous —</option>
               {organizations.map((o) => (
@@ -74,7 +74,7 @@ export default function CreateUserForm({
             <input
               name="newOrgName"
               placeholder="Ou nom d'une nouvelle organisation"
-              className="mt-1.5 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-brand-blue focus:outline-none"
+              className="input mt-1.5"
             />
           </div>
         )}
@@ -86,7 +86,7 @@ export default function CreateUserForm({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-brand-ink px-4 py-2 text-sm font-medium text-white hover:bg-brand-blue-dark disabled:opacity-60"
+        className="btn btn-primary disabled:opacity-60"
       >
         {pending ? "Création…" : "Créer le compte"}
       </button>

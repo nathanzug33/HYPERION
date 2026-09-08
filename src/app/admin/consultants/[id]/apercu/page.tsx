@@ -35,9 +35,9 @@ export default async function ConsultantApercuPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <div className="flex items-center justify-between">
-        <Link href="/admin/consultants" className="text-sm text-brand-gray underline">
+    <div className="mx-auto max-w-4xl space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/admin/consultants" className="link-underline text-sm text-brand-gray hover:text-brand-ink">
           ← Retour à la liste
         </Link>
         <div className="flex items-center gap-3">
@@ -48,24 +48,21 @@ export default async function ConsultantApercuPage({
             ] ?? consultant.statutPublication}
             )
           </span>
-          <Link
-            href={`/admin/consultants/${id}`}
-            className="rounded-md bg-brand-ink px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-blue-dark"
-          >
+          <Link href={`/admin/consultants/${id}`} className="btn btn-primary">
             Modifier ce dossier
           </Link>
         </div>
       </div>
 
       {consultant.statutPublication !== "PUBLIEE" && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Cette fiche n&apos;est pas encore publiée : elle n&apos;est pas
           visible dans la bibliothèque client. Ce qui suit est exactement ce
           qu&apos;un client verrait une fois la fiche publiée.
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white p-6">
+      <div className="card animate-fade-in p-6 sm:p-7">
         <ConsultantDetail consultant={consultant} />
       </div>
     </div>

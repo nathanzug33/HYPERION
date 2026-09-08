@@ -23,10 +23,10 @@ export default async function JournauxPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-brand-ink">
+        <h1 className="text-2xl font-semibold text-brand-ink">
           Journaux et traçabilité
         </h1>
-        <p className="text-sm text-brand-gray">
+        <p className="mt-1 text-sm text-brand-gray">
           Réservé à l&apos;administrateur. Les 50 dernières entrées sont
           affichées ; utilisez les exports pour l&apos;historique complet.
         </p>
@@ -39,7 +39,7 @@ export default async function JournauxPage() {
           </h2>
           <a
             href="/admin/journaux/export/connexions"
-            className="text-sm text-brand-body underline hover:text-brand-ink"
+            className="link-underline text-sm text-brand-blue-dark"
           >
             Exporter en CSV
           </a>
@@ -61,7 +61,7 @@ export default async function JournauxPage() {
           </h2>
           <a
             href="/admin/journaux/export/consultations"
-            className="text-sm text-brand-body underline hover:text-brand-ink"
+            className="link-underline text-sm text-brand-blue-dark"
           >
             Exporter en CSV
           </a>
@@ -83,7 +83,7 @@ export default async function JournauxPage() {
           </h2>
           <a
             href="/admin/journaux/export/demandes"
-            className="text-sm text-brand-body underline hover:text-brand-ink"
+            className="link-underline text-sm text-brand-blue-dark"
           >
             Exporter en CSV
           </a>
@@ -102,9 +102,9 @@ export default async function JournauxPage() {
 
 function LogTable({ headers, rows }: { headers: string[]; rows: (string | null)[][] }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <div className="card overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="bg-brand-blue-bg-soft text-left text-xs uppercase tracking-wide text-brand-gray">
+        <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
           <tr>
             {headers.map((h) => (
               <th key={h} className="px-4 py-2">
@@ -115,7 +115,7 @@ function LogTable({ headers, rows }: { headers: string[]; rows: (string | null)[
         </thead>
         <tbody className="divide-y divide-slate-100">
           {rows.map((row, i) => (
-            <tr key={i}>
+            <tr key={i} className="transition-colors hover:bg-brand-blue-bg-soft">
               {row.map((cell, j) => (
                 <td key={j} className="px-4 py-2 text-brand-body whitespace-nowrap">
                   {cell}

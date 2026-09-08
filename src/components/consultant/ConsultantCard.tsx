@@ -26,8 +26,9 @@ export default function ConsultantCard({
       : null;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md">
-      <Link href={href} className="block">
+    <div className="card card-hover relative overflow-hidden p-4">
+      <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand-blue to-brand-green" aria-hidden />
+      <Link href={href} className="block pl-1.5">
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="text-xs font-mono text-brand-gray">
@@ -62,8 +63,8 @@ export default function ConsultantCard({
         </div>
       </Link>
 
-      <div className="mt-3 flex items-center gap-3 border-t border-slate-100 pt-3">
-        <Link href={href} className="text-sm text-brand-gray underline hover:text-brand-ink">
+      <div className="mt-3 flex items-center gap-3 border-t border-slate-100 pl-1.5 pt-3">
+        <Link href={href} className="link-underline text-sm text-brand-gray hover:text-brand-ink">
           Voir la fiche complète
         </Link>
         {canContact && (

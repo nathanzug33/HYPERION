@@ -93,8 +93,8 @@ export default async function BibliothequePage({
   const canContact = session?.user.role === ROLES.CLIENT;
 
   return (
-    <div className="grid gap-6 md:grid-cols-[260px_minmax(0,1fr)]">
-      <aside>
+    <div className="grid gap-6 md:grid-cols-[280px_minmax(0,1fr)]">
+      <aside className="md:sticky md:top-20 md:self-start">
         <FilterForm
           secteurs={secteurs}
           expertises={expertises}
@@ -107,16 +107,16 @@ export default async function BibliothequePage({
 
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-brand-ink">
+          <h1 className="text-2xl font-semibold text-brand-ink">
             Bibliothèque de profils
           </h1>
-          <span className="text-sm text-brand-gray">
+          <span className="rounded-full bg-brand-blue-bg px-3 py-1 text-sm font-medium text-brand-blue-dark">
             {sorted.length} profil{sorted.length > 1 ? "s" : ""}
           </span>
         </div>
 
         {sorted.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
+          <div className="card border-dashed p-10 text-center">
             <p className="text-brand-body">
               Aucun profil ne correspond à ces critères pour le moment.
             </p>
@@ -127,7 +127,7 @@ export default async function BibliothequePage({
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
             {sorted.map((c) => (
               <ConsultantCard
                 key={c.id}

@@ -23,8 +23,8 @@ export default async function UtilisateursPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-brand-ink">Utilisateurs</h1>
-        <p className="text-sm text-brand-gray">
+        <h1 className="text-2xl font-semibold text-brand-ink">Utilisateurs</h1>
+        <p className="mt-1 text-sm text-brand-gray">
           Les comptes sont créés uniquement par un administrateur — pas
           d&apos;auto-inscription. Un accès peut être révoqué à tout moment.
         </p>
@@ -32,9 +32,9 @@ export default async function UtilisateursPage() {
 
       <CreateUserForm organizations={organizations} />
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="card overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-brand-blue-bg-soft text-left text-xs uppercase tracking-wide text-brand-gray">
+          <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
             <tr>
               <th className="px-4 py-2">Nom</th>
               <th className="px-4 py-2">Email</th>
@@ -47,7 +47,7 @@ export default async function UtilisateursPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {users.map((u) => (
-              <tr key={u.id}>
+              <tr key={u.id} className="transition-colors hover:bg-brand-blue-bg-soft">
                 <td className="px-4 py-2 font-medium text-brand-ink">{u.name}</td>
                 <td className="px-4 py-2 text-brand-body">{u.email}</td>
                 <td className="px-4 py-2 text-brand-body">
@@ -65,7 +65,7 @@ export default async function UtilisateursPage() {
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       u.active
-                        ? "bg-emerald-50 text-emerald-700"
+                        ? "bg-brand-green/10 text-brand-green"
                         : "bg-slate-100 text-brand-gray"
                     }`}
                   >
@@ -78,7 +78,7 @@ export default async function UtilisateursPage() {
                     <input type="hidden" name="active" value={String(u.active)} />
                     <button
                       type="submit"
-                      className="text-xs text-brand-gray underline hover:text-brand-ink"
+                      className="link-underline text-xs text-brand-gray hover:text-brand-ink"
                     >
                       {u.active ? "Révoquer l'accès" : "Réactiver"}
                     </button>

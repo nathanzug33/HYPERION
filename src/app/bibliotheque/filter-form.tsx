@@ -37,11 +37,7 @@ export default function FilterForm({
   }
 
   return (
-    <form
-      ref={formRef}
-      method="get"
-      className="space-y-4 rounded-lg border border-slate-200 bg-white p-4"
-    >
+    <form ref={formRef} method="get" className="card space-y-5 p-4">
       <div>
         <input
           type="search"
@@ -110,16 +106,10 @@ export default function FilterForm({
       </div>
 
       <div className="flex gap-2">
-        <button
-          type="submit"
-          className="flex-1 rounded-md bg-brand-ink py-2 text-sm font-medium text-white hover:bg-brand-blue-dark"
-        >
+        <button type="submit" className="btn btn-primary flex-1 py-2">
           Filtrer
         </button>
-        <Link
-          href="/bibliotheque"
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm hover:bg-brand-blue-bg"
-        >
+        <Link href="/bibliotheque" className="btn btn-secondary">
           Réinitialiser
         </Link>
       </div>
@@ -143,18 +133,23 @@ function FilterGroup({
   if (options.length === 0) return null;
   const selectedSet = new Set(selected);
   return (
-    <div>
-      <span className="block text-xs font-medium text-brand-body mb-1.5">{title}</span>
-      <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+    <div className="border-t border-slate-100 pt-3.5 first:border-0 first:pt-0">
+      <span className="block text-xs font-semibold uppercase tracking-wide text-brand-blue-dark mb-1.5">
+        {title}
+      </span>
+      <div className="space-y-0.5 max-h-40 overflow-y-auto pr-1">
         {options.map((opt) => (
-          <label key={opt.id} className="flex items-center gap-1.5 text-sm text-brand-body">
+          <label
+            key={opt.id}
+            className="flex items-center gap-1.5 rounded px-1 py-0.5 text-sm text-brand-body transition-colors hover:bg-brand-blue-bg-soft"
+          >
             <input
               type="checkbox"
               name={name}
               value={opt.id}
               defaultChecked={selectedSet.has(opt.id)}
               onChange={onChange}
-              className="rounded border-slate-300"
+              className="h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue"
             />
             {opt.label}
           </label>

@@ -13,18 +13,18 @@ export default function LangueNiveauGroup({
   const byId = new Map(existing.map((e) => [e.langueId, e]));
 
   return (
-    <div className="space-y-2 rounded-md border border-slate-200 p-2.5">
+    <div className="space-y-1 rounded-lg border border-slate-200 bg-brand-blue-bg-soft/40 p-3">
       {options.map((opt) => {
         const current = byId.get(opt.id);
         return (
-          <div key={opt.id} className="flex flex-wrap items-center gap-2 text-sm">
+          <div key={opt.id} className="flex flex-wrap items-center gap-2 rounded-md px-1 py-1 text-sm transition-colors hover:bg-white">
             <label className="flex w-40 items-center gap-1.5 text-brand-body">
               <input
                 type="checkbox"
                 name="langueIds"
                 value={opt.id}
                 defaultChecked={Boolean(current)}
-                className="rounded border-slate-300"
+                className="h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue"
               />
               {opt.label}
             </label>

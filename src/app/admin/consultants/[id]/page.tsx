@@ -77,15 +77,15 @@ export default async function ConsultantEditPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-brand-ink">
+          <h1 className="text-2xl font-semibold text-brand-ink">
             {consultant.prenom} {consultant.nom}{" "}
-            <span className="text-brand-gray font-normal">
+            <span className="font-mono text-base font-normal text-brand-gray">
               — {consultant.referenceAnonyme}
             </span>
           </h1>
-          <p className="text-sm text-brand-gray">
+          <p className="mt-1 text-sm text-brand-gray">
             Statut :{" "}
             <span className="font-medium text-brand-body">
               {STATUT_PUBLICATION_LABELS[
@@ -95,13 +95,13 @@ export default async function ConsultantEditPage({
             {" · "}BM référent : {consultant.businessManager.name}
           </p>
         </div>
-        <Link href="/admin/consultants" className="text-sm text-brand-gray underline">
-          Retour à la liste
+        <Link href="/admin/consultants" className="link-underline text-sm text-brand-gray hover:text-brand-ink">
+          ← Retour à la liste
         </Link>
       </div>
 
       {ia && consultant.genereParIA && (
-        <div className="rounded-md border border-brand-blue-light bg-brand-blue-bg px-4 py-3 text-sm text-brand-ink">
+        <div className="card border-l-4 border-l-brand-blue px-4 py-3 text-sm text-brand-ink">
           Dossier pré-rempli par l&apos;IA à partir du CV et de la
           transcription d&apos;entretien. Vérifiez les informations
           (notamment l&apos;absence de donnée identifiante dans le contexte
@@ -111,54 +111,39 @@ export default async function ConsultantEditPage({
       )}
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="card flex flex-wrap items-center gap-2 p-3">
         <form action={publishConsultantAction}>
           <input type="hidden" name="id" value={id} />
-          <button
-            type="submit"
-            className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500"
-          >
+          <button type="submit" className="btn bg-brand-green text-white hover:brightness-110">
             Publier
           </button>
         </form>
         <form action={unpublishConsultantAction}>
           <input type="hidden" name="id" value={id} />
-          <button
-            type="submit"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-brand-blue-bg"
-          >
+          <button type="submit" className="btn btn-secondary">
             Dépublier
           </button>
         </form>
         <form action={archiveConsultantAction}>
           <input type="hidden" name="id" value={id} />
-          <button
-            type="submit"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-brand-blue-bg"
-          >
+          <button type="submit" className="btn btn-secondary">
             Archiver
           </button>
         </form>
-        <a
-          href={`/admin/consultants/${id}/export-word`}
-          className="rounded-md border border-brand-blue px-3 py-1.5 text-sm text-brand-blue hover:bg-brand-blue-bg"
-        >
+        <a href={`/admin/consultants/${id}/export-word`} className="btn btn-accent">
           Télécharger le DC (Word)
         </a>
         {session.user.role === ROLES.ADMIN && (
-          <form
-            action={purgeConsultantAction}
-            className="ml-auto"
-          >
+          <form action={purgeConsultantAction} className="ml-auto">
             <input type="hidden" name="id" value={id} />
             <button
               type="submit"
-              className="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
+              className="btn border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
             >
               Supprimer définitivement (RGPD)
             </button>
@@ -166,26 +151,26 @@ export default async function ConsultantEditPage({
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <ConsultantEditForm
           consultant={consultant}
           referentials={{ secteurs, expertises, seniorites, typesMobilite, zones, competences, langues, bms }}
           isAdmin={session.user.role === ROLES.ADMIN}
         />
 
-        <div className="lg:sticky lg:top-6 lg:self-start">
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <div className="lg:sticky lg:top-20 lg:self-start">
+          <div className="card p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-brand-ink">
                 Aperçu — ce que voit le client
               </h2>
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-brand-gray">
+                <span className="rounded-full bg-brand-blue-bg px-2 py-0.5 text-xs font-medium text-brand-blue-dark">
                   anonymisé
                 </span>
                 <Link
                   href={`/admin/consultants/${id}/apercu`}
-                  className="text-xs text-brand-blue underline hover:text-brand-blue-dark"
+                  className="link-underline text-xs text-brand-blue-dark"
                 >
                   Plein écran
                 </Link>

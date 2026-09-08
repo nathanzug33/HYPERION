@@ -24,22 +24,28 @@ export default function ConsultantDetail({
   return (
     <div className="space-y-8">
       {/* En-tête façon gabarit HYPERION */}
-      <div className="rounded-lg bg-brand-blue-bg px-4 py-4 sm:px-6 sm:py-5">
-        <div className="text-xs font-mono text-brand-gray">
+      <div className="topbar-gradient relative overflow-hidden rounded-2xl px-5 py-5 sm:px-7 sm:py-6">
+        <div
+          className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl"
+          aria-hidden
+        />
+        <div className="relative text-xs font-mono uppercase tracking-wide text-white/60">
           {consultant.referenceAnonyme}
         </div>
-        <h1 className="text-xl font-semibold text-brand-ink sm:text-2xl">
+        <h1 className="relative text-xl font-semibold text-white sm:text-2xl">
           {consultant.intitulePoste ?? "Poste non renseigné"}
         </h1>
-        <div className="mt-1 text-sm text-brand-body">
+        <div className="relative mt-1 text-sm text-white/80">
           {consultant.seniority?.label}
           {anneesLabel ? ` · ${anneesLabel}` : ""}
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="relative mt-3 flex flex-wrap gap-2">
           <DisponibiliteBadge value={consultant.disponibilite} />
-          <TypeContratBadge value={consultant.typeContrat} />
+          <TypeContratBadge value={consultant.typeContrat} light />
           {competencesCles.map((c) => (
-            <Tag key={c.competence.id}>{c.competence.label}</Tag>
+            <Tag key={c.competence.id} light>
+              {c.competence.label}
+            </Tag>
           ))}
         </div>
       </div>
@@ -55,10 +61,13 @@ export default function ConsultantDetail({
       {consultant.experiences.length > 0 && (
         <section>
           <SectionTitle n="01" title="Expériences clés" />
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
             {consultant.experiences.slice(0, 3).map((exp) => (
-              <div key={exp.id} className="rounded-md bg-brand-blue-bg-soft p-3">
-                <div className="text-xs text-brand-blue-dark font-medium">
+              <div
+                key={exp.id}
+                className="card-hover rounded-lg border border-brand-blue-light/25 bg-brand-blue-bg-soft p-3"
+              >
+                <div className="text-xs font-medium text-brand-blue-dark">
                   {formatMoisAnnee(exp.dateDebut)}
                 </div>
                 <div className="text-sm font-medium text-brand-ink">{exp.missionTitre}</div>

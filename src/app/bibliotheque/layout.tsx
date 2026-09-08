@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireRole } from "@/lib/guards";
 import { ROLES } from "@/lib/constants";
 import LogoutButton from "@/components/LogoutButton";
+import BrandMark from "@/components/BrandMark";
 
 export default async function BibliothequeLayout({
   children,
@@ -13,33 +14,41 @@ export default async function BibliothequeLayout({
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
-          <Link href="/bibliotheque" className="font-semibold text-brand-ink">
-            Bibliothèque de compétences
+      <header className="topbar-gradient sticky top-0 z-20 shadow-[0_4px_20px_-8px_rgba(34,45,60,0.45)]">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <Link href="/bibliotheque" className="flex items-center gap-3">
+            <BrandMark className="text-white" />
+            <div className="leading-tight">
+              <div className="text-sm font-semibold text-white">
+                Bibliothèque de compétences
+              </div>
+              <div className="text-[11px] uppercase tracking-wide text-white/55">
+                Portail réservé
+              </div>
+            </div>
           </Link>
           <div className="flex items-center gap-3">
             {isPreview && (
-              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+              <span className="hidden rounded-full bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-200 ring-1 ring-amber-300/30 sm:inline-block">
                 Aperçu vue client (compte {session.user.role === ROLES.ADMIN ? "admin" : "BM"})
               </span>
             )}
-            <div className="text-right text-xs text-brand-gray">
-              <div className="font-medium text-brand-body">{session.user.name}</div>
+            <div className="hidden text-right text-xs leading-tight text-white/70 sm:block">
+              <div className="font-medium text-white">{session.user.name}</div>
             </div>
-            <LogoutButton />
+            <LogoutButton dark />
           </div>
         </div>
       </header>
-      <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6 pb-20">
+      <main className="animate-fade-in flex-1 mx-auto w-full max-w-7xl px-4 py-8 pb-24 sm:px-6">
         {children}
       </main>
-      <footer className="border-t border-slate-200 py-4 text-center text-xs text-brand-gray">
-        <Link href="/legal/mentions-legales" className="underline">
+      <footer className="border-t border-brand-blue-bg py-5 text-center text-xs text-brand-gray">
+        <Link href="/legal/mentions-legales" className="link-underline hover:text-brand-ink">
           Mentions légales
         </Link>{" "}
         ·{" "}
-        <Link href="/legal/confidentialite" className="underline">
+        <Link href="/legal/confidentialite" className="link-underline hover:text-brand-ink">
           Confidentialité
         </Link>
       </footer>

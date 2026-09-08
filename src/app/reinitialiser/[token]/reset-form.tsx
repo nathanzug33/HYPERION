@@ -19,10 +19,7 @@ export default function ResetForm({ token }: { token: string }) {
         <p className="text-sm text-brand-body">
           Votre mot de passe a été mis à jour.
         </p>
-        <Link
-          href="/connexion"
-          className="block text-center rounded-md bg-brand-ink py-2 text-sm font-medium text-white hover:bg-brand-blue-dark"
-        >
+        <Link href="/connexion" className="btn btn-primary block w-full py-2.5 text-center">
           Se connecter
         </Link>
       </div>
@@ -41,7 +38,7 @@ export default function ResetForm({ token }: { token: string }) {
           type="password"
           minLength={10}
           required
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none"
+          className="input mt-1.5"
         />
       </div>
       <div>
@@ -54,7 +51,7 @@ export default function ResetForm({ token }: { token: string }) {
           type="password"
           minLength={10}
           required
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none"
+          className="input mt-1.5"
         />
       </div>
       {state.error && (
@@ -65,7 +62,7 @@ export default function ResetForm({ token }: { token: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-brand-ink py-2 text-sm font-medium text-white hover:bg-brand-blue-dark disabled:opacity-60"
+        className="btn btn-primary w-full py-2.5 disabled:opacity-60"
       >
         {pending ? "Mise à jour…" : "Mettre à jour le mot de passe"}
       </button>

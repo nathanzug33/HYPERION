@@ -3,7 +3,7 @@
 /* Palette HYPERION — extraite du gabarit officiel du dossier de compétences.
    Pas de logo ici : uniquement la charte de couleurs. */
 :root {
-  --background: #f8fafc;
+  --background: #eef3f9;
   --foreground: #222d3c;
 
   --brand-ink: #222d3c; /* titres, texte fort */
@@ -15,6 +15,10 @@
   --brand-blue-bg: #eaf1f9; /* fond bandeau clair */
   --brand-blue-bg-soft: #f4f7fb; /* fond carte / étiquette */
   --brand-green: #1f5f4a; /* disponibilité / succès */
+  --brand-green-light: #2f8a6c;
+
+  --shadow-card: 0 1px 2px rgba(34, 45, 60, 0.04), 0 8px 24px -12px rgba(34, 45, 60, 0.12);
+  --shadow-card-hover: 0 4px 10px rgba(34, 45, 60, 0.06), 0 16px 32px -12px rgba(34, 45, 60, 0.18);
 }
 
 @theme inline {
@@ -29,27 +33,36 @@
   --color-brand-blue-bg: var(--brand-blue-bg);
   --color-brand-blue-bg-soft: var(--brand-blue-bg-soft);
   --color-brand-green: var(--brand-green);
+  --color-brand-green-light: var(--brand-green-light);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(1200px 480px at 12% -10%, rgba(99, 135, 173, 0.10), transparent 60%),
+    radial-gradient(900px 420px at 100% 0%, rgba(31, 95, 74, 0.06), transparent 55%),
+    var(--background);
   color: var(--foreground);
 }
 
 .input {
   width: 100%;
-  border-radius: 0.375rem;
-  border: 1px solid #cbd5e1;
-  padding: 0.375rem 0.625rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d6dee9;
+  padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   background: #fff;
   color: var(--brand-body);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.input:hover {
+  border-color: #b9c6d8;
 }
 .input:focus {
   outline: none;
   border-color: var(--brand-blue);
+  box-shadow: 0 0 0 3px rgba(99, 135, 173, 0.18);
 }
 
 /* Titres de section numérotés façon gabarit HYPERION ("01 — ..."). */
@@ -65,4 +78,110 @@ body {
 }
 .section-title .n {
   color: var(--brand-blue);
+}
+
+/* --- Système visuel partagé (cartes, boutons, animations) --------------- */
+
+.card {
+  background: #fff;
+  border: 1px solid rgba(99, 135, 173, 0.14);
+  border-radius: 0.875rem;
+  box-shadow: var(--shadow-card);
+}
+
+.card-hover {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+  border-color: rgba(99, 135, 173, 0.32);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease,
+    transform 150ms ease, box-shadow 150ms ease;
+  white-space: nowrap;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand-ink), var(--brand-blue-dark));
+  color: #fff;
+  box-shadow: 0 6px 16px -6px rgba(34, 45, 60, 0.45);
+}
+.btn-primary:hover {
+  box-shadow: 0 10px 20px -6px rgba(34, 45, 60, 0.5);
+  filter: brightness(1.06);
+}
+.btn-secondary {
+  background: #fff;
+  border: 1px solid #d6dee9;
+  color: var(--brand-body);
+}
+.btn-secondary:hover {
+  background: var(--brand-blue-bg);
+  border-color: var(--brand-blue-light);
+}
+.btn-accent {
+  background: var(--brand-blue);
+  color: #fff;
+}
+.btn-accent:hover {
+  background: var(--brand-blue-dark);
+}
+
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -2px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: right 200ms ease;
+}
+.link-underline:hover::after {
+  right: 0;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in-up 380ms ease both;
+}
+
+@keyframes shimmer-slide {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+.topbar-gradient {
+  background: linear-gradient(100deg, var(--brand-ink) 0%, #2d3f57 32%, var(--brand-blue-dark) 68%, var(--brand-blue) 100%);
+  background-size: 200% 200%;
+  animation: shimmer-slide 14s ease infinite;
 }

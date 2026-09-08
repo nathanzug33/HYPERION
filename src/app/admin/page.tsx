@@ -57,119 +57,153 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-brand-ink">Tableau de bord</h1>
-        <p className="text-sm text-brand-gray">
+        <h1 className="text-2xl font-semibold text-brand-ink">Tableau de bord</h1>
+        <p className="mt-1 text-sm text-brand-gray">
           Bienvenue {session.user.name}. Rituel hebdomadaire : vérifiez les
           fiches à actualiser et traitez les nouvelles demandes.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Dossiers suivis" value={total} />
-        <StatCard label="Fiches publiées" value={publiees} />
-        <StatCard label="Brouillons" value={brouillons} />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard
+          label="Dossiers suivis"
+          value={total}
+          accent="blue"
+          icon={
+            <path d="M4 5.5C4 4.67 4.67 4 5.5 4H11a2 2 0 0 1 2 2v14a1.5 1.5 0 0 0-1.5-1.5H4V5.5ZM20 5.5c0-.83-.67-1.5-1.5-1.5H13a2 2 0 0 0-2 2v14a1.5 1.5 0 0 1 1.5-1.5H20V5.5Z" />
+          }
+        />
+        <StatCard
+          label="Fiches publiées"
+          value={publiees}
+          accent="green"
+          icon={<path d="M9 12.5 11 14.5 15.5 9.5M12 3l7 3.5v5c0 4.5-3 8.5-7 9.5-4-1-7-5-7-9.5v-5L12 3Z" />}
+        />
+        <StatCard
+          label="Brouillons"
+          value={brouillons}
+          accent="gray"
+          icon={<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H15l5 5v8.5A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11ZM14 4v4a1 1 0 0 0 1 1h4M8 13h8M8 16.5h5" />}
+        />
         <StatCard
           label="Demandes non traitées"
           value={demandesNouvelles.length}
-          highlight={demandesNouvelles.length > 0}
+          accent={demandesNouvelles.length > 0 ? "amber" : "gray"}
+          icon={<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v10a1.5 1.5 0 0 1-1.5 1.5H9l-4.5 3.5V17H5.5A1.5 1.5 0 0 1 4 15.5v-10Z" />}
         />
       </div>
 
       {isAdmin && aPurger > 0 && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {aPurger} dossier(s) ont dépassé leur durée de conservation RGPD et
-          doivent être revus.{" "}
-          <Link href="/admin/consultants?purge=1" className="underline font-medium">
-            Voir les dossiers
-          </Link>
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800 shadow-sm">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
+            !
+          </span>
+          <span>
+            {aPurger} dossier(s) ont dépassé leur durée de conservation RGPD et
+            doivent être revus.{" "}
+            <Link href="/admin/consultants?purge=1" className="link-underline font-medium">
+              Voir les dossiers
+            </Link>
+          </span>
         </div>
       )}
 
-      <section>
-        <h2 className="text-sm font-semibold text-brand-ink mb-3">
-          Fiches publiées à actualiser (non modifiées depuis plus de{" "}
-          {FICHE_FRAICHEUR_SEUIL_JOURS} jours)
-        </h2>
-        {aRafraichir.length === 0 ? (
-          <p className="text-sm text-brand-gray">
-            Aucune fiche signalée. Bien joué.
-          </p>
-        ) : (
-          <ul className="divide-y divide-slate-200 rounded-md border border-slate-200 bg-white">
-            {aRafraichir.map((c) => (
-              <li key={c.id} className="flex items-center justify-between px-4 py-2.5">
-                <div className="text-sm">
-                  <span className="font-medium text-brand-ink">
-                    {c.referenceAnonyme}
-                  </span>{" "}
-                  <span className="text-brand-gray">— {c.intitulePoste}</span>
-                </div>
-                <Link
-                  href={`/admin/consultants/${c.id}`}
-                  className="text-sm text-brand-body underline hover:text-brand-ink"
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="card p-5">
+          <h2 className="text-sm font-semibold text-brand-ink mb-3">
+            Fiches publiées à actualiser
+            <span className="ml-1.5 font-normal text-brand-gray">
+              (non modifiées depuis plus de {FICHE_FRAICHEUR_SEUIL_JOURS} jours)
+            </span>
+          </h2>
+          {aRafraichir.length === 0 ? (
+            <p className="text-sm text-brand-gray">Aucune fiche signalée. Bien joué.</p>
+          ) : (
+            <ul className="-mx-2 divide-y divide-slate-100">
+              {aRafraichir.map((c) => (
+                <li
+                  key={c.id}
+                  className="flex items-center justify-between rounded-lg px-2 py-2.5 transition-colors hover:bg-brand-blue-bg-soft"
                 >
-                  Actualiser
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                  <div className="text-sm">
+                    <span className="font-medium text-brand-ink">{c.referenceAnonyme}</span>{" "}
+                    <span className="text-brand-gray">— {c.intitulePoste}</span>
+                  </div>
+                  <Link
+                    href={`/admin/consultants/${c.id}`}
+                    className="link-underline text-sm text-brand-blue-dark"
+                  >
+                    Actualiser
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-      <section>
-        <h2 className="text-sm font-semibold text-brand-ink mb-3">
-          Dernières demandes de contact non traitées
-        </h2>
-        {demandesNouvelles.length === 0 ? (
-          <p className="text-sm text-brand-gray">Aucune demande en attente.</p>
-        ) : (
-          <ul className="divide-y divide-slate-200 rounded-md border border-slate-200 bg-white">
-            {demandesNouvelles.map((d) => (
-              <li key={d.id} className="px-4 py-2.5">
-                <div className="flex items-center justify-between">
+        <section className="card p-5">
+          <h2 className="text-sm font-semibold text-brand-ink mb-3">
+            Dernières demandes de contact non traitées
+          </h2>
+          {demandesNouvelles.length === 0 ? (
+            <p className="text-sm text-brand-gray">Aucune demande en attente.</p>
+          ) : (
+            <ul className="-mx-2 divide-y divide-slate-100">
+              {demandesNouvelles.map((d) => (
+                <li
+                  key={d.id}
+                  className="flex items-center justify-between rounded-lg px-2 py-2.5 transition-colors hover:bg-brand-blue-bg-soft"
+                >
                   <div className="text-sm">
                     <span className="font-medium text-brand-ink">
                       {d.consultant.referenceAnonyme}
                     </span>{" "}
-                    <span className="text-brand-gray">
-                      — demandé par {d.clientUser.name}
-                    </span>
+                    <span className="text-brand-gray">— demandé par {d.clientUser.name}</span>
                   </div>
-                  <Link
-                    href="/admin/demandes"
-                    className="text-sm text-brand-body underline hover:text-brand-ink"
-                  >
+                  <Link href="/admin/demandes" className="link-underline text-sm text-brand-blue-dark">
                     Traiter
                   </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
 
+const ACCENTS = {
+  blue: { bg: "bg-brand-blue/10", text: "text-brand-blue-dark", bar: "bg-brand-blue" },
+  green: { bg: "bg-brand-green/10", text: "text-brand-green", bar: "bg-brand-green" },
+  amber: { bg: "bg-amber-100", text: "text-amber-700", bar: "bg-amber-400" },
+  gray: { bg: "bg-slate-100", text: "text-brand-gray", bar: "bg-slate-300" },
+} as const;
+
 function StatCard({
   label,
   value,
-  highlight,
+  icon,
+  accent,
 }: {
   label: string;
   value: number;
-  highlight?: boolean;
+  icon: React.ReactNode;
+  accent: keyof typeof ACCENTS;
 }) {
+  const a = ACCENTS[accent];
   return (
-    <div
-      className={`rounded-lg border p-4 ${
-        highlight
-          ? "border-amber-300 bg-amber-50"
-          : "border-slate-200 bg-white"
-      }`}
-    >
-      <div className="text-2xl font-semibold text-brand-ink">{value}</div>
-      <div className="text-xs text-brand-gray mt-1">{label}</div>
+    <div className="card card-hover relative overflow-hidden p-4">
+      <span className={`absolute inset-x-0 top-0 h-1 ${a.bar}`} aria-hidden />
+      <div className="flex items-start justify-between">
+        <div className="text-3xl font-semibold text-brand-ink">{value}</div>
+        <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${a.bg} ${a.text}`}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            {icon}
+          </svg>
+        </span>
+      </div>
+      <div className="mt-1 text-xs text-brand-gray">{label}</div>
     </div>
   );
 }

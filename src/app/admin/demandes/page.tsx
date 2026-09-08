@@ -20,29 +20,29 @@ export default async function DemandesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-brand-ink">
+        <h1 className="text-2xl font-semibold text-brand-ink">
           Demandes de contact
         </h1>
-        <p className="text-sm text-brand-gray">
+        <p className="mt-1 text-sm text-brand-gray">
           Suivi commercial des demandes générées par la bibliothèque.
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="card overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-brand-blue-bg-soft text-left text-xs uppercase tracking-wide text-brand-gray">
+          <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
             <tr>
-              <th className="px-4 py-2">Date</th>
-              <th className="px-4 py-2">Profil</th>
-              <th className="px-4 py-2">Client</th>
-              <th className="px-4 py-2">Besoin</th>
-              <th className="px-4 py-2">Démarrage souhaité</th>
-              <th className="px-4 py-2">Statut</th>
+              <th className="px-4 py-3">Date</th>
+              <th className="px-4 py-3">Profil</th>
+              <th className="px-4 py-3">Client</th>
+              <th className="px-4 py-3">Besoin</th>
+              <th className="px-4 py-3">Démarrage souhaité</th>
+              <th className="px-4 py-3">Statut</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {requests.map((r) => (
-              <tr key={r.id}>
+              <tr key={r.id} className="transition-colors hover:bg-brand-blue-bg-soft">
                 <td className="px-4 py-2 text-brand-gray whitespace-nowrap">
                   {new Date(r.createdAt).toLocaleString("fr-FR")}
                 </td>

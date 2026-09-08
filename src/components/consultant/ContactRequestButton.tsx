@@ -33,8 +33,8 @@ export default function ContactRequestButton({
         }}
         className={
           compact
-            ? "text-sm font-medium text-brand-ink underline hover:text-brand-body"
-            : "rounded-md bg-brand-ink px-4 py-2 text-sm font-medium text-white hover:bg-brand-blue-dark"
+            ? "link-underline text-sm font-medium text-brand-blue-dark"
+            : "btn btn-primary"
         }
       >
         Ce profil m&apos;intéresse
@@ -42,11 +42,11 @@ export default function ContactRequestButton({
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-brand-ink/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-brand-ink/50 p-4 backdrop-blur-sm"
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl"
+            className="animate-fade-in w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {state.success ? (
@@ -62,7 +62,7 @@ export default function ContactRequestButton({
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="w-full rounded-md bg-brand-ink py-2 text-sm font-medium text-white hover:bg-brand-blue-dark"
+                  className="btn btn-primary w-full py-2.5"
                 >
                   Fermer
                 </button>
@@ -119,7 +119,7 @@ export default function ContactRequestButton({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="w-full rounded-md bg-brand-ink py-2 text-sm font-medium text-white hover:bg-brand-blue-dark disabled:opacity-60"
+                  className="btn btn-primary w-full py-2.5 disabled:opacity-60"
                 >
                   {pending ? "Envoi…" : "Envoyer la demande"}
                 </button>

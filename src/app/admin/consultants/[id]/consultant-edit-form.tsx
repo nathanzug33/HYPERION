@@ -66,8 +66,8 @@ export default function ConsultantEditForm({
     <form action={updateConsultantAction} className="space-y-8">
       <input type="hidden" name="id" value={consultant.id} />
 
-      <fieldset className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
-        <legend className="px-1 text-sm font-semibold text-brand-ink">
+      <fieldset className="card p-5 space-y-4">
+        <legend className="px-1 text-sm font-semibold uppercase tracking-wide text-brand-blue-dark">
           Champs internes (jamais exposés)
         </legend>
 
@@ -135,7 +135,7 @@ export default function ConsultantEditForm({
               type="checkbox"
               name="consentementRgpd"
               defaultChecked={consultant.consentementRgpd}
-              className="rounded border-slate-300"
+              className="h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue"
             />
             Consentement RGPD (vivier interne)
           </label>
@@ -144,7 +144,7 @@ export default function ConsultantEditForm({
               type="checkbox"
               name="consentementPublication"
               defaultChecked={consultant.consentementPublication}
-              className="rounded border-slate-300"
+              className="h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue"
             />
             Consentement pour publication anonymisée
           </label>
@@ -163,8 +163,8 @@ export default function ConsultantEditForm({
         </div>
       </fieldset>
 
-      <fieldset className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
-        <legend className="px-1 text-sm font-semibold text-brand-ink">
+      <fieldset className="card p-5 space-y-4">
+        <legend className="px-1 text-sm font-semibold uppercase tracking-wide text-brand-blue-dark">
           Champs exposables (projection anonymisée)
         </legend>
 
@@ -331,7 +331,7 @@ export default function ConsultantEditForm({
                 type="checkbox"
                 name="ouvertGrandDeplacement"
                 defaultChecked={consultant.ouvertGrandDeplacement}
-                className="rounded border-slate-300"
+                className="h-4 w-4 rounded border-slate-300 text-brand-blue focus:ring-brand-blue"
               />
               Ouvert au grand déplacement (découchés)
             </label>
@@ -339,8 +339,8 @@ export default function ConsultantEditForm({
         </div>
       </fieldset>
 
-      <fieldset className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
-        <legend className="px-1 text-sm font-semibold text-brand-ink">
+      <fieldset className="card p-5 space-y-3">
+        <legend className="px-1 text-sm font-semibold uppercase tracking-wide text-brand-blue-dark">
           Compétences détaillées (gabarit HYPERION — 02)
         </legend>
         {Object.values(COMPETENCE_CATEGORIES).map((cat) => {
@@ -372,8 +372,8 @@ export default function ConsultantEditForm({
         })}
       </fieldset>
 
-      <fieldset className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
-        <legend className="px-1 text-sm font-semibold text-brand-ink">
+      <fieldset className="card p-5 space-y-3">
+        <legend className="px-1 text-sm font-semibold uppercase tracking-wide text-brand-blue-dark">
           Formations & certifications (gabarit HYPERION — 03)
         </legend>
         <p className="text-xs text-brand-gray">
@@ -395,8 +395,8 @@ export default function ConsultantEditForm({
         })}
       </fieldset>
 
-      <fieldset className="rounded-lg border border-slate-200 bg-white p-4 space-y-6">
-        <legend className="px-1 text-sm font-semibold text-brand-ink">
+      <fieldset className="card p-5 space-y-6">
+        <legend className="px-1 text-sm font-semibold uppercase tracking-wide text-brand-blue-dark">
           Expériences détaillées (gabarit HYPERION — 05)
         </legend>
         <p className="text-xs text-brand-gray">
@@ -440,7 +440,7 @@ export default function ConsultantEditForm({
 
       <button
         type="submit"
-        className="rounded-md bg-brand-ink px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-blue-dark"
+        className="btn btn-primary px-6 py-2.5"
       >
         Enregistrer les modifications
       </button>

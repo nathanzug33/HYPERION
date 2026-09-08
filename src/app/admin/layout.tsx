@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { requireStaff } from "@/lib/guards";
 import LogoutButton from "@/components/LogoutButton";
+import NavLink from "@/components/NavLink";
+import BrandMark from "@/components/BrandMark";
 
 export default async function AdminLayout({
   children,
@@ -23,38 +24,54 @@ export default async function AdminLayout({
       : []),
   ];
 
+  const initials = session.user.name
+    ? session.user.name
+        .split(" ")
+        .map((p) => p[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "?";
+
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
-            <span className="font-semibold text-brand-ink whitespace-nowrap">
-              Back-office
-            </span>
-            <nav className="flex gap-1 flex-wrap">
-              {links.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className="rounded-md px-3 py-1.5 text-sm text-brand-body hover:bg-brand-blue-bg hover:text-brand-ink"
-                >
-                  {l.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
+      <header className="topbar-gradient sticky top-0 z-20 shadow-[0_4px_20px_-8px_rgba(34,45,60,0.45)]">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="text-right text-xs text-brand-gray">
-              <div className="font-medium text-brand-body">
-                {session.user.name}
+            <BrandMark className="text-white" />
+            <div className="leading-tight">
+              <div className="text-sm font-semibold text-white">Back-office</div>
+              <div className="text-[11px] uppercase tracking-wide text-white/55">
+                Bibliothèque de compétences
               </div>
-              <div>{session.user.role === "ADMIN" ? "Administrateur" : "Business manager"}</div>
             </div>
-            <LogoutButton />
+          </div>
+
+          <nav className="flex flex-1 flex-wrap items-center gap-1 pt-1">
+            {links.map((l) => (
+              <NavLink key={l.href} href={l.href} exact={l.href === "/admin"}>
+                {l.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 sm:flex">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-blue-light text-[11px] font-semibold text-brand-ink">
+                {initials}
+              </span>
+              <div className="text-left leading-tight">
+                <div className="text-xs font-medium text-white">{session.user.name}</div>
+                <div className="text-[10px] text-white/55">
+                  {session.user.role === "ADMIN" ? "Administrateur" : "Business manager"}
+                </div>
+              </div>
+            </div>
+            <LogoutButton dark />
           </div>
         </div>
       </header>
-      <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6 pb-20">
+      <main className="animate-fade-in flex-1 mx-auto w-full max-w-7xl px-4 py-8 pb-24 sm:px-6">
         {children}
       </main>
     </div>
