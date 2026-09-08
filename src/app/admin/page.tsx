@@ -7,6 +7,7 @@ import {
   STATUT_PUBLICATION,
 } from "@/lib/constants";
 import { consultantVisibilityWhere } from "@/lib/consultant-access";
+import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default async function AdminDashboardPage() {
   staleThreshold.setDate(staleThreshold.getDate() - FICHE_FRAICHEUR_SEUIL_JOURS);
 
   const bmFilter = consultantVisibilityWhere(session.user);
+  const entrepriseFilter = entrepriseVisibilityWhere(session.user);
 
   const [
     total,
@@ -27,6 +29,8 @@ export default async function AdminDashboardPage() {
     demandesBesoinNouvelles,
     aPurger,
     rappelsAVenir,
+    entreprisesTotal,
+    relancesCommercialesAVenir,
   ] = await Promise.all([
       prisma.consultant.count({ where: bmFilter }),
       prisma.consultant.count({
@@ -79,10 +83,25 @@ export default async function AdminDashboardPage() {
         take: 8,
         include: { consultant: { select: { id: true, referenceAnonyme: true, intitulePoste: true } } },
       }),
+      prisma.entreprise.count({ where: entrepriseFilter }),
+      prisma.suiviCommercial.findMany({
+        where: {
+          fait: false,
+          dateProgrammee: { not: null },
+          type: { in: ["RDV", "RAPPEL"] },
+          entreprise: entrepriseFilter,
+        },
+        orderBy: { dateProgrammee: "asc" },
+        take: 8,
+        include: { entreprise: { select: { id: true, nom: true } } },
+      }),
     ]);
 
   const now = new Date();
   const rappelsEnRetard = rappelsAVenir.filter((r) => r.dateProgrammee! < now).length;
+  const relancesCommercialesEnRetard = relancesCommercialesAVenir.filter(
+    (r) => r.dateProgrammee! < now
+  ).length;
 
   return (
     <div className="space-y-8">
@@ -95,6 +114,9 @@ export default async function AdminDashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Link href="/admin/crm/nouvelle" className="btn btn-secondary">
+            + Ajouter une entreprise
+          </Link>
           <Link href="/admin/consultants/nouveau" className="btn btn-secondary">
             + Ajouter un candidat
           </Link>
@@ -104,7 +126,7 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
         <StatCard
           label="Candidats suivis"
           value={total}
@@ -126,15 +148,21 @@ export default async function AdminDashboardPage() {
           icon={<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H15l5 5v8.5A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11ZM14 4v4a1 1 0 0 0 1 1h4M8 13h8M8 16.5h5" />}
         />
         <StatCard
+          label="Entreprises (CRM)"
+          value={entreprisesTotal}
+          accent="blue"
+          icon={<path d="M4 20.5V6.5A1.5 1.5 0 0 1 5.5 5H12v3M12 20.5H4M12 8V5l7.5 3v12.5M12 20.5h9M8 9h.01M8 12.5h.01M8 16h.01M15.5 11h.01M15.5 14.5h.01M15.5 18h.01" />}
+        />
+        <StatCard
           label="Demandes non traitées"
           value={demandesNouvelles.length + demandesBesoinNouvelles.length}
           accent={demandesNouvelles.length + demandesBesoinNouvelles.length > 0 ? "amber" : "gray"}
           icon={<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v10a1.5 1.5 0 0 1-1.5 1.5H9l-4.5 3.5V17H5.5A1.5 1.5 0 0 1 4 15.5v-10Z" />}
         />
         <StatCard
-          label="Rappels en retard"
-          value={rappelsEnRetard}
-          accent={rappelsEnRetard > 0 ? "amber" : "gray"}
+          label="Rappels en retard (ATS + CRM)"
+          value={rappelsEnRetard + relancesCommercialesEnRetard}
+          accent={rappelsEnRetard + relancesCommercialesEnRetard > 0 ? "amber" : "gray"}
           icon={<path d="M12 7v5l3.5 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />}
         />
       </div>
@@ -232,48 +260,91 @@ export default async function AdminDashboardPage() {
         </section>
       </div>
 
-      <section className="card p-5">
-        <h2 className="text-sm font-semibold text-brand-ink mb-3">
-          Rappels &amp; RDV à venir
-        </h2>
-        {rappelsAVenir.length === 0 ? (
-          <p className="text-sm text-brand-gray">Aucun rappel programmé.</p>
-        ) : (
-          <ul className="-mx-2 divide-y divide-slate-100">
-            {rappelsAVenir.map((r) => {
-              const overdue = r.dateProgrammee! < now;
-              return (
-                <li
-                  key={r.id}
-                  className="flex items-center justify-between rounded-lg px-2 py-2.5 transition-colors hover:bg-brand-blue-bg-soft"
-                >
-                  <div className="text-sm">
-                    <span className="font-medium text-brand-ink">
-                      {r.consultant.referenceAnonyme}
-                    </span>{" "}
-                    <span className="text-brand-gray">— {r.titre}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs ${overdue ? "font-medium text-red-600" : "text-brand-gray"}`}>
-                      {new Date(r.dateProgrammee!).toLocaleString("fr-FR", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })}
-                      {overdue ? " · en retard" : ""}
-                    </span>
-                    <Link
-                      href={`/admin/consultants/${r.consultant.id}`}
-                      className="link-underline text-sm text-brand-blue-dark"
-                    >
-                      Voir
-                    </Link>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="card p-5">
+          <h2 className="text-sm font-semibold text-brand-ink mb-3">
+            Rappels &amp; RDV candidats à venir
+          </h2>
+          {rappelsAVenir.length === 0 ? (
+            <p className="text-sm text-brand-gray">Aucun rappel programmé.</p>
+          ) : (
+            <ul className="-mx-2 divide-y divide-slate-100">
+              {rappelsAVenir.map((r) => {
+                const overdue = r.dateProgrammee! < now;
+                return (
+                  <li
+                    key={r.id}
+                    className="flex items-center justify-between rounded-lg px-2 py-2.5 transition-colors hover:bg-brand-blue-bg-soft"
+                  >
+                    <div className="text-sm">
+                      <span className="font-medium text-brand-ink">
+                        {r.consultant.referenceAnonyme}
+                      </span>{" "}
+                      <span className="text-brand-gray">— {r.titre}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs ${overdue ? "font-medium text-red-600" : "text-brand-gray"}`}>
+                        {new Date(r.dateProgrammee!).toLocaleString("fr-FR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
+                        {overdue ? " · en retard" : ""}
+                      </span>
+                      <Link
+                        href={`/admin/consultants/${r.consultant.id}`}
+                        className="link-underline text-sm text-brand-blue-dark"
+                      >
+                        Voir
+                      </Link>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section className="card p-5">
+          <h2 className="text-sm font-semibold text-brand-ink mb-3">
+            Relances commerciales (CRM) à venir
+          </h2>
+          {relancesCommercialesAVenir.length === 0 ? (
+            <p className="text-sm text-brand-gray">Aucune relance programmée.</p>
+          ) : (
+            <ul className="-mx-2 divide-y divide-slate-100">
+              {relancesCommercialesAVenir.map((r) => {
+                const overdue = r.dateProgrammee! < now;
+                return (
+                  <li
+                    key={r.id}
+                    className="flex items-center justify-between rounded-lg px-2 py-2.5 transition-colors hover:bg-brand-blue-bg-soft"
+                  >
+                    <div className="text-sm">
+                      <span className="font-medium text-brand-ink">{r.entreprise.nom}</span>{" "}
+                      <span className="text-brand-gray">— {r.titre}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs ${overdue ? "font-medium text-red-600" : "text-brand-gray"}`}>
+                        {new Date(r.dateProgrammee!).toLocaleString("fr-FR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
+                        {overdue ? " · en retard" : ""}
+                      </span>
+                      <Link
+                        href={`/admin/crm/${r.entreprise.id}`}
+                        className="link-underline text-sm text-brand-blue-dark"
+                      >
+                        Voir
+                      </Link>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

@@ -121,6 +121,23 @@ export const CONTACT_REQUEST_STATUS_LABELS: Record<
   SANS_SUITE: "Sans suite",
 };
 
+// Statut commercial d'une entreprise CRM (§ étoffement ERP).
+export const STATUT_ENTREPRISE = {
+  PROSPECT: "PROSPECT",
+  EN_COURS: "EN_COURS", // qualification en cours
+  CLIENT: "CLIENT",
+  PERDU: "PERDU",
+} as const;
+export type StatutEntreprise =
+  (typeof STATUT_ENTREPRISE)[keyof typeof STATUT_ENTREPRISE];
+
+export const STATUT_ENTREPRISE_LABELS: Record<StatutEntreprise, string> = {
+  PROSPECT: "Prospect",
+  EN_COURS: "En cours de qualification",
+  CLIENT: "Client",
+  PERDU: "Perdu / inactif",
+};
+
 // Durées estimées proposées pour une demande de besoin (§ espace client).
 export const DUREE_ESTIMEE_OPTIONS = [
   "Moins d'1 mois",

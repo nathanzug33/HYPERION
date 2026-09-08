@@ -1,0 +1,75 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { requireStaff } from "@/lib/guards";
+import { canAccessEntreprise } from "@/lib/crm-access";
+import { SUIVI_TYPE_SAISISSABLES } from "@/lib/constants";
+
+async function assertEntrepriseAccess(entrepriseId: string) {
+  const session = await requireStaff();
+  const entreprise = await prisma.entreprise.findUnique({ where: { id: entrepriseId } });
+  if (!entreprise) redirect("/admin/crm");
+  if (!canAccessEntreprise(session.user, entreprise)) {
+    redirect("/admin/crm");
+  }
+  return { session, entreprise };
+}
+
+export async function createSuiviCommercialAction(formData: FormData) {
+  const entrepriseId = String(formData.get("entrepriseId") ?? "");
+  const { session } = await assertEntrepriseAccess(entrepriseId);
+
+  const type = String(formData.get("type") ?? "");
+  if (!SUIVI_TYPE_SAISISSABLES.includes(type as (typeof SUIVI_TYPE_SAISISSABLES)[number])) {
+    return;
+  }
+  const titre = String(formData.get("titre") ?? "").trim();
+  if (!titre) return;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const dateProgrammeeRaw = String(formData.get("dateProgrammee") ?? "");
+  const dateProgrammee = dateProgrammeeRaw ? new Date(dateProgrammeeRaw) : null;
+  const contactId = String(formData.get("contactId") ?? "") || null;
+
+  await prisma.suiviCommercial.create({
+    data: {
+      entrepriseId,
+      contactId,
+      type,
+      titre,
+      notes,
+      dateProgrammee,
+      createdById: session.user.id,
+    },
+  });
+
+  revalidatePath(`/admin/crm/${entrepriseId}`);
+}
+
+export async function toggleSuiviCommercialFaitAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const suivi = await prisma.suiviCommercial.findUnique({ where: { id } });
+  if (!suivi) return;
+  await assertEntrepriseAccess(suivi.entrepriseId);
+
+  await prisma.suiviCommercial.update({
+    where: { id },
+    data: { fait: !suivi.fait },
+  });
+
+  revalidatePath(`/admin/crm/${suivi.entrepriseId}`);
+  revalidatePath("/admin");
+}
+
+export async function deleteSuiviCommercialAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const suivi = await prisma.suiviCommercial.findUnique({ where: { id } });
+  if (!suivi) return;
+  await assertEntrepriseAccess(suivi.entrepriseId);
+
+  await prisma.suiviCommercial.delete({ where: { id } });
+
+  revalidatePath(`/admin/crm/${suivi.entrepriseId}`);
+  revalidatePath("/admin");
+}

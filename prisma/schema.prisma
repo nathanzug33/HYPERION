@@ -23,17 +23,17 @@ datasource db {
 // Stocké en String (pas d'enum natif SQLite) ; les valeurs valides sont
 // centralisées dans src/lib/constants.ts.
 model User {
-  id                  String   @id @default(cuid())
-  email               String   @unique
-  passwordHash        String
-  name                String
-  role                String // ADMIN | BM | CLIENT
-  active              Boolean  @default(true)
-  twoFactorEnabled    Boolean  @default(false)
-  twoFactorSecret     String?
-  lastLoginAt         DateTime?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  name             String
+  role             String // ADMIN | BM | CLIENT
+  active           Boolean   @default(true)
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // Renseigné uniquement pour les comptes CLIENT (auto-déclaratif, page profil).
   poste     String?
@@ -41,17 +41,19 @@ model User {
 
   // Renseigné uniquement pour les comptes CLIENT.
   clientOrganizationId String?
-  clientOrganization    ClientOrganization? @relation(fields: [clientOrganizationId], references: [id])
+  clientOrganization   ClientOrganization? @relation(fields: [clientOrganizationId], references: [id])
 
-  consultantsSuivis    Consultant[]      @relation("BusinessManagerReferent")
-  contactRequests      ContactRequest[]  @relation("ClientDemandeur")
-  contactRequestsRecues ContactRequest[] @relation("BmNotifie")
-  demandesBesoin       DemandeBesoin[]   @relation("ClientDemandeurBesoin")
-  accesConsultants     ConsultantAccess[]
-  suivisCrees          SuiviCandidat[]
-  loginLogs            LoginLog[]
-  consultationLogs     ConsultationLog[]
-  resetTokens          PasswordResetToken[]
+  consultantsSuivis      Consultant[]         @relation("BusinessManagerReferent")
+  contactRequests        ContactRequest[]     @relation("ClientDemandeur")
+  contactRequestsRecues  ContactRequest[]     @relation("BmNotifie")
+  demandesBesoin         DemandeBesoin[]      @relation("ClientDemandeurBesoin")
+  accesConsultants       ConsultantAccess[]
+  suivisCrees            SuiviCandidat[]
+  entreprisesSuivies     Entreprise[]         @relation("BusinessManagerReferentEntreprise")
+  suivisCommerciauxCrees SuiviCommercial[]    @relation("SuivisCommerciauxCrees")
+  loginLogs              LoginLog[]
+  consultationLogs       ConsultationLog[]
+  resetTokens            PasswordResetToken[]
 
   @@index([role])
   @@index([clientOrganizationId])
@@ -69,13 +71,13 @@ model ClientOrganization {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
+  id        String    @id @default(cuid())
+  token     String    @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
 
 // ---------------------------------------------------------------------------
@@ -83,10 +85,10 @@ model PasswordResetToken {
 // ---------------------------------------------------------------------------
 
 model Secteur {
-  id       String  @id @default(cuid())
-  label    String  @unique
-  ordre    Int     @default(0)
-  active   Boolean @default(true)
+  id     String  @id @default(cuid())
+  label  String  @unique
+  ordre  Int     @default(0)
+  active Boolean @default(true)
 
   consultants ConsultantSecteur[]
 }
@@ -102,12 +104,12 @@ model Expertise {
 
 // Barème de séniorité (figé mais paramétrable par l'admin).
 model Seniorite {
-  id         String  @id @default(cuid())
-  label      String  @unique // ex. "Confirmé"
-  ordre      Int     @default(0) // ordre d'affichage / tri
-  anneesMin  Int?
-  anneesMax  Int?
-  active     Boolean @default(true)
+  id        String  @id @default(cuid())
+  label     String  @unique // ex. "Confirmé"
+  ordre     Int     @default(0) // ordre d'affichage / tri
+  anneesMin Int?
+  anneesMax Int?
+  active    Boolean @default(true)
 
   consultants Consultant[]
 }
@@ -156,46 +158,46 @@ model Consultant {
   id String @id @default(cuid())
 
   // --- Champs internes (jamais exposés au client) -------------------------
-  nom                    String
-  prenom                 String
-  email                  String?
-  telephone              String?
-  tjmMin                 Int?
-  tjmMax                 Int?
+  nom                   String
+  prenom                String
+  email                 String?
+  telephone             String?
+  tjmMin                Int?
+  tjmMax                Int?
   // Nom du fichier stocké sur disque (storage/cv/, jamais servi directement
   // — voir src/lib/cv-storage.ts et la route de téléchargement protégée),
   // pas une URL publique malgré le nom historique du champ.
-  cvFileUrl              String?
-  cvFileNomOriginal      String? // pour le Content-Disposition au téléchargement
-  notesEntretien         String?
-  businessManagerId      String
-  businessManager        User     @relation("BusinessManagerReferent", fields: [businessManagerId], references: [id])
-  dateRencontre          DateTime?
-  statutCandidatInterne  String   @default("EN_COURS") // EN_COURS | STAFFE | INDISPONIBLE | A_RECONTACTER
+  cvFileUrl             String?
+  cvFileNomOriginal     String? // pour le Content-Disposition au téléchargement
+  notesEntretien        String?
+  businessManagerId     String
+  businessManager       User      @relation("BusinessManagerReferent", fields: [businessManagerId], references: [id])
+  dateRencontre         DateTime?
+  statutCandidatInterne String    @default("EN_COURS") // EN_COURS | STAFFE | INDISPONIBLE | A_RECONTACTER
 
   // RGPD (§8)
-  consentementRgpd       Boolean   @default(false)
-  consentementDate       DateTime?
-  consentementPublication Boolean  @default(false) // consentement spécifique à la publication anonymisée
-  dateCollecte           DateTime  @default(now())
-  dureeConservationMois  Int       @default(24)
-  dateConservationLimite DateTime?
+  consentementRgpd        Boolean   @default(false)
+  consentementDate        DateTime?
+  consentementPublication Boolean   @default(false) // consentement spécifique à la publication anonymisée
+  dateCollecte            DateTime  @default(now())
+  dureeConservationMois   Int       @default(24)
+  dateConservationLimite  DateTime?
 
   // --- Champs exposables (projection anonymisée) --------------------------
-  referenceAnonyme       String   @unique // ex. IND-017, ne doit pas trahir l'identité
-  intitulePoste          String?
-  seniorityId            String?
-  seniority              Seniorite? @relation(fields: [seniorityId], references: [id])
-  anneesExperienceMin    Int?
-  anneesExperienceMax    Int?
-  resumeContexte         String?
-  disponibilite          String?  // IMMEDIATE | SOUS_1_MOIS | SOUS_2_MOIS | SUR_PREAVIS
+  referenceAnonyme         String     @unique // ex. IND-017, ne doit pas trahir l'identité
+  intitulePoste            String?
+  seniorityId              String?
+  seniority                Seniorite? @relation(fields: [seniorityId], references: [id])
+  anneesExperienceMin      Int?
+  anneesExperienceMax      Int?
+  resumeContexte           String?
+  disponibilite            String? // IMMEDIATE | SOUS_1_MOIS | SOUS_2_MOIS | SUR_PREAVIS
   disponibiliteConfirmeeLe DateTime?
-  typeContrat            String?  // REGIE | FORFAIT | TEMPS_PARTAGE
+  typeContrat              String? // REGIE | FORFAIT | TEMPS_PARTAGE
 
   // Mobilité (§6.3)
   rayonKm                Int?
-  ouvertGrandDeplacement Boolean  @default(false)
+  ouvertGrandDeplacement Boolean @default(false)
   // Ville de rattachement (précision "ville", jamais l'adresse précise —
   // cohérent avec l'anonymisation : une ville ne trahit pas l'identité).
   // villeLat/villeLng sont résolues automatiquement depuis ce nom (référentiel
@@ -206,31 +208,31 @@ model Consultant {
   villeLng               Float?
 
   // Publication (§5.2 / §10)
-  statutPublication      String   @default("BROUILLON") // BROUILLON | PUBLIEE | DEPUBLIEE | ARCHIVEE
-  datePublication        DateTime?
-  dateDepublication      DateTime?
+  statutPublication String    @default("BROUILLON") // BROUILLON | PUBLIEE | DEPUBLIEE | ARCHIVEE
+  datePublication   DateTime?
+  dateDepublication DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Génération assistée par IA (§ gabarit HYPERION)
-  genereParIA    Boolean @default(false)
-  sourceCvTexte  String? // texte du CV fourni pour la génération
+  genereParIA           Boolean @default(false)
+  sourceCvTexte         String? // texte du CV fourni pour la génération
   sourceTranscriptTexte String? // transcription d'entretien fournie
 
-  secteurs          ConsultantSecteur[]
-  expertises        ConsultantExpertise[]
-  competences       ConsultantCompetence[]
-  typesMobilite     ConsultantTypeMobilite[]
-  zonesGeographiques ConsultantZoneGeographique[]
-  langues           ConsultantLangue[]
-  contactRequests   ContactRequest[]
-  consultationLogs  ConsultationLog[]
+  secteurs             ConsultantSecteur[]
+  expertises           ConsultantExpertise[]
+  competences          ConsultantCompetence[]
+  typesMobilite        ConsultantTypeMobilite[]
+  zonesGeographiques   ConsultantZoneGeographique[]
+  langues              ConsultantLangue[]
+  contactRequests      ContactRequest[]
+  consultationLogs     ConsultationLog[]
   competenceCategories CompetenceCategorie[]
-  formations        Formation[]
-  experiences       Experience[]
-  accesEquipe       ConsultantAccess[]
-  suivis            SuiviCandidat[]
+  formations           Formation[]
+  experiences          Experience[]
+  accesEquipe          ConsultantAccess[]
+  suivis               SuiviCandidat[]
 
   @@index([statutPublication])
   @@index([businessManagerId])
@@ -280,6 +282,93 @@ model ConsultantAccess {
 
   @@id([consultantId, userId])
   @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// CRM — prospection commerciale (§ étoffement ERP). Domaine volontairement
+// distinct de l'ATS (Consultant = candidats) et de ClientOrganization (comptes
+// ayant un accès effectif à la plateforme) : une Entreprise CRM est un
+// compte prospect/client suivi commercialement, qui peut ne jamais avoir
+// d'accès à la bibliothèque.
+// ---------------------------------------------------------------------------
+
+model Entreprise {
+  id String @id @default(cuid())
+
+  nom              String
+  secteurActivite  String?
+  siteWeb          String?
+  adresse          String?
+  ville            String?
+  codePostal       String?
+  tailleEffectif   String?
+  statutCommercial String  @default("PROSPECT") // PROSPECT | EN_COURS | CLIENT | PERDU
+  notes            String?
+
+  businessManagerId String
+  businessManager   User   @relation("BusinessManagerReferentEntreprise", fields: [businessManagerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts Contact[]
+  suivis   SuiviCommercial[]
+
+  @@index([businessManagerId])
+  @@index([statutCommercial])
+}
+
+// Interlocuteur au sein d'une entreprise prospectée (ex. responsable
+// qualité, responsable production…) — une entreprise peut en compter
+// plusieurs, chacun suivi indépendamment.
+model Contact {
+  id           String     @id @default(cuid())
+  entrepriseId String
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+
+  prenom    String
+  nom       String
+  fonction  String? // ex. Responsable qualité, Responsable production…
+  email     String?
+  telephone String?
+  notes     String?
+  principal Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  suivis SuiviCommercial[]
+
+  @@index([entrepriseId])
+}
+
+// Suivi CRM : notes libres, appels, RDV, rappels programmés et changements
+// de statut commercial (loggés automatiquement) — même modèle unifié que
+// SuiviCandidat côté ATS, pour un fil d'activité chronologique par
+// entreprise, avec un lien optionnel vers l'interlocuteur concerné.
+model SuiviCommercial {
+  id           String     @id @default(cuid())
+  entrepriseId String
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  contactId    String?
+  contact      Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  type  String // NOTE | APPEL | RDV | RAPPEL | STATUT
+  titre String
+  notes String?
+
+  dateProgrammee DateTime?
+  fait           Boolean   @default(false)
+
+  createdById String
+  createdBy   User   @relation("SuivisCommerciauxCrees", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entrepriseId])
+  @@index([contactId])
+  @@index([dateProgrammee])
 }
 
 // Tables de jointure explicites (relations n-n paramétrables) --------------
@@ -370,11 +459,11 @@ model Formation {
   consultantId String
   consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
 
-  type        String // FORMATION | CERTIFICATION
-  annee       String
-  intitule    String
+  type          String // FORMATION | CERTIFICATION
+  annee         String
+  intitule      String
   etablissement String?
-  ordre       Int    @default(0)
+  ordre         Int     @default(0)
 
   @@index([consultantId])
 }
@@ -385,15 +474,15 @@ model Experience {
   consultantId String
   consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
 
-  entreprise            String // "Entreprise cliente" générique si NDA
-  secteurActivite       String?
-  missionTitre          String
-  dateDebut             DateTime?
-  dateFin               DateTime? // null = mission en cours
-  contexteObjectif      String?
-  realisations          String? // une réalisation par ligne
+  entreprise             String // "Entreprise cliente" générique si NDA
+  secteurActivite        String?
+  missionTitre           String
+  dateDebut              DateTime?
+  dateFin                DateTime? // null = mission en cours
+  contexteObjectif       String?
+  realisations           String? // une réalisation par ligne
   environnementTechnique String?
-  ordre                 Int    @default(0)
+  ordre                  Int       @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -406,16 +495,16 @@ model Experience {
 // ---------------------------------------------------------------------------
 
 model ContactRequest {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   consultantId String
   consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
 
   clientUserId String
-  clientUser   User     @relation("ClientDemandeur", fields: [clientUserId], references: [id])
+  clientUser   User   @relation("ClientDemandeur", fields: [clientUserId], references: [id])
 
-  besoin                  String
-  localisation            String?
-  dateDemarrageSouhaitee  DateTime?
+  besoin                 String
+  localisation           String?
+  dateDemarrageSouhaitee DateTime?
 
   status String @default("NOUVELLE") // NOUVELLE | EN_COURS | TRAITEE | SANS_SUITE
 
@@ -437,18 +526,18 @@ model ContactRequest {
 // l'ensemble du back-office (admin + BM) tant qu'aucun consultant/mission
 // précis n'est identifié — pas de référent naturel à la création.
 model DemandeBesoin {
-  id           String   @id @default(cuid())
+  id           String @id @default(cuid())
   clientUserId String
-  clientUser   User     @relation("ClientDemandeurBesoin", fields: [clientUserId], references: [id])
+  clientUser   User   @relation("ClientDemandeurBesoin", fields: [clientUserId], references: [id])
 
   intitulePoste          String
-  descriptifPoste         String
-  seniorite               String?
-  tjmCibleMin              Int?
-  tjmCibleMax              Int?
-  localisation             String?
-  dateDemarrageSouhaitee   DateTime?
-  dureeEstimee             String? // ex. "3 mois", "6-12 mois", "long terme"
+  descriptifPoste        String
+  seniorite              String?
+  tjmCibleMin            Int?
+  tjmCibleMax            Int?
+  localisation           String?
+  dateDemarrageSouhaitee DateTime?
+  dureeEstimee           String? // ex. "3 mois", "6-12 mois", "long terme"
 
   status String @default("NOUVELLE") // NOUVELLE | EN_COURS | TRAITEE | SANS_SUITE
 
@@ -476,12 +565,12 @@ model LoginLog {
 }
 
 model ConsultationLog {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   userId       String
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   consultantId String
   consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
+  createdAt    DateTime   @default(now())
 
   @@index([userId])
   @@index([consultantId])
