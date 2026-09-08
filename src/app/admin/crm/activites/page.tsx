@@ -8,6 +8,8 @@ import {
   type SuiviCommercialType,
   type ModaliteRdv,
 } from "@/lib/constants";
+import { resolvePeriode, suiviCommercialDateFilter } from "@/lib/periode";
+import PeriodeSelector from "@/components/PeriodeSelector";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -26,10 +28,23 @@ const TYPE_STYLES: Record<string, string> = {
 export default async function CrmActivitesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; fait?: string }>;
+  searchParams: Promise<{
+    type?: string;
+    fait?: string;
+    periode?: string;
+    debut?: string;
+    fin?: string;
+  }>;
 }) {
   const session = await requireStaff();
-  const { type, fait } = await searchParams;
+  const sp = await searchParams;
+  const { type, fait } = sp;
+  const periodeActive = Boolean(sp.periode);
+  const periode = resolvePeriode(sp);
+
+  const dateFilter: Prisma.SuiviCommercialWhereInput = periodeActive
+    ? suiviCommercialDateFilter(periode)
+    : {};
 
   const where: Prisma.SuiviCommercialWhereInput = {
     AND: [
@@ -37,6 +52,7 @@ export default async function CrmActivitesPage({
       type ? { type } : {},
       fait === "0" ? { fait: false } : {},
       fait === "1" ? { fait: true } : {},
+      dateFilter,
     ],
   };
 
@@ -71,26 +87,46 @@ export default async function CrmActivitesPage({
         </Link>
       </div>
 
-      <form className="card flex flex-wrap items-center gap-2 p-3">
-        <select name="type" defaultValue={type ?? ""} className="input w-auto">
-          <option value="">Tous les types</option>
-          {Object.entries(SUIVI_COMMERCIAL_TYPE_LABELS)
-            .filter(([k]) => k !== "STATUT")
-            .map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-        </select>
-        <select name="fait" defaultValue={fait ?? ""} className="input w-auto">
-          <option value="">Fait et à faire</option>
-          <option value="0">À faire</option>
-          <option value="1">Fait</option>
-        </select>
-        <button type="submit" className="btn btn-secondary">
-          Filtrer
-        </button>
-      </form>
+      <div className="card space-y-3 p-3">
+        <form className="flex flex-wrap items-center gap-2">
+          {periodeActive && <input type="hidden" name="periode" value={sp.periode} />}
+          {sp.debut && <input type="hidden" name="debut" value={sp.debut} />}
+          {sp.fin && <input type="hidden" name="fin" value={sp.fin} />}
+          <select name="type" defaultValue={type ?? ""} className="input w-auto">
+            <option value="">Tous les types</option>
+            {Object.entries(SUIVI_COMMERCIAL_TYPE_LABELS)
+              .filter(([k]) => k !== "STATUT")
+              .map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+          </select>
+          <select name="fait" defaultValue={fait ?? ""} className="input w-auto">
+            <option value="">Fait et à faire</option>
+            <option value="0">À faire</option>
+            <option value="1">Fait</option>
+          </select>
+          <button type="submit" className="btn btn-secondary">
+            Filtrer
+          </button>
+        </form>
+        <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+          <PeriodeSelector
+            basePath="/admin/crm/activites"
+            extraParams={{ type, fait }}
+            current={periode}
+          />
+          {periodeActive && (
+            <Link
+              href={`/admin/crm/activites${type ? `?type=${type}` : ""}`}
+              className="link-underline text-xs text-brand-gray"
+            >
+              Toutes dates
+            </Link>
+          )}
+        </div>
+      </div>
 
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">

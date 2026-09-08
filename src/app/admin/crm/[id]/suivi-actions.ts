@@ -34,7 +34,12 @@ export async function createSuiviCommercialAction(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim() || null;
   const dateProgrammeeRaw = String(formData.get("dateProgrammee") ?? "");
   const dateProgrammee = dateProgrammeeRaw ? new Date(dateProgrammeeRaw) : null;
-  const contactId = String(formData.get("contactId") ?? "") || null;
+  // Chaque action est désormais rattachée à un interlocuteur précis — elle
+  // se saisit depuis la fiche de ce dernier, jamais depuis la fiche
+  // entreprise (seul le log automatique de changement de statut reste
+  // sans interlocuteur, voir updateEntrepriseAction).
+  const contactId = String(formData.get("contactId") ?? "");
+  if (!contactId) return;
   const modaliteRaw = String(formData.get("modalite") ?? "");
   const modalite =
     modaliteRaw && (Object.values(MODALITE_RDV) as string[]).includes(modaliteRaw)
@@ -54,7 +59,9 @@ export async function createSuiviCommercialAction(formData: FormData) {
     },
   });
 
-  revalidatePath(`/admin/crm/${entrepriseId}`);
+  revalidatePath(`/admin/crm/${entrepriseId}/contacts/${contactId}`);
+  revalidatePath("/admin/crm/activites");
+  revalidatePath("/admin");
 }
 
 export async function toggleSuiviCommercialFaitAction(formData: FormData) {
@@ -68,7 +75,10 @@ export async function toggleSuiviCommercialFaitAction(formData: FormData) {
     data: { fait: !suivi.fait },
   });
 
-  revalidatePath(`/admin/crm/${suivi.entrepriseId}`);
+  if (suivi.contactId) {
+    revalidatePath(`/admin/crm/${suivi.entrepriseId}/contacts/${suivi.contactId}`);
+  }
+  revalidatePath("/admin/crm/activites");
   revalidatePath("/admin");
 }
 
@@ -80,6 +90,9 @@ export async function deleteSuiviCommercialAction(formData: FormData) {
 
   await prisma.suiviCommercial.delete({ where: { id } });
 
-  revalidatePath(`/admin/crm/${suivi.entrepriseId}`);
+  if (suivi.contactId) {
+    revalidatePath(`/admin/crm/${suivi.entrepriseId}/contacts/${suivi.contactId}`);
+  }
+  revalidatePath("/admin/crm/activites");
   revalidatePath("/admin");
 }

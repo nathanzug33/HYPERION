@@ -5,8 +5,8 @@ import { requireStaff } from "@/lib/guards";
 import { ROLES, STATUT_ENTREPRISE_LABELS } from "@/lib/constants";
 import { canAccessEntreprise } from "@/lib/crm-access";
 import EntrepriseEditForm from "./entreprise-edit-form";
+import EntrepriseInfoModal from "./entreprise-info-modal";
 import ContactsSection from "./contacts-section";
-import SuiviSection from "./suivi-section";
 import { deleteEntrepriseAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -29,18 +29,10 @@ export default async function EntrepriseDetailPage({
     redirect("/admin/crm");
   }
 
-  const [contacts, suivis, bms] = await Promise.all([
+  const [contacts, bms] = await Promise.all([
     prisma.contact.findMany({
       where: { entrepriseId: id },
       orderBy: [{ principal: "desc" }, { createdAt: "asc" }],
-    }),
-    prisma.suiviCommercial.findMany({
-      where: { entrepriseId: id },
-      orderBy: { createdAt: "desc" },
-      include: {
-        createdBy: { select: { name: true } },
-        contact: { select: { id: true, prenom: true, nom: true } },
-      },
     }),
     session.user.role === ROLES.ADMIN
       ? prisma.user.findMany({ where: { role: ROLES.BM, active: true }, orderBy: { name: "asc" } })
@@ -60,6 +52,7 @@ export default async function EntrepriseDetailPage({
               ] ?? entreprise.statutCommercial}
             </span>
             {" · "}BM référent : {entreprise.businessManager.name}
+            {entreprise.ville && ` · ${entreprise.ville}`}
           </p>
         </div>
         <Link href="/admin/crm" className="link-underline text-sm text-brand-gray hover:text-brand-ink">
@@ -67,8 +60,15 @@ export default async function EntrepriseDetailPage({
         </Link>
       </div>
 
-      {session.user.role === ROLES.ADMIN && (
-        <div className="card flex items-center p-3">
+      <div className="card flex flex-wrap items-center gap-2 p-3">
+        <EntrepriseInfoModal triggerLabel="ℹ️ Informations de l'entreprise">
+          <EntrepriseEditForm
+            entreprise={entreprise}
+            bms={bms}
+            isAdmin={session.user.role === ROLES.ADMIN}
+          />
+        </EntrepriseInfoModal>
+        {session.user.role === ROLES.ADMIN && (
           <form action={deleteEntrepriseAction} className="ml-auto">
             <input type="hidden" name="id" value={id} />
             <button
@@ -78,27 +78,10 @@ export default async function EntrepriseDetailPage({
               Supprimer définitivement
             </button>
           </form>
-        </div>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="space-y-6">
-          <EntrepriseEditForm
-            entreprise={entreprise}
-            bms={bms}
-            isAdmin={session.user.role === ROLES.ADMIN}
-          />
-          <ContactsSection entrepriseId={id} contacts={contacts} />
-        </div>
-
-        <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">
-          <SuiviSection
-            entrepriseId={id}
-            contacts={contacts.map((c) => ({ id: c.id, prenom: c.prenom, nom: c.nom }))}
-            suivis={suivis}
-          />
-        </div>
+        )}
       </div>
+
+      <ContactsSection entrepriseId={id} contacts={contacts} />
     </div>
   );
 }

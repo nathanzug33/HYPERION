@@ -9,7 +9,7 @@ import {
   createSuiviCommercialAction,
   toggleSuiviCommercialFaitAction,
   deleteSuiviCommercialAction,
-} from "./suivi-actions";
+} from "../../suivi-actions";
 
 type Suivi = {
   id: string;
@@ -21,10 +21,7 @@ type Suivi = {
   fait: boolean;
   createdAt: Date;
   createdBy: { name: string };
-  contact: { id: string; prenom: string; nom: string } | null;
 };
-
-type Contact = { id: string; prenom: string; nom: string };
 
 const TYPE_STYLES: Record<string, string> = {
   NOTE: "bg-slate-100 text-brand-body",
@@ -39,21 +36,24 @@ const TYPE_STYLES: Record<string, string> = {
 
 export default function SuiviSection({
   entrepriseId,
-  contacts,
+  contactId,
   suivis,
 }: {
   entrepriseId: string;
-  contacts: Contact[];
+  contactId: string;
   suivis: Suivi[];
 }) {
   const now = new Date();
 
   return (
     <div className="card p-4">
-      <h2 className="mb-3 text-sm font-semibold text-brand-ink">Suivi &amp; rappels</h2>
+      <h2 className="mb-3 text-sm font-semibold text-brand-ink">
+        Historique &amp; actions
+      </h2>
 
       <form action={createSuiviCommercialAction} className="space-y-2 border-b border-slate-100 pb-4">
         <input type="hidden" name="entrepriseId" value={entrepriseId} />
+        <input type="hidden" name="contactId" value={contactId} />
         <div className="grid grid-cols-2 gap-2">
           <select name="type" defaultValue="NOTE" className="input text-xs">
             {SUIVI_COMMERCIAL_TYPE_SAISISSABLES.map((t) => (
@@ -77,16 +77,6 @@ export default function SuiviSection({
           className="input text-xs"
           title="Échéance (RDV / rappel)"
         />
-        {contacts.length > 0 && (
-          <select name="contactId" defaultValue="" className="input text-xs">
-            <option value="">Interlocuteur concerné (optionnel)</option>
-            {contacts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.prenom} {c.nom}
-              </option>
-            ))}
-          </select>
-        )}
         <input
           type="text"
           name="titre"
@@ -101,14 +91,14 @@ export default function SuiviSection({
           className="input text-xs"
         />
         <button type="submit" className="btn btn-secondary w-full py-1.5 text-xs">
-          + Ajouter
+          + Ajouter une action
         </button>
       </form>
 
       {suivis.length === 0 ? (
-        <p className="mt-3 text-xs text-brand-gray">Aucun suivi pour le moment.</p>
+        <p className="mt-3 text-xs text-brand-gray">Aucune action pour le moment.</p>
       ) : (
-        <ul className="mt-3 max-h-96 space-y-2 overflow-y-auto pr-1">
+        <ul className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
           {suivis.map((s) => {
             const overdue = s.dateProgrammee != null && !s.fait && s.dateProgrammee < now;
             const actionable = s.dateProgrammee != null && s.type !== "STATUT";
@@ -134,11 +124,6 @@ export default function SuiviSection({
                       {s.modalite && (
                         <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-brand-body">
                           {MODALITE_RDV_LABELS[s.modalite as ModaliteRdv] ?? s.modalite}
-                        </span>
-                      )}
-                      {s.contact && (
-                        <span className="rounded-full bg-brand-blue-bg px-1.5 py-0.5 text-[10px] font-medium text-brand-blue-dark">
-                          {s.contact.prenom} {s.contact.nom}
                         </span>
                       )}
                       {s.fait && (

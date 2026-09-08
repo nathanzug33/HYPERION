@@ -173,4 +173,7 @@ export async function deleteContactAction(formData: FormData) {
   await prisma.contact.delete({ where: { id } });
 
   revalidatePath(`/admin/crm/${contact.entrepriseId}`);
+  // Supprimé depuis la fiche de l'interlocuteur lui-même — cette page
+  // n'existe plus, on ramène vers la fiche entreprise.
+  redirect(`/admin/crm/${contact.entrepriseId}`);
 }
