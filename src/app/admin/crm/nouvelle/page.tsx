@@ -1,17 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES } from "@/lib/constants";
+import { ROLES, canReassignReferent } from "@/lib/constants";
 import { createEntrepriseAction } from "../actions";
 
 export default async function NouvelleEntreprisePage() {
   const session = await requireStaff();
-  const bms =
-    session.user.role === ROLES.ADMIN
-      ? await prisma.user.findMany({
-          where: { role: ROLES.BM, active: true },
-          orderBy: { name: "asc" },
-        })
-      : [];
+  const bms = canReassignReferent(session.user)
+    ? await prisma.user.findMany({
+        where: { role: ROLES.BM, active: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
 
   return (
     <div className="max-w-lg space-y-6">
@@ -60,7 +59,7 @@ export default async function NouvelleEntreprisePage() {
           <label className="block text-xs font-medium text-brand-body">Notes</label>
           <textarea name="notes" rows={3} className="input mt-1.5" />
         </div>
-        {session.user.role === ROLES.ADMIN && (
+        {canReassignReferent(session.user) && (
           <div>
             <label className="block text-xs font-medium text-brand-body">
               Business manager référent

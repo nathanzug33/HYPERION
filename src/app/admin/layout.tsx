@@ -1,4 +1,6 @@
 import { requireStaff } from "@/lib/guards";
+import { ROLE_LABELS, canReassignReferent } from "@/lib/constants";
+import { getTaskCounts } from "@/lib/task-counts";
 import LogoutButton from "@/components/LogoutButton";
 import NavLink from "@/components/NavLink";
 import NavDropdown from "@/components/NavDropdown";
@@ -11,6 +13,8 @@ export default async function AdminLayout({
 }) {
   const session = await requireStaff();
   const isAdmin = session.user.role === "ADMIN";
+  const hasVueGlobale = canReassignReferent(session.user);
+  const taskCounts = await getTaskCounts(session.user);
 
   const atsItems = [
     {
@@ -28,6 +32,8 @@ export default async function AdminLayout({
   const links = [
     { href: "/admin/crm", label: "CRM" },
     { href: "/admin/demandes", label: "Demandes" },
+    { href: "/admin/calendrier", label: "Calendrier" },
+    ...(hasVueGlobale ? [{ href: "/admin/transfert-portefeuille", label: "Transferts" }] : []),
     ...(isAdmin
       ? [
           { href: "/admin/referentiels", label: "Référentiels" },
@@ -61,9 +67,19 @@ export default async function AdminLayout({
           </div>
 
           <nav className="flex flex-1 flex-wrap items-center gap-1 pt-1">
-            <NavLink href="/admin" exact>
-              Tableau de bord
-            </NavLink>
+            <span className="relative">
+              <NavLink href="/admin" exact>
+                Tableau de bord
+              </NavLink>
+              {taskCounts.enRetard > 0 && (
+                <span
+                  className="absolute -right-1 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white"
+                  title={`${taskCounts.enRetard} tâche(s) en retard`}
+                >
+                  {taskCounts.enRetard > 99 ? "99+" : taskCounts.enRetard}
+                </span>
+              )}
+            </span>
             <NavDropdown label="ATS" items={atsItems} />
             {links.map((l) => (
               <NavLink key={l.href} href={l.href}>
@@ -80,7 +96,7 @@ export default async function AdminLayout({
               <div className="text-left leading-tight">
                 <div className="text-xs font-medium text-white">{session.user.name}</div>
                 <div className="text-[10px] text-white/55">
-                  {session.user.role === "ADMIN" ? "Administrateur" : "Business manager"}
+                  {ROLE_LABELS[session.user.role as keyof typeof ROLE_LABELS] ?? session.user.role}
                 </div>
               </div>
             </div>

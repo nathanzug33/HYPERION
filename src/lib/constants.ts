@@ -2,6 +2,7 @@
 
 export const ROLES = {
   ADMIN: "ADMIN",
+  DIRECTEUR_BU: "DIRECTEUR_BU",
   BM: "BM",
   CLIENT: "CLIENT",
 } as const;
@@ -9,9 +10,23 @@ export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 export const ROLE_LABELS: Record<Role, string> = {
   ADMIN: "Administrateur",
+  DIRECTEUR_BU: "Directeur de BU",
   BM: "Business manager",
   CLIENT: "Client",
 };
+
+// Rôles ayant une vue globale du back-office (hors client). Le Directeur de
+// BU voit tout (ATS + CRM, tous BM confondus) et peut réassigner le BM
+// référent d'un dossier, mais n'a pas la main sur la gestion des
+// utilisateurs, des référentiels, des journaux ni la purge RGPD (réservé à
+// ADMIN).
+export const ROLES_VUE_GLOBALE = [ROLES.ADMIN, ROLES.DIRECTEUR_BU] as const;
+
+/** Admin ou Directeur de BU : peut voir tous les comptes (CRM) et réassigner
+ * le BM référent d'un dossier (candidat ou entreprise). */
+export function canReassignReferent(user: { role: string }): boolean {
+  return (ROLES_VUE_GLOBALE as readonly string[]).includes(user.role);
+}
 
 export const STATUT_PUBLICATION = {
   BROUILLON: "BROUILLON",

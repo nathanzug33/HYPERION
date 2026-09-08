@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES, STATUT_ENTREPRISE_LABELS } from "@/lib/constants";
+import { ROLES, STATUT_ENTREPRISE_LABELS, canReassignReferent } from "@/lib/constants";
 import { canAccessEntreprise } from "@/lib/crm-access";
 import EntrepriseEditForm from "./entreprise-edit-form";
 import EntrepriseInfoModal from "./entreprise-info-modal";
@@ -13,15 +13,22 @@ export const dynamic = "force-dynamic";
 
 export default async function EntrepriseDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ doublonContact?: string }>;
 }) {
   const session = await requireStaff();
   const { id } = await params;
+  const { doublonContact } = await searchParams;
 
   const entreprise = await prisma.entreprise.findUnique({
     where: { id },
-    include: { businessManager: true },
+    include: {
+      businessManager: true,
+      secteursRecherches: true,
+      expertisesRecherchees: true,
+    },
   });
 
   if (!entreprise) notFound();
@@ -29,15 +36,62 @@ export default async function EntrepriseDetailPage({
     redirect("/admin/crm");
   }
 
-  const [contacts, bms] = await Promise.all([
+  const doublonsContacts = doublonContact
+    ? await prisma.contact.findMany({
+        where: { id: { in: doublonContact.split(",") } },
+        select: { id: true, nom: true, prenom: true },
+      })
+    : [];
+
+  const [contacts, bms, secteurs, expertises] = await Promise.all([
     prisma.contact.findMany({
       where: { entrepriseId: id },
       orderBy: [{ principal: "desc" }, { createdAt: "asc" }],
     }),
-    session.user.role === ROLES.ADMIN
+    canReassignReferent(session.user)
       ? prisma.user.findMany({ where: { role: ROLES.BM, active: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
+    prisma.secteur.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+    prisma.expertise.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
   ]);
+
+  const secteurRechercheIds = entreprise.secteursRecherches.map((s) => s.secteurId);
+  const expertiseRechercheIds = entreprise.expertisesRecherchees.map((e) => e.expertiseId);
+
+  const suggestions =
+    secteurRechercheIds.length > 0 || expertiseRechercheIds.length > 0
+      ? await prisma.consultant.findMany({
+          where: {
+            statutPublication: "PUBLIEE",
+            OR: [
+              secteurRechercheIds.length > 0
+                ? { secteurs: { some: { secteurId: { in: secteurRechercheIds } } } }
+                : undefined,
+              expertiseRechercheIds.length > 0
+                ? { expertises: { some: { expertiseId: { in: expertiseRechercheIds } } } }
+                : undefined,
+            ].filter((c): c is NonNullable<typeof c> => Boolean(c)),
+          },
+          select: {
+            id: true,
+            referenceAnonyme: true,
+            intitulePoste: true,
+            secteurs: { select: { secteurId: true } },
+            expertises: { select: { expertiseId: true } },
+          },
+        })
+      : [];
+
+  const suggestionsAvecScore = suggestions
+    .map((c) => {
+      const secteursMatch = c.secteurs.filter((s) => secteurRechercheIds.includes(s.secteurId)).length;
+      const expertisesMatch = c.expertises.filter((e) =>
+        expertiseRechercheIds.includes(e.expertiseId)
+      ).length;
+      return { ...c, score: secteursMatch + expertisesMatch };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8);
 
   return (
     <div className="space-y-6">
@@ -60,12 +114,34 @@ export default async function EntrepriseDetailPage({
         </Link>
       </div>
 
+      {doublonsContacts.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p className="font-medium">
+            ⚠️ Interlocuteur(s) similaire(s) déjà présent(s) pour cette entreprise :
+          </p>
+          <ul className="mt-1.5 space-y-0.5">
+            {doublonsContacts.map((d) => (
+              <li key={d.id}>
+                <Link
+                  href={`/admin/crm/${id}/contacts/${d.id}`}
+                  className="link-underline font-medium"
+                >
+                  {d.prenom} {d.nom}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="card flex flex-wrap items-center gap-2 p-3">
         <EntrepriseInfoModal triggerLabel="ℹ️ Informations de l'entreprise">
           <EntrepriseEditForm
             entreprise={entreprise}
             bms={bms}
-            isAdmin={session.user.role === ROLES.ADMIN}
+            canReassignReferent={canReassignReferent(session.user)}
+            secteurs={secteurs}
+            expertises={expertises}
           />
         </EntrepriseInfoModal>
         {session.user.role === ROLES.ADMIN && (
@@ -80,6 +156,35 @@ export default async function EntrepriseDetailPage({
           </form>
         )}
       </div>
+
+      {suggestionsAvecScore.length > 0 && (
+        <div className="card p-5">
+          <h2 className="mb-1 text-sm font-semibold text-brand-ink">
+            Suggestions de candidats
+          </h2>
+          <p className="mb-3 text-xs text-brand-gray">
+            Profils publiés correspondant aux secteurs / expertises recherchés par ce client.
+          </p>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {suggestionsAvecScore.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/admin/consultants/${c.id}`}
+                  className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-sm hover:border-brand-blue-light hover:bg-brand-blue-bg-soft"
+                >
+                  <span>
+                    <span className="font-mono text-xs text-brand-gray">{c.referenceAnonyme}</span>
+                    {c.intitulePoste && <span className="ml-2 text-brand-body">{c.intitulePoste}</span>}
+                  </span>
+                  <span className="rounded-full bg-brand-blue-bg px-2 py-0.5 text-[10px] font-medium text-brand-blue-dark">
+                    {c.score} correspondance{c.score > 1 ? "s" : ""}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <ContactsSection entrepriseId={id} contacts={contacts} />
     </div>

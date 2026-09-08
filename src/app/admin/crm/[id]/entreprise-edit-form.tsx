@@ -1,15 +1,32 @@
-import type { Entreprise, User } from "@prisma/client";
+import type {
+  Entreprise,
+  EntrepriseExpertiseRecherchee,
+  EntrepriseSecteurRecherche,
+  User,
+} from "@prisma/client";
+import CheckboxGroup from "@/components/form/CheckboxGroup";
 import { STATUT_ENTREPRISE_LABELS } from "@/lib/constants";
 import { updateEntrepriseAction } from "../actions";
+
+type Referential = { id: string; label: string };
+
+type EntrepriseWithRecherches = Entreprise & {
+  secteursRecherches: EntrepriseSecteurRecherche[];
+  expertisesRecherchees: EntrepriseExpertiseRecherchee[];
+};
 
 export default function EntrepriseEditForm({
   entreprise,
   bms,
-  isAdmin,
+  canReassignReferent,
+  secteurs,
+  expertises,
 }: {
-  entreprise: Entreprise;
+  entreprise: EntrepriseWithRecherches;
   bms: User[];
-  isAdmin: boolean;
+  canReassignReferent: boolean;
+  secteurs: Referential[];
+  expertises: Referential[];
 }) {
   return (
     <form action={updateEntrepriseAction} className="card space-y-4 p-5">
@@ -76,7 +93,7 @@ export default function EntrepriseEditForm({
             ))}
           </select>
         </div>
-        {isAdmin && (
+        {canReassignReferent && (
           <div>
             <label className="block text-xs font-medium text-brand-body">
               Business manager référent
@@ -104,6 +121,37 @@ export default function EntrepriseEditForm({
           rows={4}
           className="input mt-1.5"
         />
+      </div>
+
+      <div className="border-t border-slate-100 pt-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-blue-dark">
+          Profils habituellement recherchés
+        </p>
+        <p className="mb-3 text-xs text-brand-gray">
+          Alimente les suggestions de candidats correspondants sur cette fiche.
+        </p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-brand-body">Secteurs recherchés</label>
+            <div className="mt-1.5">
+              <CheckboxGroup
+                name="secteurRechercheIds"
+                options={secteurs}
+                selectedIds={new Set(entreprise.secteursRecherches.map((s) => s.secteurId))}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-brand-body">Expertises recherchées</label>
+            <div className="mt-1.5">
+              <CheckboxGroup
+                name="expertiseRechercheIds"
+                options={expertises}
+                selectedIds={new Set(entreprise.expertisesRecherchees.map((e) => e.expertiseId))}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <button type="submit" className="btn btn-primary px-6 py-2.5">

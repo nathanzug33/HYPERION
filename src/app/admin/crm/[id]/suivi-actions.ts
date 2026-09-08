@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { canAccessEntreprise } from "@/lib/crm-access";
 import { SUIVI_COMMERCIAL_TYPE_SAISISSABLES, MODALITE_RDV } from "@/lib/constants";
+import { saveCrmFile, deleteCrmFile } from "@/lib/crm-storage";
 
 async function assertEntrepriseAccess(entrepriseId: string) {
   const session = await requireStaff();
@@ -46,6 +47,10 @@ export async function createSuiviCommercialAction(formData: FormData) {
       ? modaliteRaw
       : null;
 
+  const fichier = formData.get("fichier");
+  const savedFichier =
+    fichier instanceof File && fichier.size > 0 ? await saveCrmFile(fichier) : null;
+
   await prisma.suiviCommercial.create({
     data: {
       entrepriseId,
@@ -55,6 +60,8 @@ export async function createSuiviCommercialAction(formData: FormData) {
       titre,
       notes,
       dateProgrammee,
+      fichierUrl: savedFichier?.storedName ?? null,
+      fichierNomOriginal: savedFichier?.originalName ?? null,
       createdById: session.user.id,
     },
   });
@@ -89,6 +96,7 @@ export async function deleteSuiviCommercialAction(formData: FormData) {
   await assertEntrepriseAccess(suivi.entrepriseId);
 
   await prisma.suiviCommercial.delete({ where: { id } });
+  await deleteCrmFile(suivi.fichierUrl);
 
   if (suivi.contactId) {
     revalidatePath(`/admin/crm/${suivi.entrepriseId}/contacts/${suivi.contactId}`);

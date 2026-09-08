@@ -27,7 +27,7 @@ model User {
   email            String    @unique
   passwordHash     String
   name             String
-  role             String // ADMIN | BM | CLIENT
+  role             String // ADMIN | DIRECTEUR_BU | BM | CLIENT
   active           Boolean   @default(true)
   twoFactorEnabled Boolean   @default(false)
   twoFactorSecret  String?
@@ -47,7 +47,6 @@ model User {
   contactRequests        ContactRequest[]     @relation("ClientDemandeur")
   contactRequestsRecues  ContactRequest[]     @relation("BmNotifie")
   demandesBesoin         DemandeBesoin[]      @relation("ClientDemandeurBesoin")
-  accesConsultants       ConsultantAccess[]
   suivisCrees            SuiviCandidat[]
   entreprisesSuivies     Entreprise[]         @relation("BusinessManagerReferentEntreprise")
   suivisCommerciauxCrees SuiviCommercial[]    @relation("SuivisCommerciauxCrees")
@@ -90,7 +89,8 @@ model Secteur {
   ordre  Int     @default(0)
   active Boolean @default(true)
 
-  consultants ConsultantSecteur[]
+  consultants          ConsultantSecteur[]
+  entreprisesCherchent EntrepriseSecteurRecherche[]
 }
 
 model Expertise {
@@ -99,7 +99,8 @@ model Expertise {
   ordre  Int     @default(0)
   active Boolean @default(true)
 
-  consultants ConsultantExpertise[]
+  consultants          ConsultantExpertise[]
+  entreprisesCherchent EntrepriseExpertiseRecherchee[]
 }
 
 // Barème de séniorité (figé mais paramétrable par l'admin).
@@ -231,8 +232,8 @@ model Consultant {
   competenceCategories CompetenceCategorie[]
   formations           Formation[]
   experiences          Experience[]
-  accesEquipe          ConsultantAccess[]
   suivis               SuiviCandidat[]
+  propositionsCrm      SuiviCommercial[]
 
   @@index([statutPublication])
   @@index([businessManagerId])
@@ -267,23 +268,6 @@ model SuiviCandidat {
   @@index([dateProgrammee])
 }
 
-// Accès élargi à un dossier candidat, au-delà du BM référent (§ ATS interne).
-// Géré exclusivement par l'administrateur : le référent reste le contact
-// principal (notifications, export DC), mais l'admin peut ici donner
-// visibilité + droit de modification à d'autres business managers, dossier
-// par dossier — utile pour le travail en équipe sur un même candidat sans
-// ouvrir tout le vivier à tout le monde.
-model ConsultantAccess {
-  consultantId String
-  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt    DateTime   @default(now())
-
-  @@id([consultantId, userId])
-  @@index([userId])
-}
-
 // ---------------------------------------------------------------------------
 // CRM — prospection commerciale (§ étoffement ERP). Domaine volontairement
 // distinct de l'ATS (Consultant = candidats) et de ClientOrganization (comptes
@@ -314,8 +298,31 @@ model Entreprise {
   contacts Contact[]
   suivis   SuiviCommercial[]
 
+  // Profils habituellement recherchés par ce client — alimente les
+  // suggestions de candidats correspondants (§ matching simple).
+  secteursRecherches    EntrepriseSecteurRecherche[]
+  expertisesRecherchees EntrepriseExpertiseRecherchee[]
+
   @@index([businessManagerId])
   @@index([statutCommercial])
+}
+
+model EntrepriseSecteurRecherche {
+  entrepriseId String
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  secteurId    String
+  secteur      Secteur    @relation(fields: [secteurId], references: [id], onDelete: Cascade)
+
+  @@id([entrepriseId, secteurId])
+}
+
+model EntrepriseExpertiseRecherchee {
+  entrepriseId String
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  expertiseId  String
+  expertise    Expertise  @relation(fields: [expertiseId], references: [id], onDelete: Cascade)
+
+  @@id([entrepriseId, expertiseId])
 }
 
 // Interlocuteur au sein d'une entreprise prospectée (ex. responsable
@@ -347,11 +354,16 @@ model Contact {
 // SuiviCandidat côté ATS, pour un fil d'activité chronologique par
 // entreprise, avec un lien optionnel vers l'interlocuteur concerné.
 model SuiviCommercial {
-  id           String     @id @default(cuid())
+  id           String      @id @default(cuid())
   entrepriseId String
-  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  entreprise   Entreprise  @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
   contactId    String?
-  contact      Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  contact      Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  // Renseigné lorsque l'action est une proposition d'un candidat ATS à ce
+  // contact (§ push candidat → client) : la même ligne apparaît alors dans
+  // le fil d'activité du contact ET dans l'historique du candidat.
+  consultantId String?
+  consultant   Consultant? @relation(fields: [consultantId], references: [id], onDelete: SetNull)
 
   type     String // NOTE | APPEL | EMAIL | RDV | RAPPEL | PROPOSITION_ENVOYEE | CONTRAT_SIGNE | STATUT
   // Modalité de l'échange (surtout pertinente pour RDV et APPEL) : VISIO |
@@ -359,6 +371,12 @@ model SuiviCommercial {
   modalite String?
   titre    String
   notes    String?
+
+  // Pièce jointe optionnelle (devis, proposition commerciale…), même
+  // principe que le stockage des CV : voir src/lib/crm-storage.ts et la
+  // route de téléchargement protégée.
+  fichierUrl         String?
+  fichierNomOriginal String?
 
   dateProgrammee DateTime?
   fait           Boolean   @default(false)
@@ -371,6 +389,7 @@ model SuiviCommercial {
 
   @@index([entrepriseId])
   @@index([contactId])
+  @@index([consultantId])
   @@index([dateProgrammee])
 }
 

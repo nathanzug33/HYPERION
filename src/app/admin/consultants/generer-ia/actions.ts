@@ -3,12 +3,13 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES, STATUT_PUBLICATION } from "@/lib/constants";
+import { STATUT_PUBLICATION, canReassignReferent } from "@/lib/constants";
 import { generateDCFromCvAndTranscript, isAiGenerationConfigured } from "@/lib/ai-dc";
 import { generateNextReference } from "@/lib/reference-generator";
 import { findVille } from "@/lib/villes-france";
 import { saveCvFile } from "@/lib/cv-storage";
 import { extractFileText } from "@/lib/cv-text";
+import { findConsultantDuplicates } from "@/lib/duplicate-detection";
 
 export type GenerateIaState = { error?: string };
 
@@ -65,10 +66,9 @@ export async function generateConsultantFromAI(
     };
   }
 
-  const businessManagerId =
-    session.user.role === ROLES.ADMIN
-      ? String(formData.get("businessManagerId") ?? session.user.id)
-      : session.user.id;
+  const businessManagerId = canReassignReferent(session.user)
+    ? String(formData.get("businessManagerId") ?? session.user.id)
+    : session.user.id;
 
   const cvFileValue = formData.get("cvFile");
 
@@ -246,5 +246,12 @@ export async function generateConsultantFromAI(
     },
   });
 
-  redirect(`/admin/consultants/${consultant.id}?ia=1`);
+  const doublons = await findConsultantDuplicates(
+    consultant.nom,
+    consultant.prenom,
+    consultant.email,
+    consultant.id
+  );
+  const doublonsSuffix = doublons.length > 0 ? `&doublons=${doublons.map((d) => d.id).join(",")}` : "";
+  redirect(`/admin/consultants/${consultant.id}?ia=1${doublonsSuffix}`);
 }

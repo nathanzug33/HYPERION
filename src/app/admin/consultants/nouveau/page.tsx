@@ -1,17 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES } from "@/lib/constants";
+import { ROLES, canReassignReferent } from "@/lib/constants";
 import { createConsultantAction } from "../actions";
 
 export default async function NouveauConsultantPage() {
   const session = await requireStaff();
-  const bms =
-    session.user.role === ROLES.ADMIN
-      ? await prisma.user.findMany({
-          where: { role: ROLES.BM, active: true },
-          orderBy: { name: "asc" },
-        })
-      : [];
+  const bms = canReassignReferent(session.user)
+    ? await prisma.user.findMany({
+        where: { role: ROLES.BM, active: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
 
   return (
     <div className="max-w-lg space-y-6">
@@ -21,10 +20,10 @@ export default async function NouveauConsultantPage() {
         </h1>
         <p className="mt-1 text-sm text-brand-gray">
           Renseignez d&apos;abord l&apos;identité du candidat — il rejoint
-          aussitôt votre vivier interne (ATS). La référence anonyme est
-          générée automatiquement ; les champs exposables (pour en faire un
-          dossier de compétences publiable) se complètent à l&apos;étape
-          suivante.
+          aussitôt le vivier commun (ATS), visible par toute l&apos;équipe. La
+          référence anonyme est générée automatiquement ; les champs
+          exposables (pour en faire un dossier de compétences publiable) se
+          complètent à l&apos;étape suivante.
         </p>
       </div>
 
@@ -61,7 +60,7 @@ export default async function NouveauConsultantPage() {
             Peut aussi être ajouté ou remplacé plus tard depuis la fiche.
           </p>
         </div>
-        {session.user.role === ROLES.ADMIN && (
+        {canReassignReferent(session.user) && (
           <div>
             <label className="block text-xs font-medium text-brand-body">
               Business manager référent

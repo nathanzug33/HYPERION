@@ -4,8 +4,17 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff, requireAdmin } from "@/lib/guards";
-import { ROLES, STATUT_ENTREPRISE_LABELS, SUIVI_COMMERCIAL_TYPE } from "@/lib/constants";
+import {
+  STATUT_ENTREPRISE_LABELS,
+  SUIVI_COMMERCIAL_TYPE,
+  canReassignReferent,
+} from "@/lib/constants";
 import { canAccessEntreprise } from "@/lib/crm-access";
+import { findContactDuplicates } from "@/lib/duplicate-detection";
+
+function getMulti(formData: FormData, key: string): string[] {
+  return formData.getAll(key).map(String).filter(Boolean);
+}
 
 async function assertOwnership(entrepriseId: string) {
   const session = await requireStaff();
@@ -25,10 +34,9 @@ export async function createEntrepriseAction(formData: FormData) {
   const nom = String(formData.get("nom") ?? "").trim();
   if (!nom) return;
 
-  const businessManagerId =
-    session.user.role === ROLES.ADMIN
-      ? String(formData.get("businessManagerId") ?? session.user.id)
-      : session.user.id;
+  const businessManagerId = canReassignReferent(session.user)
+    ? String(formData.get("businessManagerId") ?? session.user.id)
+    : session.user.id;
 
   const entreprise = await prisma.entreprise.create({
     data: {
@@ -67,7 +75,7 @@ export async function updateEntrepriseAction(formData: FormData) {
     notes: String(formData.get("notes") ?? "") || null,
     statutCommercial,
     businessManagerId:
-      session.user.role === ROLES.ADMIN && formData.get("businessManagerId")
+      canReassignReferent(session.user) && formData.get("businessManagerId")
         ? String(formData.get("businessManagerId"))
         : entreprise.businessManagerId,
   };
@@ -76,6 +84,9 @@ export async function updateEntrepriseAction(formData: FormData) {
     statutCommercial !== entreprise.statutCommercial
       ? { from: entreprise.statutCommercial, to: statutCommercial }
       : null;
+
+  const secteurRechercheIds = getMulti(formData, "secteurRechercheIds");
+  const expertiseRechercheIds = getMulti(formData, "expertiseRechercheIds");
 
   await prisma.$transaction([
     prisma.entreprise.update({ where: { id }, data }),
@@ -100,6 +111,14 @@ export async function updateEntrepriseAction(formData: FormData) {
           }),
         ]
       : []),
+    prisma.entrepriseSecteurRecherche.deleteMany({ where: { entrepriseId: id } }),
+    prisma.entrepriseSecteurRecherche.createMany({
+      data: secteurRechercheIds.map((secteurId) => ({ entrepriseId: id, secteurId })),
+    }),
+    prisma.entrepriseExpertiseRecherchee.deleteMany({ where: { entrepriseId: id } }),
+    prisma.entrepriseExpertiseRecherchee.createMany({
+      data: expertiseRechercheIds.map((expertiseId) => ({ entrepriseId: id, expertiseId })),
+    }),
   ]);
 
   revalidatePath(`/admin/crm/${id}`);
@@ -121,14 +140,15 @@ export async function createContactAction(formData: FormData) {
   const prenom = String(formData.get("prenom") ?? "").trim();
   const nom = String(formData.get("nom") ?? "").trim();
   if (!prenom || !nom) return;
+  const email = String(formData.get("email") ?? "") || null;
 
-  await prisma.contact.create({
+  const contact = await prisma.contact.create({
     data: {
       entrepriseId,
       prenom,
       nom,
       fonction: String(formData.get("fonction") ?? "") || null,
-      email: String(formData.get("email") ?? "") || null,
+      email,
       telephone: String(formData.get("telephone") ?? "") || null,
       notes: String(formData.get("notes") ?? "") || null,
       principal: formData.get("principal") === "on",
@@ -136,6 +156,11 @@ export async function createContactAction(formData: FormData) {
   });
 
   revalidatePath(`/admin/crm/${entrepriseId}`);
+
+  const doublons = await findContactDuplicates(entrepriseId, nom, prenom, email, contact.id);
+  if (doublons.length > 0) {
+    redirect(`/admin/crm/${entrepriseId}?doublonContact=${doublons.map((d) => d.id).join(",")}`);
+  }
 }
 
 export async function updateContactAction(formData: FormData) {

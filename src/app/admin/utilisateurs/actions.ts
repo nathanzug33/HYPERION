@@ -22,7 +22,7 @@ export async function createUserAction(
   const newOrgName = String(formData.get("newOrgName") ?? "").trim();
   const existingOrgId = String(formData.get("clientOrganizationId") ?? "");
 
-  if (!email || !name || !["ADMIN", "BM", "CLIENT"].includes(role)) {
+  if (!email || !name || !["ADMIN", "DIRECTEUR_BU", "BM", "CLIENT"].includes(role)) {
     return { error: "Merci de renseigner tous les champs obligatoires." };
   }
 

@@ -42,7 +42,7 @@ export default async function ConsultantsListPage({
       ],
     },
     orderBy: { updatedAt: "desc" },
-    include: { businessManager: true, _count: { select: { accesEquipe: true } } },
+    include: { businessManager: true },
   });
 
   return (
@@ -53,9 +53,9 @@ export default async function ConsultantsListPage({
             Candidats (ATS)
           </h1>
           <p className="mt-1 text-sm text-brand-gray">
-            Votre vivier interne — noms et coordonnées visibles ici uniquement.
-            Un candidat devient un « dossier de compétences » visible des
-            clients une fois publié depuis sa fiche.
+            Vivier commun à toutes les agences — noms et coordonnées visibles
+            ici uniquement. Un candidat devient un « dossier de compétences »
+            visible des clients une fois publié depuis sa fiche.
             {purge && " Filtré sur les dossiers ayant dépassé leur durée de conservation RGPD."}
           </p>
         </div>
@@ -126,17 +126,7 @@ export default async function ConsultantsListPage({
                   <td className="px-4 py-3 text-brand-body">
                     {c.intitulePoste ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-brand-body">
-                    {c.businessManager.name}
-                    {c._count.accesEquipe > 0 && (
-                      <span
-                        className="ml-1.5 rounded-full bg-brand-blue-bg px-1.5 py-0.5 text-xs font-medium text-brand-blue-dark"
-                        title={`Accès élargi à ${c._count.accesEquipe} autre(s) business manager(s)`}
-                      >
-                        +{c._count.accesEquipe}
-                      </span>
-                    )}
-                  </td>
+                  <td className="px-4 py-3 text-brand-body">{c.businessManager.name}</td>
                   <td className="px-4 py-3">
                     <StatusBadge statut={c.statutPublication} />
                   </td>

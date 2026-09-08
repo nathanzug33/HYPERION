@@ -35,7 +35,6 @@ type ConsultantWithRelations = Consultant & {
   competenceCategories: CompetenceCategorie[];
   formations: Formation[];
   experiences: Experience[];
-  accesEquipe: { userId: string }[];
 };
 
 const FORMATION_SLOTS = 6;
@@ -46,7 +45,7 @@ type Referential = { id: string; label: string };
 export default function ConsultantEditForm({
   consultant,
   referentials,
-  isAdmin,
+  canReassignReferent,
 }: {
   consultant: ConsultantWithRelations;
   referentials: {
@@ -59,7 +58,7 @@ export default function ConsultantEditForm({
     langues: Referential[];
     bms: User[];
   };
-  isAdmin: boolean;
+  canReassignReferent: boolean;
 }) {
   const fmtDate = (d: Date | null) =>
     d ? new Date(d).toISOString().slice(0, 10) : "";
@@ -105,7 +104,7 @@ export default function ConsultantEditForm({
               ))}
             </select>
           </Field>
-          {isAdmin && (
+          {canReassignReferent && (
             <Field label="Business manager référent">
               <select
                 name="businessManagerId"
@@ -144,24 +143,6 @@ export default function ConsultantEditForm({
             </p>
           )}
         </div>
-
-        {isAdmin && (
-          <div className="border-t border-slate-100 pt-3">
-            <Field label="Accès élargi (visible également par, en plus du référent)">
-              <CheckboxGroup
-                name="accesEquipeIds"
-                options={referentials.bms
-                  .filter((bm) => bm.id !== consultant.businessManagerId)
-                  .map((bm) => ({ id: bm.id, label: bm.name }))}
-                selectedIds={new Set(consultant.accesEquipe.map((a) => a.userId))}
-              />
-            </Field>
-            <p className="mt-1 text-xs text-brand-gray">
-              Le référent voit toujours ce dossier. Cochez d&apos;autres BM
-              pour leur donner accès en plus, sans changer le référent.
-            </p>
-          </div>
-        )}
 
         <Field label="Notes d'entretien">
           <textarea

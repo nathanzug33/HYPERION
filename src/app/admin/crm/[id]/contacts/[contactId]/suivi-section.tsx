@@ -17,6 +17,8 @@ type Suivi = {
   modalite: string | null;
   titre: string;
   notes: string | null;
+  fichierUrl: string | null;
+  fichierNomOriginal: string | null;
   dateProgrammee: Date | null;
   fait: boolean;
   createdAt: Date;
@@ -90,6 +92,17 @@ export default function SuiviSection({
           placeholder="Notes (optionnel)"
           className="input text-xs"
         />
+        <div>
+          <label className="block text-[11px] text-brand-gray">
+            Pièce jointe (devis, proposition…) — .pdf, .doc(x), .xls(x)
+          </label>
+          <input
+            type="file"
+            name="fichier"
+            accept=".pdf,.doc,.docx,.xls,.xlsx"
+            className="mt-1 block w-full text-xs text-brand-gray file:mr-2 file:rounded-md file:border-0 file:bg-brand-blue file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-white"
+          />
+        </div>
         <button type="submit" className="btn btn-secondary w-full py-1.5 text-xs">
           + Ajouter une action
         </button>
@@ -135,6 +148,14 @@ export default function SuiviSection({
                     <div className="mt-1 font-medium text-brand-ink">{s.titre}</div>
                     {s.notes && (
                       <div className="mt-0.5 whitespace-pre-line text-brand-body">{s.notes}</div>
+                    )}
+                    {s.fichierUrl && (
+                      <a
+                        href={`/admin/crm/${entrepriseId}/fichiers/${s.id}`}
+                        className="mt-0.5 inline-flex items-center gap-1 text-brand-blue-dark hover:underline"
+                      >
+                        📎 {s.fichierNomOriginal || "Télécharger la pièce jointe"}
+                      </a>
                     )}
                     <div className="mt-1 text-[10px] text-brand-gray">
                       {s.dateProgrammee &&

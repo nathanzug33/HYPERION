@@ -179,6 +179,14 @@ export default async function CrmActivitesPage({
                         {a.notes}
                       </div>
                     )}
+                    {a.fichierUrl && (
+                      <a
+                        href={`/admin/crm/${a.entreprise.id}/fichiers/${a.id}`}
+                        className="mt-0.5 inline-flex items-center gap-1 text-xs text-brand-blue-dark hover:underline"
+                      >
+                        📎 {a.fichierNomOriginal || "Pièce jointe"}
+                      </a>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-brand-gray">
                     {a.dateProgrammee

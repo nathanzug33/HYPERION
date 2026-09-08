@@ -9,6 +9,7 @@ import {
 import { consultantVisibilityWhere } from "@/lib/consultant-access";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { resolvePeriode, suiviCommercialDateFilter } from "@/lib/periode";
+import { getTaskCounts } from "@/lib/task-counts";
 import PeriodeSelector from "@/components/PeriodeSelector";
 
 export const dynamic = "force-dynamic";
@@ -133,6 +134,7 @@ export default async function AdminDashboardPage({
     }),
   ]);
 
+  const taskCounts = await getTaskCounts(session.user);
   const now = new Date();
   const rappelsEnRetard = rappelsAVenir.filter((r) => r.dateProgrammee! < now).length;
   const relancesCommercialesEnRetard = relancesCommercialesAVenir.filter(
@@ -161,6 +163,38 @@ export default async function AdminDashboardPage({
           </Link>
         </div>
       </div>
+
+      {(taskCounts.enRetard > 0 || taskCounts.aVenir > 0) && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {taskCounts.enRetard > 0 && (
+            <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800 shadow-sm">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700 text-base font-semibold">
+                !
+              </span>
+              <span>
+                <span className="font-semibold">{taskCounts.enRetard} tâche{taskCounts.enRetard > 1 ? "s" : ""} en retard</span>{" "}
+                (RDV / rappels ATS + CRM confondus).{" "}
+                <Link href="/admin/crm/activites?fait=0" className="link-underline font-medium">
+                  Voir le détail CRM
+                </Link>
+              </span>
+            </div>
+          )}
+          {taskCounts.aVenir > 0 && (
+            <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-800 shadow-sm">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 7v5l3.5 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+              </span>
+              <span>
+                <span className="font-semibold">{taskCounts.aVenir} tâche{taskCounts.aVenir > 1 ? "s" : ""} à venir</span>{" "}
+                dans les 7 prochains jours (RDV / rappels ATS + CRM confondus).
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {isAdmin && aPurger > 0 && (
         <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800 shadow-sm">

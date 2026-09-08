@@ -1,11 +1,11 @@
 import type { Prisma } from "@prisma/client";
-import { ROLES } from "@/lib/constants";
+import { canReassignReferent } from "@/lib/constants";
 
 // Visibilité d'une entreprise CRM pour un business manager : le référent
-// (Entreprise.businessManagerId) a accès, l'administrateur voit tout. Plus
-// simple que côté ATS (pas d'accès élargi géré ici) — à étendre de la même
-// façon que ConsultantAccess si le travail en équipe sur un même prospect
-// le justifie un jour.
+// (Entreprise.businessManagerId) a accès. Admin et Directeur de BU voient
+// tout (ATS + CRM), tous BM confondus. Contrairement à l'ATS (vivier
+// commun), le CRM reste cloisonné par référent pour les BM : un client
+// démarché par un commercial lui reste rattaché.
 
 type SessionUser = { id: string; role: string };
 
@@ -13,7 +13,7 @@ type SessionUser = { id: string; role: string };
 export function entrepriseVisibilityWhere(
   user: SessionUser
 ): Prisma.EntrepriseWhereInput {
-  if (user.role === ROLES.ADMIN) return {};
+  if (canReassignReferent(user)) return {};
   return { businessManagerId: user.id };
 }
 
@@ -22,5 +22,5 @@ export function canAccessEntreprise(
   user: SessionUser,
   entreprise: { businessManagerId: string }
 ): boolean {
-  return user.role === ROLES.ADMIN || entreprise.businessManagerId === user.id;
+  return canReassignReferent(user) || entreprise.businessManagerId === user.id;
 }

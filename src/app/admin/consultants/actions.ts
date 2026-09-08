@@ -7,15 +7,16 @@ import { requireStaff, requireAdmin } from "@/lib/guards";
 import { generateNextReference } from "@/lib/reference-generator";
 import {
   COMPETENCE_CATEGORIES,
-  ROLES,
   STATUT_PUBLICATION,
   STATUT_CANDIDAT_INTERNE_LABELS,
   SUIVI_TYPE,
+  canReassignReferent,
 } from "@/lib/constants";
 import { findVille } from "@/lib/villes-france";
 import { canAccessConsultant } from "@/lib/consultant-access";
 import { saveCvFile, deleteCvFile } from "@/lib/cv-storage";
 import { extractFileText } from "@/lib/cv-text";
+import { findConsultantDuplicates } from "@/lib/duplicate-detection";
 
 function getMulti(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
@@ -64,7 +65,7 @@ export async function createConsultantAction(formData: FormData) {
   const nom = String(formData.get("nom") ?? "").trim();
   const prenom = String(formData.get("prenom") ?? "").trim();
   const businessManagerId =
-    session.user.role === ROLES.ADMIN
+    canReassignReferent(session.user)
       ? String(formData.get("businessManagerId") ?? session.user.id)
       : session.user.id;
 
@@ -81,11 +82,13 @@ export async function createConsultantAction(formData: FormData) {
   // empêcher la création du dossier.
   const cvText = savedCv ? await extractFileText(cvFile).catch(() => "") : "";
 
+  const email = String(formData.get("email") ?? "") || null;
+
   const consultant = await prisma.consultant.create({
     data: {
       nom,
       prenom,
-      email: String(formData.get("email") ?? "") || null,
+      email,
       telephone: String(formData.get("telephone") ?? "") || null,
       businessManagerId,
       dateRencontre: dateCollecte,
@@ -100,7 +103,10 @@ export async function createConsultantAction(formData: FormData) {
   });
 
   revalidatePath("/admin/consultants");
-  redirect(`/admin/consultants/${consultant.id}`);
+
+  const doublons = await findConsultantDuplicates(nom, prenom, email, consultant.id);
+  const suffix = doublons.length > 0 ? `?doublons=${doublons.map((d) => d.id).join(",")}` : "";
+  redirect(`/admin/consultants/${consultant.id}${suffix}`);
 }
 
 export async function updateConsultantAction(formData: FormData) {
@@ -130,7 +136,7 @@ export async function updateConsultantAction(formData: FormData) {
       formData.get("statutCandidatInterne") ?? "EN_COURS"
     ),
     businessManagerId:
-      session.user.role === ROLES.ADMIN && formData.get("businessManagerId")
+      canReassignReferent(session.user) && formData.get("businessManagerId")
         ? String(formData.get("businessManagerId"))
         : consultant.businessManagerId,
 
@@ -178,14 +184,6 @@ export async function updateConsultantAction(formData: FormData) {
   const typeMobiliteIds = getMulti(formData, "typeMobiliteIds");
   const zoneIds = getMulti(formData, "zoneIds");
   const langueIds = getMulti(formData, "langueIds");
-  // Accès élargi (au-delà du référent) : réservé à l'admin — un BM ne peut
-  // pas s'octroyer lui-même la visibilité sur des dossiers d'autres BM.
-  const accesEquipeIds =
-    session.user.role === ROLES.ADMIN
-      ? getMulti(formData, "accesEquipeIds").filter(
-          (userId) => userId !== data.businessManagerId
-        )
-      : null;
 
   const langueRows = langueIds.map((langueId) => ({
     consultantId: id,
@@ -260,14 +258,6 @@ export async function updateConsultantAction(formData: FormData) {
               fait: true,
               createdById: session.user.id,
             },
-          }),
-        ]
-      : []),
-    ...(accesEquipeIds !== null
-      ? [
-          prisma.consultantAccess.deleteMany({ where: { consultantId: id } }),
-          prisma.consultantAccess.createMany({
-            data: accesEquipeIds.map((userId) => ({ consultantId: id, userId })),
           }),
         ]
       : []),

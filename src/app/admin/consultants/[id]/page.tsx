@@ -12,9 +12,11 @@ import {
   purgeConsultantAction,
   unpublishConsultantAction,
 } from "../actions";
-import { STATUT_PUBLICATION_LABELS } from "@/lib/constants";
+import { STATUT_PUBLICATION_LABELS, canReassignReferent } from "@/lib/constants";
 import { canAccessConsultant } from "@/lib/consultant-access";
+import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import SuiviSection from "./suivi-section";
+import PushCandidatForm from "./push-candidat-form";
 
 export const dynamic = "force-dynamic";
 
@@ -23,11 +25,18 @@ export default async function ConsultantEditPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; ia?: string }>;
+  searchParams: Promise<{ error?: string; ia?: string; doublons?: string; propose?: string }>;
 }) {
   const session = await requireStaff();
   const { id } = await params;
-  const { error, ia } = await searchParams;
+  const { error, ia, doublons, propose } = await searchParams;
+
+  const doublonsCandidats = doublons
+    ? await prisma.consultant.findMany({
+        where: { id: { in: doublons.split(",") } },
+        select: { id: true, referenceAnonyme: true, nom: true, prenom: true },
+      })
+    : [];
 
   const consultant = await prisma.consultant.findUnique({
     where: { id },
@@ -42,7 +51,6 @@ export default async function ConsultantEditPage({
       competenceCategories: { orderBy: { ordre: "asc" } },
       formations: { orderBy: { ordre: "asc" } },
       experiences: { orderBy: { ordre: "asc" } },
-      accesEquipe: { select: { userId: true } },
     },
   });
 
@@ -69,7 +77,7 @@ export default async function ConsultantEditPage({
     prisma.zoneGeographique.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.competence.findMany({ where: { active: true }, orderBy: { label: "asc" } }),
     prisma.langue.findMany({ where: { active: true }, orderBy: { label: "asc" } }),
-    session.user.role === ROLES.ADMIN
+    canReassignReferent(session.user)
       ? prisma.user.findMany({ where: { role: ROLES.BM, active: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
     prisma.consultant.findUnique({ where: { id }, select: consultantPublicSelect }),
@@ -80,6 +88,26 @@ export default async function ConsultantEditPage({
     orderBy: { createdAt: "desc" },
     include: { createdBy: { select: { name: true } } },
   });
+
+  const [entreprisesPourPush, propositions] = await Promise.all([
+    prisma.entreprise.findMany({
+      where: entrepriseVisibilityWhere(session.user),
+      select: {
+        id: true,
+        nom: true,
+        contacts: { select: { id: true, prenom: true, nom: true, email: true } },
+      },
+      orderBy: { nom: "asc" },
+    }),
+    prisma.suiviCommercial.findMany({
+      where: { consultantId: id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        entreprise: { select: { id: true, nom: true } },
+        contact: { select: { id: true, prenom: true, nom: true } },
+      },
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -122,6 +150,30 @@ export default async function ConsultantEditPage({
         </div>
       )}
 
+      {propose && (
+        <div className="rounded-xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-brand-green">
+          ✅ Proposition envoyée — le DC a été transmis par email, avec une
+          trace dans l&apos;historique du contact côté CRM.
+        </div>
+      )}
+
+      {doublonsCandidats.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p className="font-medium">
+            ⚠️ Candidat(s) similaire(s) déjà présent(s) dans la base — vérifiez qu&apos;il ne s&apos;agit pas d&apos;un doublon :
+          </p>
+          <ul className="mt-1.5 space-y-0.5">
+            {doublonsCandidats.map((d) => (
+              <li key={d.id}>
+                <Link href={`/admin/consultants/${d.id}`} className="link-underline font-medium">
+                  {d.referenceAnonyme} — {d.prenom} {d.nom}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="card flex flex-wrap items-center gap-2 p-3">
         <form action={publishConsultantAction}>
           <input type="hidden" name="id" value={id} />
@@ -161,11 +213,38 @@ export default async function ConsultantEditPage({
         <ConsultantEditForm
           consultant={consultant}
           referentials={{ secteurs, expertises, seniorites, typesMobilite, zones, competences, langues, bms }}
-          isAdmin={session.user.role === ROLES.ADMIN}
+          canReassignReferent={canReassignReferent(session.user)}
         />
 
         <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">
           <SuiviSection consultantId={id} suivis={suivis} />
+
+          <div className="card p-4">
+            <h2 className="mb-3 text-sm font-semibold text-brand-ink">
+              Proposer à un client (CRM)
+            </h2>
+            {entreprisesPourPush.length === 0 ? (
+              <p className="text-xs text-brand-gray">
+                Aucune entreprise CRM accessible pour l&apos;instant.
+              </p>
+            ) : (
+              <PushCandidatForm consultantId={id} entreprises={entreprisesPourPush} />
+            )}
+            {propositions.length > 0 && (
+              <ul className="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-xs">
+                {propositions.map((p) => (
+                  <li key={p.id} className="text-brand-body">
+                    <span className="font-medium text-brand-ink">{p.entreprise.nom}</span>
+                    {p.contact && ` — ${p.contact.prenom} ${p.contact.nom}`}
+                    <span className="text-brand-gray">
+                      {" "}
+                      · {new Date(p.createdAt).toLocaleDateString("fr-FR")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           <div className="card p-4">
             <div className="mb-3 flex items-center justify-between">

@@ -20,11 +20,18 @@ export async function requireRole(...roles: Role[]) {
 }
 
 export async function requireStaff() {
-  return requireRole(ROLES.ADMIN, ROLES.BM);
+  return requireRole(ROLES.ADMIN, ROLES.DIRECTEUR_BU, ROLES.BM);
 }
 
 export async function requireAdmin() {
   return requireRole(ROLES.ADMIN);
+}
+
+/** Admin ou Directeur de BU : vue globale (ATS + CRM, tous BM confondus) et
+ * réassignation du BM référent — mais pas la gestion utilisateurs /
+ * référentiels / journaux / purge RGPD (réservée à requireAdmin). */
+export async function requireAdminOrDirecteur() {
+  return requireRole(ROLES.ADMIN, ROLES.DIRECTEUR_BU);
 }
 
 export async function requireClient() {

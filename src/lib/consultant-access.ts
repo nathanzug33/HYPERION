@@ -1,35 +1,29 @@
 import type { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
-import { ROLES } from "@/lib/constants";
 
-// Visibilité d'un dossier candidat pour un business manager : le référent
-// (Consultant.businessManagerId) a toujours accès, plus tout BM à qui
-// l'administrateur a explicitement accordé un accès élargi
-// (ConsultantAccess) — dossier par dossier, pour le travail en équipe.
-// L'administrateur voit tout.
+// Vivier candidats commun : tout membre du staff (BM, Directeur de BU,
+// admin) voit et peut modifier tous les candidats, quelle que soit la
+// personne qui les a saisis — utile pour une politique multi-agences où un
+// profil peut être mobile n'importe où. Le "BM référent" reste affiché sur
+// chaque fiche à titre d'information (qui a rencontré/rentré le candidat),
+// mais n'est plus une restriction d'accès (l'ancien mécanisme d'accès
+// élargi par dossier, ConsultantAccess, est donc devenu inutile et a été
+// retiré).
 
 type SessionUser = { id: string; role: string };
 
 /** Clause `where` à utiliser sur `Consultant` (liste, comptages). */
-export function consultantVisibilityWhere(user: SessionUser): Prisma.ConsultantWhereInput {
-  if (user.role === ROLES.ADMIN) return {};
-  return {
-    OR: [
-      { businessManagerId: user.id },
-      { accesEquipe: { some: { userId: user.id } } },
-    ],
-  };
+export function consultantVisibilityWhere(
+  _user: SessionUser
+): Prisma.ConsultantWhereInput {
+  return {};
 }
 
-/** Vérifie l'accès à un dossier précis (déjà chargé). */
+/** Vérifie l'accès à un dossier précis. Toujours vrai pour le staff —
+ * conservé en fonction (plutôt qu'un simple `true` en ligne) pour garder un
+ * point d'entrée unique si une restriction devait un jour être réintroduite. */
 export async function canAccessConsultant(
-  user: SessionUser,
-  consultant: { id: string; businessManagerId: string }
+  _user: SessionUser,
+  _consultant: { id: string; businessManagerId: string }
 ): Promise<boolean> {
-  if (user.role === ROLES.ADMIN) return true;
-  if (consultant.businessManagerId === user.id) return true;
-  const access = await prisma.consultantAccess.findUnique({
-    where: { consultantId_userId: { consultantId: consultant.id, userId: user.id } },
-  });
-  return Boolean(access);
+  return true;
 }

@@ -52,6 +52,7 @@ export default function CreateUserForm({
           >
             <option value="CLIENT">Client / prospect</option>
             <option value="BM">Business manager</option>
+            <option value="DIRECTEUR_BU">Directeur de BU</option>
             <option value="ADMIN">Administrateur</option>
           </select>
         </div>
