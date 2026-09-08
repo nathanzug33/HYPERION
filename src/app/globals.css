@@ -172,16 +172,6 @@ body {
   animation: fade-in-up 380ms ease both;
 }
 
-@keyframes shimmer-slide {
-  from {
-    background-position: 0% 50%;
-  }
-  to {
-    background-position: 200% 50%;
-  }
-}
 .topbar-gradient {
   background: linear-gradient(100deg, var(--brand-ink) 0%, #2d3f57 32%, var(--brand-blue-dark) 68%, var(--brand-blue) 100%);
-  background-size: 200% 200%;
-  animation: shimmer-slide 14s ease infinite;
 }

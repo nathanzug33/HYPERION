@@ -9,7 +9,7 @@ import EntrepriseEditForm from "./entreprise-edit-form";
 import EntrepriseInfoModal from "./entreprise-info-modal";
 import ContactsSection from "./contacts-section";
 import MatchBadges from "@/components/MatchBadges";
-import { deleteEntrepriseAction } from "../actions";
+import { deleteEntrepriseAction, transferEntrepriseAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -159,6 +159,35 @@ export default async function EntrepriseDetailPage({
             expertises={expertises}
           />
         </EntrepriseInfoModal>
+        {canReassignReferent(session.user) && (
+          <form
+            action={transferEntrepriseAction}
+            className={`flex items-center gap-1.5 ${session.user.role === ROLES.ADMIN ? "" : "ml-auto"}`}
+          >
+            <input type="hidden" name="id" value={id} />
+            <select
+              name="targetId"
+              required
+              defaultValue=""
+              className="input py-1.5 text-xs"
+              title="Transférer ce compte à un autre BM"
+            >
+              <option value="" disabled>
+                Transférer à…
+              </option>
+              {bms
+                .filter((bm) => bm.id !== entreprise.businessManagerId)
+                .map((bm) => (
+                  <option key={bm.id} value={bm.id}>
+                    {bm.name}
+                  </option>
+                ))}
+            </select>
+            <button type="submit" className="btn btn-secondary py-1.5 text-xs">
+              Transférer
+            </button>
+          </form>
+        )}
         {session.user.role === ROLES.ADMIN && (
           <form action={deleteEntrepriseAction} className="ml-auto">
             <input type="hidden" name="id" value={id} />

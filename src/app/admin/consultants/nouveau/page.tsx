@@ -48,7 +48,7 @@ export default async function NouveauConsultantPage() {
         </div>
         <div>
           <label className="block text-xs font-medium text-brand-body">
-            CV (optionnel) — .pdf, .doc ou .docx
+            CV (optionnel)
           </label>
           <input
             type="file"

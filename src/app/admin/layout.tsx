@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireStaff } from "@/lib/guards";
-import { ROLE_LABELS, canReassignReferent } from "@/lib/constants";
+import { ROLE_LABELS } from "@/lib/constants";
 import { getTaskCounts } from "@/lib/task-counts";
 import LogoutButton from "@/components/LogoutButton";
 import NavLink from "@/components/NavLink";
@@ -14,7 +14,6 @@ export default async function AdminLayout({
 }) {
   const session = await requireStaff();
   const isAdmin = session.user.role === "ADMIN";
-  const hasVueGlobale = canReassignReferent(session.user);
   const taskCounts = await getTaskCounts(session.user);
 
   const atsItems = [
@@ -33,8 +32,6 @@ export default async function AdminLayout({
   const links = [
     { href: "/admin/crm", label: "CRM" },
     { href: "/admin/demandes", label: "Demandes" },
-    { href: "/admin/calendrier", label: "Calendrier" },
-    ...(hasVueGlobale ? [{ href: "/admin/transfert-portefeuille", label: "Transferts" }] : []),
     ...(isAdmin
       ? [
           { href: "/admin/referentiels", label: "Référentiels" },

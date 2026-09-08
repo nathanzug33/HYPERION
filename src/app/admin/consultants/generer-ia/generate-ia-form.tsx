@@ -43,7 +43,7 @@ export default function GenerateIaForm({
 
       <div>
         <label className="block text-xs font-medium text-brand-body mb-1">
-          CV ou dossier existant (obligatoire) — .pdf, .doc, .docx ou .txt
+          CV ou dossier existant (obligatoire)
         </label>
         <input
           type="file"
@@ -60,7 +60,7 @@ export default function GenerateIaForm({
 
       <div>
         <label className="block text-xs font-medium text-brand-body mb-1">
-          Transcription de l&apos;entretien (facultatif) — .pdf, .doc, .docx ou .txt
+          Transcription de l&apos;entretien (facultatif)
         </label>
         <input
           type="file"

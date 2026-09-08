@@ -122,7 +122,7 @@ export default function ConsultantEditForm({
         </div>
 
         <div className="border-t border-slate-100 pt-3">
-          <Field label={consultant.cvFileUrl ? "Remplacer le CV" : "CV (.pdf, .doc ou .docx)"}>
+          <Field label={consultant.cvFileUrl ? "Remplacer le CV" : "CV"}>
             <input
               type="file"
               name="cvFile"

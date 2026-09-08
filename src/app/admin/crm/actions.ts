@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireStaff, requireAdmin } from "@/lib/guards";
+import { requireStaff, requireAdmin, requireAdminOrDirecteur } from "@/lib/guards";
 import {
   STATUT_ENTREPRISE_LABELS,
   SUIVI_COMMERCIAL_TYPE,
@@ -123,6 +123,24 @@ export async function updateEntrepriseAction(formData: FormData) {
 
   revalidatePath(`/admin/crm/${id}`);
   revalidatePath("/admin/crm");
+}
+
+/** Transfert d'un compte client à un autre BM référent, un par un — pas de
+ * transfert en masse de portefeuille (cf. audit : trop risqué en un clic, un
+ * départ de BM se traite compte par compte). */
+export async function transferEntrepriseAction(formData: FormData) {
+  const session = await requireAdminOrDirecteur();
+  const id = String(formData.get("id") ?? "");
+  const targetId = String(formData.get("targetId") ?? "");
+  if (!id || !targetId) return;
+
+  const entreprise = await prisma.entreprise.findUnique({ where: { id } });
+  if (!entreprise || !canAccessEntreprise(session.user, entreprise)) return;
+
+  await prisma.entreprise.update({ where: { id }, data: { businessManagerId: targetId } });
+  revalidatePath(`/admin/crm/${id}`);
+  revalidatePath("/admin/crm");
+  revalidatePath("/admin");
 }
 
 export async function deleteEntrepriseAction(formData: FormData) {

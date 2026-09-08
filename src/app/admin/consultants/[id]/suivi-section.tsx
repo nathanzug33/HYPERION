@@ -105,17 +105,28 @@ export default function SuiviSection({
                       )}
                     </div>
                     <div className="mt-1 font-medium text-brand-ink">{s.titre}</div>
+                    <div className="mt-0.5 text-[11px] font-medium text-brand-body">
+                      {new Date(s.createdAt).toLocaleString("fr-FR", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}{" "}
+                      · {s.createdBy.name}
+                    </div>
                     {s.notes && (
-                      <div className="mt-0.5 whitespace-pre-line text-brand-body">{s.notes}</div>
+                      <div className="mt-1 whitespace-pre-line text-brand-body">{s.notes}</div>
                     )}
-                    <div className="mt-1 text-[10px] text-brand-gray">
-                      {s.dateProgrammee &&
-                        `Échéance : ${new Date(s.dateProgrammee).toLocaleString("fr-FR", {
+                    {s.dateProgrammee && (
+                      <div
+                        className={`mt-1 text-[10px] ${overdue ? "font-medium text-red-600" : "text-brand-gray"}`}
+                      >
+                        Échéance :{" "}
+                        {new Date(s.dateProgrammee).toLocaleString("fr-FR", {
                           dateStyle: "short",
                           timeStyle: "short",
-                        })}${overdue ? " · en retard" : ""} · `}
-                      {s.createdBy.name}, {new Date(s.createdAt).toLocaleDateString("fr-FR")}
-                    </div>
+                        })}
+                        {overdue ? " · en retard" : ""}
+                      </div>
+                    )}
                   </div>
                   {s.type !== "STATUT" && (
                     <div className="flex shrink-0 flex-col items-end gap-1">
