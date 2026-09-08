@@ -33,6 +33,9 @@ export default async function ConsultantsListPage({
                 { prenom: { contains: q } },
                 { referenceAnonyme: { contains: q } },
                 { intitulePoste: { contains: q } },
+                { sourceCvTexte: { contains: q } },
+                { notesEntretien: { contains: q } },
+                { resumeContexte: { contains: q } },
               ],
             }
           : {},
@@ -69,7 +72,7 @@ export default async function ConsultantsListPage({
           type="text"
           name="q"
           defaultValue={q}
-          placeholder="Rechercher (nom, référence, poste)…"
+          placeholder="Rechercher (nom, référence, poste, contenu du CV…)"
           className="input w-64"
         />
         <select name="statut" defaultValue={statut ?? ""} className="input w-auto">

@@ -122,6 +122,29 @@ export default function ConsultantEditForm({
           )}
         </div>
 
+        <div className="border-t border-slate-100 pt-3">
+          <Field label={consultant.cvFileUrl ? "Remplacer le CV" : "CV (.pdf, .doc ou .docx)"}>
+            <input
+              type="file"
+              name="cvFile"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              className="block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-3 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
+            />
+          </Field>
+          {consultant.cvFileUrl && (
+            <p className="mt-1.5 text-xs text-brand-gray">
+              CV actuel :{" "}
+              <a
+                href={`/admin/consultants/${consultant.id}/cv`}
+                className="font-medium text-brand-blue hover:underline"
+              >
+                {consultant.cvFileNomOriginal || "télécharger"}
+              </a>
+              . Choisissez un fichier ci-dessus pour le remplacer.
+            </p>
+          )}
+        </div>
+
         {isAdmin && (
           <div className="border-t border-slate-100 pt-3">
             <Field label="Accès élargi (visible également par, en plus du référent)">

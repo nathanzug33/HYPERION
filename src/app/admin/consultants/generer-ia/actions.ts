@@ -5,35 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { ROLES, STATUT_PUBLICATION } from "@/lib/constants";
 import { generateDCFromCvAndTranscript, isAiGenerationConfigured } from "@/lib/ai-dc";
-import { extractPdfText } from "@/lib/pdf-text";
-import { extractDocxText } from "@/lib/docx-text";
-import { extractDocText } from "@/lib/doc-text";
 import { generateNextReference } from "@/lib/reference-generator";
 import { findVille } from "@/lib/villes-france";
+import { saveCvFile } from "@/lib/cv-storage";
+import { extractFileText } from "@/lib/cv-text";
 
 export type GenerateIaState = { error?: string };
-
-async function textFromFile(fileValue: FormDataEntryValue | null): Promise<string> {
-  if (!(fileValue instanceof File) || fileValue.size === 0) return "";
-
-  const name = fileValue.name.toLowerCase();
-  const buffer = Buffer.from(await fileValue.arrayBuffer());
-
-  if (fileValue.type === "application/pdf" || name.endsWith(".pdf")) {
-    return (await extractPdfText(buffer)).trim();
-  }
-  if (
-    fileValue.type ===
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-    name.endsWith(".docx")
-  ) {
-    return (await extractDocxText(buffer)).trim();
-  }
-  if (fileValue.type === "application/msword" || name.endsWith(".doc")) {
-    return (await extractDocText(buffer)).trim();
-  }
-  return buffer.toString("utf-8").trim();
-}
 
 function computeRetentionDate(dateCollecte: Date, dureeMois: number): Date {
   const d = new Date(dateCollecte);
@@ -93,9 +70,11 @@ export async function generateConsultantFromAI(
       ? String(formData.get("businessManagerId") ?? session.user.id)
       : session.user.id;
 
+  const cvFileValue = formData.get("cvFile");
+
   let cvText: string;
   try {
-    cvText = await textFromFile(formData.get("cvFile"));
+    cvText = await extractFileText(cvFileValue);
   } catch (err) {
     console.error("[generation-ia] échec lecture CV", err);
     const message = err instanceof Error ? err.message : String(err);
@@ -110,7 +89,7 @@ export async function generateConsultantFromAI(
 
   let transcriptText: string;
   try {
-    transcriptText = await textFromFile(formData.get("transcriptFile"));
+    transcriptText = await extractFileText(formData.get("transcriptFile"));
   } catch (err) {
     console.error("[generation-ia] échec lecture transcription", err);
     const message = err instanceof Error ? err.message : String(err);
@@ -178,6 +157,11 @@ export async function generateConsultantFromAI(
   const dateCollecte = new Date();
   const cles = new Set(generated.competencesCles.map((c) => c.toLowerCase()));
 
+  const savedCv =
+    cvFileValue instanceof File && cvFileValue.size > 0
+      ? await saveCvFile(cvFileValue)
+      : null;
+
   const consultant = await prisma.consultant.create({
     data: {
       nom: generated.nom?.trim() || "À renseigner",
@@ -209,6 +193,8 @@ export async function generateConsultantFromAI(
       genereParIA: true,
       sourceCvTexte: cvText,
       sourceTranscriptTexte: transcriptText || null,
+      cvFileUrl: savedCv?.storedName ?? null,
+      cvFileNomOriginal: savedCv?.originalName ?? null,
 
       secteurs: { create: secteurIds.map((secteurId) => ({ secteurId })) },
       expertises: { create: expertiseIds.map((expertiseId) => ({ expertiseId })) },

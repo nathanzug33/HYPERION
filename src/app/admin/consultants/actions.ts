@@ -14,6 +14,8 @@ import {
 } from "@/lib/constants";
 import { findVille } from "@/lib/villes-france";
 import { canAccessConsultant } from "@/lib/consultant-access";
+import { saveCvFile, deleteCvFile } from "@/lib/cv-storage";
+import { extractFileText } from "@/lib/cv-text";
 
 function getMulti(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
@@ -71,6 +73,14 @@ export async function createConsultantAction(formData: FormData) {
   const reference = await generateNextReference();
   const dateCollecte = new Date();
 
+  const cvFile = formData.get("cvFile");
+  const savedCv =
+    cvFile instanceof File && cvFile.size > 0 ? await saveCvFile(cvFile) : null;
+  // Best-effort : le texte extrait alimente la recherche interne, mais un
+  // échec d'extraction (fichier corrompu, format inhabituel) ne doit pas
+  // empêcher la création du dossier.
+  const cvText = savedCv ? await extractFileText(cvFile).catch(() => "") : "";
+
   const consultant = await prisma.consultant.create({
     data: {
       nom,
@@ -83,6 +93,9 @@ export async function createConsultantAction(formData: FormData) {
       dateCollecte,
       dateConservationLimite: computeRetentionDate(dateCollecte, 24),
       statutPublication: STATUT_PUBLICATION.BROUILLON,
+      cvFileUrl: savedCv?.storedName ?? null,
+      cvFileNomOriginal: savedCv?.originalName ?? null,
+      sourceCvTexte: cvText || null,
     },
   });
 
@@ -96,6 +109,14 @@ export async function updateConsultantAction(formData: FormData) {
 
   const dureeConservationMois =
     Number(formData.get("dureeConservationMois")) || 24;
+
+  const cvFile = formData.get("cvFile");
+  const savedCv =
+    cvFile instanceof File && cvFile.size > 0 ? await saveCvFile(cvFile) : null;
+  if (savedCv) {
+    await deleteCvFile(consultant.cvFileUrl);
+  }
+  const cvText = savedCv ? await extractFileText(cvFile).catch(() => "") : "";
 
   const data = {
     nom: String(formData.get("nom") ?? "").trim(),
@@ -142,6 +163,13 @@ export async function updateConsultantAction(formData: FormData) {
     rayonKm: formData.get("rayonKm") ? Number(formData.get("rayonKm")) : null,
     ouvertGrandDeplacement: formData.get("ouvertGrandDeplacement") === "on",
     ...resolveVille(String(formData.get("villeRattachement") ?? "")),
+    ...(savedCv
+      ? {
+          cvFileUrl: savedCv.storedName,
+          cvFileNomOriginal: savedCv.originalName,
+          sourceCvTexte: cvText || null,
+        }
+      : {}),
   };
 
   const secteurIds = getMulti(formData, "secteurIds");
@@ -376,7 +404,14 @@ export async function archiveConsultantAction(formData: FormData) {
 export async function purgeConsultantAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
+  const consultant = await prisma.consultant.findUnique({
+    where: { id },
+    select: { cvFileUrl: true },
+  });
   await prisma.consultant.delete({ where: { id } });
+  if (consultant) {
+    await deleteCvFile(consultant.cvFileUrl);
+  }
   revalidatePath("/admin/consultants");
   redirect("/admin/consultants");
 }

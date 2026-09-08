@@ -38,6 +38,11 @@ yarn-error.log*
 *.db
 *.db-journal
 
+# fichiers CV uploadés (données nominatives — jamais versionnées ; en
+# production, pointer storage/ vers un volume persistant ou un stockage
+# objet, voir README « Stockage des CV »)
+/storage/
+
 # vercel
 .vercel
 
