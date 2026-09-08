@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff, requireAdmin } from "@/lib/guards";
-import { ROLES, STATUT_ENTREPRISE_LABELS, SUIVI_TYPE } from "@/lib/constants";
+import { ROLES, STATUT_ENTREPRISE_LABELS, SUIVI_COMMERCIAL_TYPE } from "@/lib/constants";
 import { canAccessEntreprise } from "@/lib/crm-access";
 
 async function assertOwnership(entrepriseId: string) {
@@ -84,7 +84,7 @@ export async function updateEntrepriseAction(formData: FormData) {
           prisma.suiviCommercial.create({
             data: {
               entrepriseId: id,
-              type: SUIVI_TYPE.STATUT,
+              type: SUIVI_COMMERCIAL_TYPE.STATUT,
               titre: `Statut commercial : ${
                 STATUT_ENTREPRISE_LABELS[
                   statutChange.from as keyof typeof STATUT_ENTREPRISE_LABELS

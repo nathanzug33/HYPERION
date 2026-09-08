@@ -1,7 +1,9 @@
 import {
-  SUIVI_TYPE_LABELS,
-  SUIVI_TYPE_SAISISSABLES,
-  type SuiviType,
+  SUIVI_COMMERCIAL_TYPE_LABELS,
+  SUIVI_COMMERCIAL_TYPE_SAISISSABLES,
+  MODALITE_RDV_LABELS,
+  type SuiviCommercialType,
+  type ModaliteRdv,
 } from "@/lib/constants";
 import {
   createSuiviCommercialAction,
@@ -12,6 +14,7 @@ import {
 type Suivi = {
   id: string;
   type: string;
+  modalite: string | null;
   titre: string;
   notes: string | null;
   dateProgrammee: Date | null;
@@ -26,8 +29,11 @@ type Contact = { id: string; prenom: string; nom: string };
 const TYPE_STYLES: Record<string, string> = {
   NOTE: "bg-slate-100 text-brand-body",
   APPEL: "bg-brand-blue-bg text-brand-blue-dark",
+  EMAIL: "bg-brand-blue-bg text-brand-blue-dark",
   RDV: "bg-brand-blue/15 text-brand-blue-dark",
   RAPPEL: "bg-amber-50 text-amber-700",
+  PROPOSITION_ENVOYEE: "bg-purple-50 text-purple-700",
+  CONTRAT_SIGNE: "bg-brand-green/10 text-brand-green",
   STATUT: "bg-brand-green/10 text-brand-green",
 };
 
@@ -50,19 +56,27 @@ export default function SuiviSection({
         <input type="hidden" name="entrepriseId" value={entrepriseId} />
         <div className="grid grid-cols-2 gap-2">
           <select name="type" defaultValue="NOTE" className="input text-xs">
-            {SUIVI_TYPE_SAISISSABLES.map((t) => (
+            {SUIVI_COMMERCIAL_TYPE_SAISISSABLES.map((t) => (
               <option key={t} value={t}>
-                {SUIVI_TYPE_LABELS[t as SuiviType]}
+                {SUIVI_COMMERCIAL_TYPE_LABELS[t as SuiviCommercialType]}
               </option>
             ))}
           </select>
-          <input
-            type="datetime-local"
-            name="dateProgrammee"
-            className="input text-xs"
-            title="Échéance (RDV / rappel)"
-          />
+          <select name="modalite" defaultValue="" className="input text-xs" title="Modalité (RDV / appel)">
+            <option value="">Modalité (RDV/appel)</option>
+            {Object.entries(MODALITE_RDV_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </select>
         </div>
+        <input
+          type="datetime-local"
+          name="dateProgrammee"
+          className="input text-xs"
+          title="Échéance (RDV / rappel)"
+        />
         {contacts.length > 0 && (
           <select name="contactId" defaultValue="" className="input text-xs">
             <option value="">Interlocuteur concerné (optionnel)</option>
@@ -115,8 +129,13 @@ export default function SuiviSection({
                       <span
                         className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${TYPE_STYLES[s.type] ?? ""}`}
                       >
-                        {SUIVI_TYPE_LABELS[s.type as SuiviType] ?? s.type}
+                        {SUIVI_COMMERCIAL_TYPE_LABELS[s.type as SuiviCommercialType] ?? s.type}
                       </span>
+                      {s.modalite && (
+                        <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-brand-body">
+                          {MODALITE_RDV_LABELS[s.modalite as ModaliteRdv] ?? s.modalite}
+                        </span>
+                      )}
                       {s.contact && (
                         <span className="rounded-full bg-brand-blue-bg px-1.5 py-0.5 text-[10px] font-medium text-brand-blue-dark">
                           {s.contact.prenom} {s.contact.nom}

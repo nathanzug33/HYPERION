@@ -74,6 +74,58 @@ export const SUIVI_TYPE_SAISISSABLES = [
   SUIVI_TYPE.RAPPEL,
 ] as const;
 
+// Suivi CRM (§ CRM complet) : éventail plus large que l'ATS, avec les
+// actions commerciales classiques (email, proposition envoyée, contrat
+// signé…). Distinct de SUIVI_TYPE pour ne pas faire apparaître ces types
+// côté candidats, où ils n'ont pas de sens.
+export const SUIVI_COMMERCIAL_TYPE = {
+  NOTE: "NOTE",
+  APPEL: "APPEL",
+  EMAIL: "EMAIL",
+  RDV: "RDV",
+  RAPPEL: "RAPPEL",
+  PROPOSITION_ENVOYEE: "PROPOSITION_ENVOYEE",
+  CONTRAT_SIGNE: "CONTRAT_SIGNE",
+  STATUT: "STATUT", // généré automatiquement, jamais saisi manuellement
+} as const;
+export type SuiviCommercialType =
+  (typeof SUIVI_COMMERCIAL_TYPE)[keyof typeof SUIVI_COMMERCIAL_TYPE];
+
+export const SUIVI_COMMERCIAL_TYPE_LABELS: Record<SuiviCommercialType, string> = {
+  NOTE: "Note",
+  APPEL: "Appel",
+  EMAIL: "Email",
+  RDV: "Rendez-vous",
+  RAPPEL: "Rappel",
+  PROPOSITION_ENVOYEE: "Proposition envoyée",
+  CONTRAT_SIGNE: "Contrat signé",
+  STATUT: "Changement de statut",
+};
+
+export const SUIVI_COMMERCIAL_TYPE_SAISISSABLES = [
+  SUIVI_COMMERCIAL_TYPE.NOTE,
+  SUIVI_COMMERCIAL_TYPE.APPEL,
+  SUIVI_COMMERCIAL_TYPE.EMAIL,
+  SUIVI_COMMERCIAL_TYPE.RDV,
+  SUIVI_COMMERCIAL_TYPE.RAPPEL,
+  SUIVI_COMMERCIAL_TYPE.PROPOSITION_ENVOYEE,
+  SUIVI_COMMERCIAL_TYPE.CONTRAT_SIGNE,
+] as const;
+
+// Modalité d'un échange commercial — pertinente surtout pour RDV et APPEL.
+export const MODALITE_RDV = {
+  VISIO: "VISIO",
+  PHYSIQUE: "PHYSIQUE",
+  TELEPHONE: "TELEPHONE",
+} as const;
+export type ModaliteRdv = (typeof MODALITE_RDV)[keyof typeof MODALITE_RDV];
+
+export const MODALITE_RDV_LABELS: Record<ModaliteRdv, string> = {
+  VISIO: "Visio",
+  PHYSIQUE: "Physique",
+  TELEPHONE: "Téléphone",
+};
+
 export const DISPONIBILITE = {
   IMMEDIATE: "IMMEDIATE",
   SOUS_1_MOIS: "SOUS_1_MOIS",

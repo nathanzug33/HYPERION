@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { canAccessEntreprise } from "@/lib/crm-access";
-import { SUIVI_TYPE_SAISISSABLES } from "@/lib/constants";
+import { SUIVI_COMMERCIAL_TYPE_SAISISSABLES, MODALITE_RDV } from "@/lib/constants";
 
 async function assertEntrepriseAccess(entrepriseId: string) {
   const session = await requireStaff();
@@ -22,7 +22,11 @@ export async function createSuiviCommercialAction(formData: FormData) {
   const { session } = await assertEntrepriseAccess(entrepriseId);
 
   const type = String(formData.get("type") ?? "");
-  if (!SUIVI_TYPE_SAISISSABLES.includes(type as (typeof SUIVI_TYPE_SAISISSABLES)[number])) {
+  if (
+    !SUIVI_COMMERCIAL_TYPE_SAISISSABLES.includes(
+      type as (typeof SUIVI_COMMERCIAL_TYPE_SAISISSABLES)[number]
+    )
+  ) {
     return;
   }
   const titre = String(formData.get("titre") ?? "").trim();
@@ -31,12 +35,18 @@ export async function createSuiviCommercialAction(formData: FormData) {
   const dateProgrammeeRaw = String(formData.get("dateProgrammee") ?? "");
   const dateProgrammee = dateProgrammeeRaw ? new Date(dateProgrammeeRaw) : null;
   const contactId = String(formData.get("contactId") ?? "") || null;
+  const modaliteRaw = String(formData.get("modalite") ?? "");
+  const modalite =
+    modaliteRaw && (Object.values(MODALITE_RDV) as string[]).includes(modaliteRaw)
+      ? modaliteRaw
+      : null;
 
   await prisma.suiviCommercial.create({
     data: {
       entrepriseId,
       contactId,
       type,
+      modalite,
       titre,
       notes,
       dateProgrammee,

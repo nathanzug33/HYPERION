@@ -31,6 +31,8 @@ export default async function AdminDashboardPage() {
     rappelsAVenir,
     entreprisesTotal,
     relancesCommercialesAVenir,
+    rdvPrisTotal,
+    rappelsAFaireTotal,
   ] = await Promise.all([
       prisma.consultant.count({ where: bmFilter }),
       prisma.consultant.count({
@@ -95,6 +97,12 @@ export default async function AdminDashboardPage() {
         take: 8,
         include: { entreprise: { select: { id: true, nom: true } } },
       }),
+      prisma.suiviCommercial.count({
+        where: { type: "RDV", entreprise: entrepriseFilter },
+      }),
+      prisma.suiviCommercial.count({
+        where: { type: "RAPPEL", fait: false, entreprise: entrepriseFilter },
+      }),
     ]);
 
   const now = new Date();
@@ -126,7 +134,7 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-8">
         <StatCard
           label="Candidats suivis"
           value={total}
@@ -151,19 +159,35 @@ export default async function AdminDashboardPage() {
           label="Entreprises (CRM)"
           value={entreprisesTotal}
           accent="blue"
+          href="/admin/crm"
           icon={<path d="M4 20.5V6.5A1.5 1.5 0 0 1 5.5 5H12v3M12 20.5H4M12 8V5l7.5 3v12.5M12 20.5h9M8 9h.01M8 12.5h.01M8 16h.01M15.5 11h.01M15.5 14.5h.01M15.5 18h.01" />}
+        />
+        <StatCard
+          label="RDV pris (CRM)"
+          value={rdvPrisTotal}
+          accent="blue"
+          href="/admin/crm/activites?type=RDV"
+          icon={<path d="M8 3v3M16 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1ZM9 13l2 2 4-4" />}
+        />
+        <StatCard
+          label="Rappels à faire (CRM)"
+          value={rappelsAFaireTotal}
+          accent={rappelsAFaireTotal > 0 ? "amber" : "gray"}
+          href="/admin/crm/activites?type=RAPPEL&fait=0"
+          icon={<path d="M12 7v5l3.5 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />}
         />
         <StatCard
           label="Demandes non traitées"
           value={demandesNouvelles.length + demandesBesoinNouvelles.length}
           accent={demandesNouvelles.length + demandesBesoinNouvelles.length > 0 ? "amber" : "gray"}
+          href="/admin/demandes"
           icon={<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v10a1.5 1.5 0 0 1-1.5 1.5H9l-4.5 3.5V17H5.5A1.5 1.5 0 0 1 4 15.5v-10Z" />}
         />
         <StatCard
           label="Rappels en retard (ATS + CRM)"
           value={rappelsEnRetard + relancesCommercialesEnRetard}
           accent={rappelsEnRetard + relancesCommercialesEnRetard > 0 ? "amber" : "gray"}
-          icon={<path d="M12 7v5l3.5 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />}
+          icon={<path d="M18.364 5.636 5.636 18.364M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" />}
         />
       </div>
 
@@ -361,15 +385,17 @@ function StatCard({
   value,
   icon,
   accent,
+  href,
 }: {
   label: string;
   value: number;
   icon: React.ReactNode;
   accent: keyof typeof ACCENTS;
+  href?: string;
 }) {
   const a = ACCENTS[accent];
-  return (
-    <div className="card card-hover relative overflow-hidden p-4">
+  const content = (
+    <>
       <span className={`absolute inset-x-0 top-0 h-1 ${a.bar}`} aria-hidden />
       <div className="flex items-start justify-between">
         <div className="text-3xl font-semibold text-brand-ink">{value}</div>
@@ -380,6 +406,16 @@ function StatCard({
         </span>
       </div>
       <div className="mt-1 text-xs text-brand-gray">{label}</div>
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="card card-hover relative block overflow-hidden p-4">
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className="card relative overflow-hidden p-4">{content}</div>;
 }

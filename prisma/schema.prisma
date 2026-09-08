@@ -353,9 +353,12 @@ model SuiviCommercial {
   contactId    String?
   contact      Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
-  type  String // NOTE | APPEL | RDV | RAPPEL | STATUT
-  titre String
-  notes String?
+  type     String // NOTE | APPEL | EMAIL | RDV | RAPPEL | PROPOSITION_ENVOYEE | CONTRAT_SIGNE | STATUT
+  // Modalité de l'échange (surtout pertinente pour RDV et APPEL) : VISIO |
+  // PHYSIQUE | TELEPHONE. Laissée vide pour les types où elle n'a pas de sens.
+  modalite String?
+  titre    String
+  notes    String?
 
   dateProgrammee DateTime?
   fait           Boolean   @default(false)
