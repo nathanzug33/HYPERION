@@ -61,13 +61,17 @@ const schema = z.object({
     .string()
     .describe("Résumé de 4 à 6 lignes, générique, sans aucune information identifiante"),
 
-  langues: z.array(
-    z.object({
-      label: z.string(),
-      niveau: z.number().int().min(1).max(5).describe("1=notions à 5=expert"),
-      detail: z.string().nullable().describe("ex. 'Langue maternelle', 'TOEIC 850'"),
-    })
-  ),
+  langues: z
+    .array(
+      z.object({
+        label: z.string(),
+        niveau: z.number().int().min(1).max(5).describe("1=notions à 5=expert"),
+        detail: z.string().nullable().describe("ex. 'Langue maternelle', 'TOEIC 850'"),
+      })
+    )
+    .describe(
+      "Exactement une entrée par langue réellement mentionnée dans les documents — ni plus (n'invente pas de langue), ni moins (n'en omets aucune). Peut être 1 seule langue ou plus de 5 : aucune limite fixe, le gabarit s'adapte au nombre réel."
+    ),
 
   competenceCategories: z
     .array(
@@ -85,14 +89,18 @@ const schema = z.object({
     )
     .describe("Une entrée par catégorie parmi les 5 (ne pas dupliquer une catégorie)"),
 
-  formations: z.array(
-    z.object({
-      type: z.enum(["FORMATION", "CERTIFICATION"]),
-      annee: z.string(),
-      intitule: z.string(),
-      etablissement: z.string().nullable(),
-    })
-  ),
+  formations: z
+    .array(
+      z.object({
+        type: z.enum(["FORMATION", "CERTIFICATION"]),
+        annee: z.string(),
+        intitule: z.string(),
+        etablissement: z.string().nullable(),
+      })
+    )
+    .describe(
+      "Exactement une entrée par formation/certification réellement mentionnée — ni plus, ni moins. Peut être vide, 1 seule, ou plus de 5 : aucune limite fixe, le gabarit s'adapte au nombre réel."
+    ),
 
   experiences: z
     .array(
@@ -109,7 +117,9 @@ const schema = z.object({
         environnementTechnique: z.string().nullable(),
       })
     )
-    .describe("De la plus récente à la plus ancienne"),
+    .describe(
+      "Exactement une entrée par expérience/mission réellement présente dans les documents — de la plus récente à la plus ancienne. Un junior avec une seule mission n'a qu'UNE entrée, un profil senior peut en avoir 6, 8 ou plus : aucune limite fixe ni minimum, le gabarit se duplique automatiquement pour s'adapter au nombre réel. N'ajoute jamais d'expérience fictive pour 'compléter' un dossier."
+    ),
 });
 
 export type GeneratedDC = z.infer<typeof schema>;
@@ -127,6 +137,7 @@ Règles impératives :
 - Pour les champs contraints par un référentiel (secteurs, expertises, séniorité, mobilité, zones), choisis EXCLUSIVEMENT parmi les valeurs listées dans les référentiels fournis dans le message utilisateur — n'en invente pas de nouvelles, respecte l'orthographe exacte.
 - La séniorité et le niveau des compétences/langues doivent être cohérents avec les années d'expérience et les informations disponibles.
 - Sois factuel et concis, dans un français professionnel.
+- Le gabarit HYPERION s'adapte automatiquement au nombre réel d'entrées : ne complète JAMAIS les listes (langues, formations, expériences) pour atteindre un nombre "rond", et ne tronque JAMAIS une liste pour rester sous une limite — restitue exactement ce qui est présent dans les documents fournis, qu'il y en ait 1 ou 10. Un candidat junior avec une seule expérience et une seule langue est un cas normal et attendu ; ne pas inventer d'entrées supplémentaires pour "remplir" le dossier.
 
 Réponds UNIQUEMENT avec un objet JSON valide respectant exactement ce schéma JSON Schema (aucun texte avant/après, aucun bloc de code markdown, pas de commentaire) :
 

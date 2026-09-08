@@ -92,11 +92,16 @@ autre format que celui d'HYPERION) — `.pdf`, `.doc`, `.docx` ou `.txt` —
 c'est le seul document obligatoire. La transcription de l'entretien est
 facultative (même formats) : pas encore fait l'entretien, ou dossier reçu
 directement du candidat ? On peut générer avec le CV seul. L'IA (Claude,
-extraction structurée stricte via `output_config.format`) génère un
+réponse JSON validée côté serveur contre un schéma Zod) génère un
 dossier complet au gabarit HYPERION — poste, séniorité, mobilité,
 disponibilité, résumé, compétences par catégorie avec niveaux, langues
-avec niveaux, formations et jusqu'à 4 expériences détaillées avec
-réalisations. Les valeurs des référentiels paramétrables (secteurs,
+avec niveaux, formations et expériences détaillées avec réalisations.
+Le nombre de langues/formations/expériences suit exactement les documents
+fournis (un junior avec une seule mission n'a qu'une entrée, un senior peut
+en avoir six ou plus) : le prompt interdit explicitement de compléter ou de
+tronquer ces listes, et l'export Word (voir plus bas) duplique dynamiquement
+les sections du gabarit pour s'adapter à ce nombre réel. Les valeurs des
+référentiels paramétrables (secteurs,
 expertises, séniorité, mobilité, zones) sont fournies au modèle comme
 vocabulaire fermé pour rester cohérentes avec l'existant ; les
 compétences/langues libres sont créées automatiquement si absentes du
@@ -147,21 +152,32 @@ une fois la mission confirmée.
 **Principe : le fichier gabarit officiel HYPERION n'est jamais recréé,
 seulement rempli.** `src/lib/templates/hyperion-dc-template.docx` est le
 fichier `.docx` original fourni par HYPERION Group, stocké tel quel. À la
-génération, `src/lib/dc-docx.ts` ouvre son archive (`jszip`), repère les
-158 placeholders du gabarit (`[Prénom NOM]`, `⟦LVL⟧●●●●●  Expert`, etc. —
-chacun isolé dans son propre nœud `<w:t>` XML) et remplace uniquement leur
-texte par les données du dossier, par position. Le reste du fichier —
-logo, tableaux, couleurs, styles, pied de page — n'est jamais touché :
-le résultat est visuellement identique au gabarit, pas une reconstruction
-approximative. Sections à cardinalité variable (jusqu'à 3 expériences
-clés/langues, 3 formations, 4 expériences détaillées) : les emplacements
-non utilisés sont laissés vides plutôt que de casser la mise en page.
+génération, `src/lib/dc-docx.ts` ouvre son archive (`jszip`) et remplace
+uniquement le texte des placeholders du gabarit (`[Prénom NOM]`,
+`⟦LVL⟧●●●●●  Expert`, etc.) par les données du dossier. Le reste du
+fichier — logo, tableaux, couleurs, styles, pied de page — n'est jamais
+touché : le résultat est visuellement identique au gabarit, pas une
+reconstruction approximative.
+
+**Sections à cardinalité variable — duplication dynamique.** Les DC ne se
+ressemblent pas tous : un junior peut n'avoir qu'une seule expérience et
+une seule langue, un senior peut en avoir six ou plus. Les sections
+concernées (01 expériences clés, 03 formations & certifications, 04
+langues, 05 expériences détaillées) ne sont donc pas limitées à la
+capacité d'origine du gabarit. Pour chacune, `dc-docx.ts` repère dans le
+gabarit un texte-ancre unique (ex. `[Diplôme / intitulé de la formation]`),
+en extrait la cellule/ligne/bloc de paragraphes qui le contient comme
+« modèle », puis duplique ce modèle exactement une fois par élément réel
+(0, 1 ou N) avant de le réinjecter à la place de l'original — aucune limite
+arbitraire, aucun emplacement vide laissé dans la mise en page. Les autres
+placeholders (en-tête, statut, profil, les 5 catégories fixes de
+compétences) restent à cardinalité fixe et sont remplacés directement par
+position.
 
 Si le gabarit officiel est un jour modifié par HYPERION Group (nouveaux
-champs, mise en page différente), il faut ré-extraire la liste des
-placeholders (nombre et ordre des nœuds `<w:t>`) et mettre à jour le
-tableau `buildValues()` en conséquence — voir les commentaires en tête de
-`src/lib/dc-docx.ts`.
+champs, mise en page différente, texte des ancres changé), il faut mettre
+à jour les ancres et le mapping des `<w:t>` en conséquence — voir les
+commentaires en tête de `src/lib/dc-docx.ts`.
 
 **Ce bouton n'existe que dans le back-office.** Il n'est jamais exposé
 dans la bibliothèque client — la fiche que voient les clients reste la

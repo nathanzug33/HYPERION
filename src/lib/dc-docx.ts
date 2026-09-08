@@ -7,16 +7,19 @@ import { formatDuree, formatMoisAnnee } from "@/lib/experience-format";
 
 // ---------------------------------------------------------------------------
 // Génère le DC en remplissant DIRECTEMENT le fichier Word officiel HYPERION
-// (src/lib/templates/hyperion-dc-template.docx), sans le reconstruire :
-// on ne touche qu'au texte des placeholders repérés dans word/document.xml,
-// tout le reste (logo, encadrés, couleurs, styles, pied de page) reste
-// strictement identique au fichier fourni par HYPERION Group.
+// (src/lib/templates/hyperion-dc-template.docx), sans jamais le reconstruire :
+// logo, encadrés, couleurs, styles et pied de page restent strictement ceux
+// du fichier fourni par HYPERION Group.
 //
-// Chaque placeholder du gabarit est isolé dans son propre <w:t> — on peut
-// donc les remplacer un par un, dans l'ordre où ils apparaissent dans le
-// document, sans risquer de casser la structure XML. Le tableau VALUE_MAP
-// ci-dessous fait correspondre chaque position (0 à 157) à un champ de
-// données ; `null` signifie « ne pas toucher » (libellés fixes du gabarit).
+// Les sections à cardinalité variable (expériences clés, formations,
+// langues, expériences détaillées) sont dupliquées dynamiquement à partir
+// d'UNE cellule/ligne/bloc de paragraphes « modèle » repérée dans le
+// gabarit : un junior avec une seule expérience n'obtient qu'un seul bloc,
+// un profil avec 6 langues obtient 6 colonnes — aucune limite arbitraire.
+// Chaque section est localisée par un texte-ancre unique du gabarit
+// (ex. « [Diplôme / intitulé de la formation] ») puis découpée/remplacée
+// par découpage de chaîne, jamais par une ré-écriture DOM complète : le
+// reste du document n'est jamais touché.
 // ---------------------------------------------------------------------------
 
 const TEMPLATE_PATH = path.join(process.cwd(), "src/lib/templates/hyperion-dc-template.docx");
@@ -38,6 +41,50 @@ export type DcConsultant = Prisma.ConsultantGetPayload<{
   include: typeof dcConsultantInclude;
 }>;
 
+// --- Utilitaires XML génériques --------------------------------------------
+
+function xmlEscape(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\r?\n/g, " ");
+}
+
+type Span = { start: number; end: number; xml: string };
+
+/** Extrait toutes les occurrences d'une balise non imbriquée (w:tr, w:tc, w:p, w:t…). */
+function extractTags(xml: string, tag: string): Span[] {
+  const re = new RegExp(`<${tag}\\b[^>]*\\/>|<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}>`, "g");
+  const out: Span[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml))) {
+    out.push({ start: m.index, end: m.index + m[0].length, xml: m[0] });
+  }
+  return out;
+}
+
+/** Remplace séquentiellement le contenu des <w:t> d'un fragment ; `null` = ne pas toucher. */
+function fillSequentialText(fragment: string, values: (string | null)[]): string {
+  let i = 0;
+  return fragment.replace(/<w:t\b[^>]*\/>|<w:t\b[^>]*>[\s\S]*?<\/w:t>/g, (fullMatch) => {
+    const value = i < values.length ? values[i] : undefined;
+    i++;
+    if (value === null || value === undefined) return fullMatch;
+    const isSelfClosing = /\/>$/.test(fullMatch);
+    const openTagEnd = isSelfClosing ? fullMatch.length - 2 : fullMatch.indexOf(">") + 1;
+    const openTag = isSelfClosing
+      ? fullMatch.slice(0, openTagEnd) + ">"
+      : fullMatch.slice(0, openTagEnd);
+    return `${openTag}${xmlEscape(value)}</w:t>`;
+  });
+}
+
+/** Remplace la valeur w:w d'un <w:tcW .../> (largeur de cellule de tableau). */
+function setCellWidth(cellXml: string, widthDxa: number): string {
+  return cellXml.replace(/(<w:tcW\b[^>]*\bw:w=")\d+(")/, `$1${Math.round(widthDxa)}$2`);
+}
+
 function niveauText(niveau: number | null | undefined, label?: string | null): string {
   if (niveau == null) return "";
   const n = Math.max(0, Math.min(5, niveau));
@@ -52,225 +99,255 @@ const DISPONIBILITE_FULL: Record<string, string> = {
   SUR_PREAVIS: "Disponible : sur préavis",
 };
 
-function buildDetailedExperienceBlock(
-  exp: DcConsultant["experiences"][number] | undefined
-): [string, string, string, string, string, string, string, string, string, string] {
-  if (!exp) {
-    return ["", "", "", "", "", "", "", "", "", ""];
-  }
-  const realisations = (exp.realisations ?? "").split("\n").filter(Boolean);
-  return [
-    exp.entreprise,
-    `${formatMoisAnnee(exp.dateDebut)} à ${formatMoisAnnee(exp.dateFin)}`,
-    formatDuree(exp.dateDebut, exp.dateFin),
-    exp.secteurActivite ?? "",
-    exp.missionTitre,
-    exp.contexteObjectif ?? "",
-    realisations[0] ?? "",
-    realisations[1] ?? "",
-    realisations[2] ?? "",
-    exp.environnementTechnique ?? "",
-  ];
+// --- 01 — Expériences clés (cellules dupliquées, 1 par expérience) --------
+
+function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"]): string {
+  const anchor = "[Depuis X mois]";
+  const rows = extractTags(xml, "w:tr");
+  const row = rows.find((r) => r.xml.includes(anchor));
+  if (!row) return xml; // gabarit modifié / section absente : on ne casse rien
+
+  const cells = extractTags(row.xml, "w:tc");
+  if (cells.length === 0) return xml;
+  const cellTemplate = cells[0].xml;
+  const totalWidth = cells.reduce((sum, c) => {
+    const m = /<w:tcW\b[^>]*\bw:w="(\d+)"/.exec(c.xml);
+    return sum + (m ? Number(m[1]) : 0);
+  }, 0);
+
+  const items = experiences.slice(0, 12); // garde-fou raisonnable, pas de vraie limite métier
+  const width = items.length > 0 ? totalWidth / items.length : totalWidth;
+
+  const newCells = items
+    .map((exp) => {
+      const values = [
+        exp.dateDebut ? String(exp.dateDebut.getFullYear()) : "",
+        null, // tabulation
+        formatDuree(exp.dateDebut, exp.dateFin),
+        exp.missionTitre,
+        exp.entreprise,
+      ];
+      return setCellWidth(fillSequentialText(cellTemplate, values), width);
+    })
+    .join("");
+
+  const newRowXml = row.xml.slice(0, cells[0].start) + newCells + row.xml.slice(cells[cells.length - 1].end);
+  return xml.slice(0, row.start) + newRowXml + xml.slice(row.end);
 }
 
-function buildValues(c: DcConsultant): (string | null)[] {
+// --- 03 — Formations & certifications (lignes dupliquées) ------------------
+
+function fillFormationsSection(xml: string, formations: DcConsultant["formations"]): string {
+  const anchor = "[Diplôme / intitulé de la formation]";
+  const rows = extractTags(xml, "w:tr").filter(
+    (r) => r.xml.includes(anchor) || r.xml.includes("[Certification (ex.")
+  );
+  if (rows.length === 0) return xml;
+
+  const rowTemplate = rows[0].xml;
+  const newRows = formations
+    .map((f) =>
+      fillSequentialText(rowTemplate, [f.annee, f.intitule, null, f.etablissement ?? ""])
+    )
+    .join("");
+
+  const start = rows[0].start;
+  const end = rows[rows.length - 1].end;
+  return xml.slice(0, start) + newRows + xml.slice(end);
+}
+
+// --- 04 — Langues (cellules dupliquées, 1 par langue) -----------------------
+
+function fillLanguesSection(xml: string, langues: DcConsultant["langues"]): string {
+  const anchor = "[Langue maternelle]";
+  const rows = extractTags(xml, "w:tr");
+  const row = rows.find((r) => r.xml.includes(anchor));
+  if (!row) return xml;
+
+  const cells = extractTags(row.xml, "w:tc");
+  if (cells.length === 0) return xml;
+  const cellTemplate = cells[0].xml;
+  const totalWidth = cells.reduce((sum, c) => {
+    const m = /<w:tcW\b[^>]*\bw:w="(\d+)"/.exec(c.xml);
+    return sum + (m ? Number(m[1]) : 0);
+  }, 0);
+
+  const items = langues.slice(0, 12);
+  const width = items.length > 0 ? totalWidth / items.length : totalWidth;
+
+  const newCells = items
+    .map((l) => {
+      const values = [l.langue.label, null, niveauText(l.niveau), l.detail ?? ""];
+      return setCellWidth(fillSequentialText(cellTemplate, values), width);
+    })
+    .join("");
+
+  const newRowXml = row.xml.slice(0, cells[0].start) + newCells + row.xml.slice(cells[cells.length - 1].end);
+  return xml.slice(0, row.start) + newRowXml + xml.slice(row.end);
+}
+
+// --- 02 — Compétences (5 lignes fixes, mapping direct) ----------------------
+
+const COMPETENCE_ANCHORS: Record<string, string> = {
+  DOMAINES: "[Ex. conception mécanique, calcul, développement back-end, data…]",
+  LOGICIELS_OUTILS: "[Ex. CATIA V5, Ansys, Teamcenter — ou Python, Spark, AWS, Git…]",
+  METHODES_NORMES: "[Ex. ISO GPS, EN 9100, Lean / Six Sigma, Scrum, ISO 27001…]",
+  SECTEURS: "[Ex. aéronautique, énergie, automobile, chimie, banque…]",
+  MANAGEMENT: "[Ex. équipe de X personnes, pilotage de projet, relation client…]",
+};
+
+function fillCompetencesSection(
+  xml: string,
+  categories: DcConsultant["competenceCategories"]
+): string {
+  const byType = new Map(categories.map((c) => [c.categorie, c]));
+
+  for (const [categorie, anchor] of Object.entries(COMPETENCE_ANCHORS)) {
+    const cat = byType.get(categorie);
+    const idx = xml.indexOf(anchor);
+    if (idx === -1) continue;
+
+    // Remplace le contenu (l'ancre elle-même).
+    const contentValue = cat?.contenu ?? "";
+    xml = xml.slice(0, idx) + xmlEscape(contentValue) + xml.slice(idx + anchor.length);
+
+    // Le niveau (⟦LVL⟧●●●●●  Label) suit dans le <w:t> suivant (marqueur
+    // unique par catégorie : on le repère directement plutôt que de borner
+    // arbitrairement la recherche du prochain nœud <w:t>).
+    const after = idx + xmlEscape(contentValue).length;
+    const lvlIdx = xml.indexOf("⟦LVL⟧", after);
+    if (lvlIdx !== -1) {
+      const tagOpenStart = xml.lastIndexOf("<w:t", lvlIdx);
+      const tagOpenEnd = xml.indexOf(">", tagOpenStart) + 1;
+      const tagClose = xml.indexOf("</w:t>", lvlIdx);
+      if (tagOpenStart !== -1 && tagClose !== -1) {
+        const value = cat ? niveauText(cat.niveau) : "";
+        xml = xml.slice(0, tagOpenEnd) + xmlEscape(value) + xml.slice(tagClose);
+      }
+    }
+  }
+  return xml;
+}
+
+// --- 05 — Expériences détaillées (blocs de paragraphes dupliqués) ----------
+
+function fillExperiencesDetailleesSection(
+  xml: string,
+  experiences: DcConsultant["experiences"]
+): string {
+  const heading = xml.indexOf("Expériences détaillées");
+  if (heading === -1) return xml;
+
+  const paras = extractTags(xml, "w:p").filter((p) => p.start > heading);
+
+  // Le paragraphe d'aide interne du gabarit ("Quatre blocs sont prévus…")
+  // est retiré : ce n'est pas un placeholder de données.
+  const noteIdx = paras.findIndex((p) => p.xml.includes("Quatre blocs sont prévus"));
+
+  // Chaque bloc commence à un paragraphe contenant "[Entreprise cliente]".
+  const blockStarts = paras
+    .map((p, i) => (p.xml.includes("[Entreprise cliente]") ? i : -1))
+    .filter((i) => i >= 0);
+  if (blockStarts.length === 0) return xml;
+
+  const blockLength = blockStarts.length > 1 ? blockStarts[1] - blockStarts[0] : 11;
+  const firstBlockParas = paras.slice(blockStarts[0], blockStarts[0] + blockLength);
+
+  // Dans le bloc modèle : retire les marqueurs internes ⟦B⟧/⟦/B⟧ et ne
+  // garde qu'UN paragraphe de réalisation (qui sert à son tour de modèle,
+  // dupliqué une fois par réalisation réelle).
+  const realisationIdxs = firstBlockParas
+    .map((p, i) => (/\[Réalisation \d/.test(p.xml) ? i : -1))
+    .filter((i) => i >= 0);
+  const markerIdxs = firstBlockParas
+    .map((p, i) => (/⟦\/?B⟧/.test(p.xml) ? i : -1))
+    .filter((i) => i >= 0);
+  const skip = new Set([...markerIdxs, ...realisationIdxs.slice(1)]);
+  const realisationTemplateIdx = realisationIdxs[0];
+
+  const blockTemplateParas = firstBlockParas.filter((_, i) => !skip.has(i));
+  const blockTemplateXml = blockTemplateParas.map((p) => p.xml).join("");
+  const realisationTemplateXml = firstBlockParas[realisationTemplateIdx]?.xml ?? "";
+
+  function fillBlock(exp: DcConsultant["experiences"][number]): string {
+    const realisations = (exp.realisations ?? "").split("\n").filter(Boolean);
+    const realisationsXml =
+      realisations.length > 0
+        ? realisations
+            .map((r) => fillSequentialText(realisationTemplateXml, [r]))
+            .join("")
+        : ""; // aucune réalisation renseignée : le paragraphe disparaît, rien d'affiché plutôt qu'un champ vide
+
+    let block = blockTemplateXml.replace(realisationTemplateXml, " REALISATIONS ");
+
+    // fillSequentialText opère sur l'ensemble du bloc (hors zone réalisations,
+    // neutralisée ci-dessus) : le nombre de <w:t> restants correspond à
+    // l'ordre entreprise/dateRange/duree/secteur/mission/contexte/« Réalisations »
+    // (libellé)/env — deux libellés fixes ("Réalisations" et "Environnement
+    // technique : ") occupent chacun leur propre nœud <w:t> juste avant la
+    // valeur d'environnement, d'où les deux `null` consécutifs en fin de liste.
+    block = fillSequentialText(block, [
+      exp.entreprise,
+      null,
+      `${formatMoisAnnee(exp.dateDebut)} à ${formatMoisAnnee(exp.dateFin)}`,
+      null,
+      formatDuree(exp.dateDebut, exp.dateFin),
+      null,
+      exp.secteurActivite ?? "",
+      null,
+      exp.missionTitre,
+      null,
+      exp.contexteObjectif ?? "",
+      null,
+      null,
+      exp.environnementTechnique ?? "",
+    ]);
+
+    return block.replace(" REALISATIONS ", realisationsXml);
+  }
+
+  const newBlocks = experiences.map(fillBlock).join("");
+
+  const spanStart = noteIdx >= 0 ? paras[noteIdx].start : paras[blockStarts[0]].start;
+  const spanEnd = paras[blockStarts[blockStarts.length - 1] + blockLength - 1].end;
+
+  return xml.slice(0, spanStart) + newBlocks + xml.slice(spanEnd);
+}
+
+// --- Header, statut, profil (placeholders simples, occurrence unique) ------
+
+function fillSimplePlaceholders(xml: string, c: DcConsultant): string {
   const anneesLabel =
     c.anneesExperienceMin != null
       ? c.anneesExperienceMax != null && c.anneesExperienceMax !== c.anneesExperienceMin
         ? `${c.anneesExperienceMin}–${c.anneesExperienceMax} ans d'expérience`
         : `${c.anneesExperienceMin}+ ans d'expérience`
       : "";
-
   const compClesLabels = c.competences.filter((x) => x.estCle).map((x) => x.competence.label);
-  const mobiliteLabel = [
-    c.typesMobilite[0]?.typeMobilite.label,
-    c.villeRattachementZoneLarge,
-  ]
+  const mobiliteLabel = [c.typesMobilite[0]?.typeMobilite.label, c.villeRattachementZoneLarge]
     .filter(Boolean)
     .join(" / ");
 
-  const catByType = new Map(c.competenceCategories.map((cat) => [cat.categorie, cat]));
-  const cat = (type: string) => catByType.get(type);
-
-  const langue = (i: number) => c.langues[i];
-
-  const formation = (i: number) => c.formations[i];
-
-  const exp = (i: number) => c.experiences[i];
-  const expClesCard = (
-    i: number
-  ): [string, string, string, string] => {
-    const e = exp(i);
-    if (!e) return ["", "", "", ""];
-    return [
-      e.dateDebut ? String(e.dateDebut.getFullYear()) : "",
-      formatDuree(e.dateDebut, e.dateFin),
-      e.missionTitre,
-      e.entreprise,
-    ];
-  };
-
-  const d1 = buildDetailedExperienceBlock(exp(0));
-  const d2 = buildDetailedExperienceBlock(exp(1));
-  const d3 = buildDetailedExperienceBlock(exp(2));
-  const d4 = buildDetailedExperienceBlock(exp(3));
-  const c1 = expClesCard(0);
-  const c2 = expClesCard(1);
-  const c3 = expClesCard(2);
-
-  // Index → valeur. `null` = libellé fixe du gabarit, ne pas toucher.
-  return [
-    /* 0 */ null, // "DOSSIER DE COMPÉTENCES"
-    /* 1 */ c.intitulePoste ?? "",
-    /* 2 */ `${c.prenom} ${c.nom}`,
-    /* 3 */ null, // "   ·   "
-    /* 4 */ anneesLabel,
-    /* 5 */ null,
-    /* 6 */ c.disponibilite ? DISPONIBILITE_FULL[c.disponibilite] ?? "" : "",
-    /* 7 */ compClesLabels[0] ?? "",
-    /* 8 */ compClesLabels[1] ?? "",
-    /* 9 */ compClesLabels[2] ?? "",
-    /* 10 */ mobiliteLabel,
-    /* 11 */ null,
-    /* 12 */ null, // "PROFIL"
-    /* 13 */ null,
-    /* 14 */ null, // "NIVEAU  "
-    /* 15 */ c.seniority?.label ?? "",
-    /* 16 */ c.resumeContexte ?? "",
-    /* 17 */ null, // "01  —  "
-    /* 18 */ null, // "Expériences clés"
-    /* 19 */ c1[0],
-    /* 20 */ null,
-    /* 21 */ c1[1],
-    /* 22 */ c1[2],
-    /* 23 */ c1[3],
-    /* 24 */ c2[0],
-    /* 25 */ null,
-    /* 26 */ c2[1],
-    /* 27 */ c2[2],
-    /* 28 */ c2[3],
-    /* 29 */ c3[0],
-    /* 30 */ null,
-    /* 31 */ c3[1],
-    /* 32 */ c3[2],
-    /* 33 */ c3[3],
-    /* 34 */ null, // "02  —  "
-    /* 35 */ null, // "Compétences"
-    /* 36 */ null, // "Domaines"
-    /* 37 */ cat("DOMAINES")?.contenu ?? "",
-    /* 38 */ niveauText(cat("DOMAINES")?.niveau),
-    /* 39 */ null, // "Logiciels & outils"
-    /* 40 */ cat("LOGICIELS_OUTILS")?.contenu ?? "",
-    /* 41 */ niveauText(cat("LOGICIELS_OUTILS")?.niveau),
-    /* 42 */ null, // "Méthodes & normes"
-    /* 43 */ cat("METHODES_NORMES")?.contenu ?? "",
-    /* 44 */ niveauText(cat("METHODES_NORMES")?.niveau),
-    /* 45 */ null, // "Secteurs"
-    /* 46 */ cat("SECTEURS")?.contenu ?? "",
-    /* 47 */ niveauText(cat("SECTEURS")?.niveau),
-    /* 48 */ null, // "Management"
-    /* 49 */ cat("MANAGEMENT")?.contenu ?? "",
-    /* 50 */ niveauText(cat("MANAGEMENT")?.niveau),
-    /* 51 */ null, // "03  —  "
-    /* 52 */ null, // "Formations & certifications"
-    /* 53 */ formation(0)?.annee ?? "",
-    /* 54 */ formation(0)?.intitule ?? "",
-    /* 55 */ null,
-    /* 56 */ formation(0)?.etablissement ?? "",
-    /* 57 */ formation(1)?.annee ?? "",
-    /* 58 */ formation(1)?.intitule ?? "",
-    /* 59 */ null,
-    /* 60 */ formation(1)?.etablissement ?? "",
-    /* 61 */ formation(2)?.annee ?? "",
-    /* 62 */ formation(2)?.intitule ?? "",
-    /* 63 */ null,
-    /* 64 */ formation(2)?.etablissement ?? "",
-    /* 65 */ null, // "04  —  "
-    /* 66 */ null, // "Langues"
-    /* 67 */ langue(0)?.langue.label ?? "",
-    /* 68 */ null,
-    /* 69 */ langue(0) ? niveauText(langue(0).niveau) : "",
-    /* 70 */ langue(0)?.detail ?? "",
-    /* 71 */ langue(1)?.langue.label ?? "",
-    /* 72 */ null,
-    /* 73 */ langue(1) ? niveauText(langue(1).niveau) : "",
-    /* 74 */ langue(1)?.detail ?? "",
-    /* 75 */ langue(2)?.langue.label ?? "",
-    /* 76 */ null,
-    /* 77 */ langue(2) ? niveauText(langue(2).niveau) : "",
-    /* 78 */ langue(2)?.detail ?? "",
-    /* 79 */ null, // "05  —  "
-    /* 80 */ null, // "Expériences détaillées"
-    /* 81 */ "", // note d'aide interne du gabarit, retirée du document final
-    /* 82 */ d1[0], /* 83 */ null, /* 84 */ d1[1], /* 85 */ null, /* 86 */ d1[2],
-    /* 87 */ null, /* 88 */ d1[3],
-    /* 89 */ null, /* 90 */ d1[4],
-    /* 91 */ null, /* 92 */ d1[5],
-    /* 93 */ null, // "Réalisations"
-    /* 94 */ "", // ⟦B⟧ marqueur interne, retiré
-    /* 95 */ d1[6], /* 96 */ d1[7], /* 97 */ d1[8],
-    /* 98 */ "", // ⟦/B⟧ marqueur interne, retiré
-    /* 99 */ null, /* 100 */ d1[9],
-
-    /* 101 */ d2[0], /* 102 */ null, /* 103 */ d2[1], /* 104 */ null, /* 105 */ d2[2],
-    /* 106 */ null, /* 107 */ d2[3],
-    /* 108 */ null, /* 109 */ d2[4],
-    /* 110 */ null, /* 111 */ d2[5],
-    /* 112 */ null,
-    /* 113 */ "",
-    /* 114 */ d2[6], /* 115 */ d2[7], /* 116 */ d2[8],
-    /* 117 */ "",
-    /* 118 */ null, /* 119 */ d2[9],
-
-    /* 120 */ d3[0], /* 121 */ null, /* 122 */ d3[1], /* 123 */ null, /* 124 */ d3[2],
-    /* 125 */ null, /* 126 */ d3[3],
-    /* 127 */ null, /* 128 */ d3[4],
-    /* 129 */ null, /* 130 */ d3[5],
-    /* 131 */ null,
-    /* 132 */ "",
-    /* 133 */ d3[6], /* 134 */ d3[7], /* 135 */ d3[8],
-    /* 136 */ "",
-    /* 137 */ null, /* 138 */ d3[9],
-
-    /* 139 */ d4[0], /* 140 */ null, /* 141 */ d4[1], /* 142 */ null, /* 143 */ d4[2],
-    /* 144 */ null, /* 145 */ d4[3],
-    /* 146 */ null, /* 147 */ d4[4],
-    /* 148 */ null, /* 149 */ d4[5],
-    /* 150 */ null,
-    /* 151 */ "",
-    /* 152 */ d4[6], /* 153 */ d4[7], /* 154 */ d4[8],
-    /* 155 */ "",
-    /* 156 */ null, /* 157 */ d4[9],
+  const replacements: [string, string][] = [
+    ["[Intitulé du poste / spécialité]", c.intitulePoste ?? ""],
+    ["[Prénom NOM]", `${c.prenom} ${c.nom}`],
+    ["[X] ans d'expérience", anneesLabel],
+    ["[Disponible : immédiatement]", c.disponibilite ? DISPONIBILITE_FULL[c.disponibilite] ?? "" : ""],
+    ["[Compétence clé 1]", compClesLabels[0] ?? ""],
+    ["[Compétence clé 2]", compClesLabels[1] ?? ""],
+    ["[Compétence clé 3]", compClesLabels[2] ?? ""],
+    ["[Mobilité / Ville]", mobiliteLabel],
+    ["[Junior / Confirmé / Senior / Expert]", c.seniority?.label ?? ""],
+    [
+      "[Résumez votre profil en 4 à 6 lignes : votre spécialité, vos secteurs, vos principales réalisations et ce que vous apportez à une équipe.]",
+      c.resumeContexte ?? "",
+    ],
   ];
-}
 
-function xmlEscape(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\r?\n/g, " ");
-}
-
-function fillDocumentXml(xml: string, values: (string | null)[]): string {
-  let i = 0;
-  return xml.replace(
-    /<w:t\b[^>]*\/>|<w:t\b[^>]*>[\s\S]*?<\/w:t>/g,
-    (fullMatch) => {
-      const value = values[i];
-      i++;
-      if (value === null || value === undefined) return fullMatch;
-
-      const isSelfClosing = /\/>$/.test(fullMatch);
-      const openTagEnd = isSelfClosing
-        ? fullMatch.length - 2 // avant "/>"
-        : fullMatch.indexOf(">") + 1;
-      const openTag = isSelfClosing
-        ? fullMatch.slice(0, openTagEnd) + ">"
-        : fullMatch.slice(0, openTagEnd);
-      return `${openTag}${xmlEscape(value)}</w:t>`;
-    }
-  );
+  for (const [placeholder, value] of replacements) {
+    xml = xml.replace(placeholder, xmlEscape(value));
+  }
+  return xml;
 }
 
 export async function buildDcDocx(c: DcConsultant): Promise<Buffer> {
@@ -281,11 +358,17 @@ export async function buildDcDocx(c: DcConsultant): Promise<Buffer> {
   if (!documentXmlFile) {
     throw new Error("Gabarit HYPERION invalide : word/document.xml introuvable.");
   }
-  const originalXml = await documentXmlFile.async("string");
-  const values = buildValues(c);
-  const filledXml = fillDocumentXml(originalXml, values);
-  zip.file("word/document.xml", filledXml);
+  let xml = await documentXmlFile.async("string");
 
-  const result = await zip.generateAsync({ type: "nodebuffer" });
-  return result;
+  // Sections dynamiques d'abord (chacune repérée par un texte-ancre propre
+  // à elle, donc l'ordre de traitement n'a pas d'importance).
+  xml = fillExpClesSection(xml, c.experiences);
+  xml = fillFormationsSection(xml, c.formations);
+  xml = fillLanguesSection(xml, c.langues);
+  xml = fillExperiencesDetailleesSection(xml, c.experiences);
+  xml = fillCompetencesSection(xml, c.competenceCategories);
+  xml = fillSimplePlaceholders(xml, c);
+
+  zip.file("word/document.xml", xml);
+  return zip.generateAsync({ type: "nodebuffer" });
 }
