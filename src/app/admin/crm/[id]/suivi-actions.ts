@@ -5,8 +5,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { canAccessEntreprise } from "@/lib/crm-access";
-import { SUIVI_COMMERCIAL_TYPE_SAISISSABLES, MODALITE_RDV } from "@/lib/constants";
+import { SUIVI_COMMERCIAL_TYPE_SAISISSABLES, SUIVI_COMMERCIAL_TYPE, MODALITE_RDV } from "@/lib/constants";
 import { saveCrmFile, deleteCrmFile } from "@/lib/crm-storage";
+import { getValidAccessToken } from "@/lib/google-oauth";
+import { createCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
 
 async function assertEntrepriseAccess(entrepriseId: string) {
   const session = await requireStaff();
@@ -51,6 +53,23 @@ export async function createSuiviCommercialAction(formData: FormData) {
   const savedFichier =
     fichier instanceof File && fichier.size > 0 ? await saveCrmFile(fichier) : null;
 
+  // Réplique en miroir dans Google Agenda si le créateur a connecté son
+  // compte — best-effort, ne bloque jamais la création du suivi.
+  let googleEventId: string | null = null;
+  if (
+    dateProgrammee &&
+    (type === SUIVI_COMMERCIAL_TYPE.RDV || type === SUIVI_COMMERCIAL_TYPE.RAPPEL)
+  ) {
+    const accessToken = await getValidAccessToken(session.user.id);
+    if (accessToken) {
+      googleEventId = await createCalendarEvent(accessToken, {
+        summary: titre,
+        description: notes ?? undefined,
+        start: dateProgrammee,
+      });
+    }
+  }
+
   await prisma.suiviCommercial.create({
     data: {
       entrepriseId,
@@ -60,6 +79,7 @@ export async function createSuiviCommercialAction(formData: FormData) {
       titre,
       notes,
       dateProgrammee,
+      googleEventId,
       fichierUrl: savedFichier?.storedName ?? null,
       fichierNomOriginal: savedFichier?.originalName ?? null,
       createdById: session.user.id,
@@ -97,6 +117,11 @@ export async function deleteSuiviCommercialAction(formData: FormData) {
 
   await prisma.suiviCommercial.delete({ where: { id } });
   await deleteCrmFile(suivi.fichierUrl);
+
+  if (suivi.googleEventId) {
+    const accessToken = await getValidAccessToken(suivi.createdById);
+    if (accessToken) await deleteCalendarEvent(accessToken, suivi.googleEventId);
+  }
 
   if (suivi.contactId) {
     revalidatePath(`/admin/crm/${suivi.entrepriseId}/contacts/${suivi.contactId}`);

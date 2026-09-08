@@ -2,11 +2,23 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { ROLE_LABELS } from "@/lib/constants";
 import TwoFactorSection from "@/components/TwoFactorSection";
+import GoogleConnectionSection from "./google-connection-section";
 
 export const dynamic = "force-dynamic";
 
-export default async function StaffProfilPage() {
+const GOOGLE_ERROR_LABELS: Record<string, string> = {
+  state: "La demande a expiré ou été rejouée — réessayez.",
+  exchange: "Google n'a pas pu valider la connexion — réessayez.",
+  access_denied: "Vous avez annulé la connexion à Google.",
+};
+
+export default async function StaffProfilPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ google?: string; reason?: string }>;
+}) {
   const session = await requireStaff();
+  const { google, reason } = await searchParams;
 
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: session.user.id },
@@ -41,6 +53,28 @@ export default async function StaffProfilPage() {
         <p className="text-xs text-brand-gray">
           Nom, email et rôle sont gérés par l&apos;administrateur.
         </p>
+      </div>
+
+      {google === "connected" && (
+        <div className="rounded-xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-brand-green">
+          ✅ Compte Google connecté.
+        </div>
+      )}
+      {google === "error" && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {(reason && GOOGLE_ERROR_LABELS[reason]) ??
+            "La connexion à Google a échoué — réessayez."}
+        </div>
+      )}
+
+      <div className="card space-y-3 p-5">
+        <h2 className="text-sm font-semibold text-brand-ink">
+          Gmail &amp; Google Agenda
+        </h2>
+        <GoogleConnectionSection
+          connectedEmail={user.googleEmail}
+          connectedAt={user.googleConnectedAt}
+        />
       </div>
 
       <div className="card space-y-3 p-5">

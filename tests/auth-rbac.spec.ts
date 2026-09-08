@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { createThrowawayUser, deleteUserByEmail, login, testPrisma } from "./helpers";
 
 const DIRECTEUR_EMAIL = `test.directeur.${Date.now()}@example.invalid`;
+const WRONG_PASSWORD_EMAIL = `test.wrongpw.${Date.now()}@example.invalid`;
 
 test.describe("Authentification", () => {
   test("connexion réussie avec des identifiants valides redirige vers /admin", async ({ page }) => {
@@ -11,9 +12,18 @@ test.describe("Authentification", () => {
   });
 
   test("mot de passe incorrect affiche une erreur générique et ne connecte pas", async ({ page }) => {
-    await login(page, "admin@societe-conseil.fr", "mauvais-mot-de-passe");
-    expect(page.url()).toContain("/connexion");
-    await expect(page.locator("p[role=\"alert\"]")).toBeVisible();
+    // Compte jetable plutôt que le compte admin seedé : un mot de passe
+    // incorrect compte comme un échec côté verrouillage (voir
+    // account-lockout.spec.ts) — ne pas polluer ce compteur sur un compte
+    // réel réutilisé entre les runs.
+    await createThrowawayUser({ email: WRONG_PASSWORD_EMAIL, name: "Test Wrong PW", role: "BM" });
+    try {
+      await login(page, WRONG_PASSWORD_EMAIL, "mauvais-mot-de-passe");
+      expect(page.url()).toContain("/connexion");
+      await expect(page.locator('p[role="alert"]')).toBeVisible();
+    } finally {
+      await deleteUserByEmail(WRONG_PASSWORD_EMAIL);
+    }
   });
 });
 

@@ -36,8 +36,19 @@ model User {
   // (protection brute-force, § MAX_FAILED_LOGIN_ATTEMPTS / LOCKOUT_DURATION_MINUTES).
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+
+  // Connexion Gmail / Google Calendar (OAuth par compte, § intégration
+  // Google). Tokens chiffrés au repos (voir src/lib/crypto.ts) — jamais en
+  // clair en base. googleEmail : compte Google connecté (généralement le
+  // même que l'email de connexion HYPERION, mais pas garanti).
+  googleAccessTokenEnc  String?
+  googleRefreshTokenEnc String?
+  googleTokenExpiresAt  DateTime?
+  googleEmail           String?
+  googleConnectedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Renseigné uniquement pour les comptes CLIENT (auto-déclaratif, page profil).
   poste     String?
@@ -264,6 +275,11 @@ model SuiviCandidat {
   dateProgrammee DateTime?
   fait           Boolean   @default(false)
 
+  // Événement Google Calendar créé en miroir (RDV/RAPPEL, si le créateur a
+  // connecté son compte Google) — permet de le supprimer en cas de
+  // suppression de ce suivi.
+  googleEventId String?
+
   createdById String
   createdBy   User   @relation(fields: [createdById], references: [id])
 
@@ -386,6 +402,11 @@ model SuiviCommercial {
 
   dateProgrammee DateTime?
   fait           Boolean   @default(false)
+
+  // Événement Google Calendar créé en miroir (RDV/RAPPEL, si le créateur a
+  // connecté son compte Google) — permet de le supprimer en cas de
+  // suppression de ce suivi.
+  googleEventId String?
 
   createdById String
   createdBy   User   @relation("SuivisCommerciauxCrees", fields: [createdById], references: [id])

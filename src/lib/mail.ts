@@ -75,20 +75,20 @@ export async function sendDemandeBesoinNotification(
   });
 }
 
-/** Push d'un candidat (DC) vers un contact CRM — email avec le dossier de
- * compétences en pièce jointe (§ lien ATS ↔ CRM). */
-export async function sendCandidatPropositionEmail(
-  to: string,
-  params: {
-    contactName: string;
-    bmName: string;
-    reference: string;
-    intitulePoste: string | null;
-    message: string | null;
-    docxBuffer: Buffer;
-    docxFilename: string;
-  }
-) {
+type CandidatPropositionParams = {
+  contactName: string;
+  bmName: string;
+  reference: string;
+  intitulePoste: string | null;
+  message: string | null;
+  docxBuffer: Buffer;
+  docxFilename: string;
+};
+
+/** Sujet + corps du texte de proposition — exposé séparément pour être
+ * réutilisé par l'envoi via Gmail (compte du BM) en plus du repli générique
+ * ci-dessous (voir src/app/admin/consultants/[id]/push-actions.ts). */
+export function buildCandidatPropositionEmail(params: CandidatPropositionParams) {
   const lignesIntro = [
     `Bonjour ${params.contactName},`,
     "",
@@ -106,10 +106,22 @@ export async function sendCandidatPropositionEmail(
     `${params.bmName} — HYPERION`
   );
 
-  await deliver({
-    to,
+  return {
     subject: `Proposition de profil — ${params.reference}`,
     text: lignesIntro.join("\n"),
+  };
+}
+
+/** Push d'un candidat (DC) vers un contact CRM — email avec le dossier de
+ * compétences en pièce jointe (§ lien ATS ↔ CRM). Repli générique (journal
+ * dev / SMTP) — voir push-actions.ts pour l'envoi via Gmail quand le BM a
+ * connecté son compte. */
+export async function sendCandidatPropositionEmail(to: string, params: CandidatPropositionParams) {
+  const { subject, text } = buildCandidatPropositionEmail(params);
+  await deliver({
+    to,
+    subject,
+    text,
     attachments: [
       {
         filename: params.docxFilename,

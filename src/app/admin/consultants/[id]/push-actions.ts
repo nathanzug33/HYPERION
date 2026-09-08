@@ -6,7 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { canAccessEntreprise } from "@/lib/crm-access";
 import { buildDcDocx, dcConsultantInclude } from "@/lib/dc-docx";
-import { sendCandidatPropositionEmail } from "@/lib/mail";
+import { sendCandidatPropositionEmail, buildCandidatPropositionEmail } from "@/lib/mail";
+import { getValidAccessToken } from "@/lib/google-oauth";
+import { sendViaGmail } from "@/lib/gmail-send";
 import { SUIVI_COMMERCIAL_TYPE } from "@/lib/constants";
 
 /** Propose un candidat (DC) à un contact CRM : trace visible sur la fiche
@@ -41,7 +43,7 @@ export async function pushCandidatToClientAction(formData: FormData) {
     .replace(/\s+/g, "_")
     .replace(/[^\w.-]/g, "");
 
-  await sendCandidatPropositionEmail(contact.email, {
+  const propositionParams = {
     contactName: `${contact.prenom} ${contact.nom}`,
     bmName: session.user.name || "Votre contact HYPERION",
     reference: consultant.referenceAnonyme,
@@ -49,7 +51,32 @@ export async function pushCandidatToClientAction(formData: FormData) {
     message,
     docxBuffer,
     docxFilename,
-  });
+  };
+
+  // Si le BM a connecté son compte Google, l'email part réellement de sa
+  // boîte Gmail (réponses du contact dans sa messagerie). Sinon, repli sur
+  // le canal générique (SMTP en prod, journal en dev).
+  const googleAccessToken = await getValidAccessToken(session.user.id);
+  let sentViaGmail = false;
+  if (googleAccessToken) {
+    const { subject, text } = buildCandidatPropositionEmail(propositionParams);
+    sentViaGmail = await sendViaGmail(googleAccessToken, {
+      to: contact.email,
+      subject,
+      text,
+      attachments: [
+        {
+          filename: docxFilename,
+          content: docxBuffer,
+          contentType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        },
+      ],
+    });
+  }
+  if (!sentViaGmail) {
+    await sendCandidatPropositionEmail(contact.email, propositionParams);
+  }
 
   await prisma.suiviCommercial.create({
     data: {
