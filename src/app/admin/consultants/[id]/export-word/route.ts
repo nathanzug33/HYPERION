@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES } from "@/lib/constants";
 import { buildDcDocx, dcConsultantInclude } from "@/lib/dc-docx";
+import { canAccessConsultant } from "@/lib/consultant-access";
 
 export async function GET(
   _req: Request,
@@ -18,10 +18,7 @@ export async function GET(
   if (!consultant) {
     return new Response("Introuvable", { status: 404 });
   }
-  if (
-    session.user.role !== ROLES.ADMIN &&
-    consultant.businessManagerId !== session.user.id
-  ) {
+  if (!(await canAccessConsultant(session.user, consultant))) {
     return new Response("Interdit", { status: 403 });
   }
 

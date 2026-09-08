@@ -13,6 +13,7 @@ import {
   unpublishConsultantAction,
 } from "../actions";
 import { STATUT_PUBLICATION_LABELS } from "@/lib/constants";
+import { canAccessConsultant } from "@/lib/consultant-access";
 
 export const dynamic = "force-dynamic";
 
@@ -40,14 +41,12 @@ export default async function ConsultantEditPage({
       competenceCategories: { orderBy: { ordre: "asc" } },
       formations: { orderBy: { ordre: "asc" } },
       experiences: { orderBy: { ordre: "asc" } },
+      accesEquipe: { select: { userId: true } },
     },
   });
 
   if (!consultant) notFound();
-  if (
-    session.user.role !== ROLES.ADMIN &&
-    consultant.businessManagerId !== session.user.id
-  ) {
+  if (!(await canAccessConsultant(session.user, consultant))) {
     redirect("/admin/consultants");
   }
 

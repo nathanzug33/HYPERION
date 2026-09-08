@@ -2,9 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES, STATUT_PUBLICATION_LABELS } from "@/lib/constants";
+import { STATUT_PUBLICATION_LABELS } from "@/lib/constants";
 import { consultantPublicSelect } from "@/lib/consultant-view";
 import ConsultantDetail from "@/components/consultant/ConsultantDetail";
+import { canAccessConsultant } from "@/lib/consultant-access";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,7 @@ export default async function ConsultantApercuPage({
   });
 
   if (!consultant) notFound();
-  if (
-    session.user.role !== ROLES.ADMIN &&
-    consultant.businessManagerId !== session.user.id
-  ) {
+  if (!(await canAccessConsultant(session.user, consultant))) {
     redirect("/admin/consultants");
   }
 

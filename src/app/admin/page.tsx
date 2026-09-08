@@ -6,6 +6,7 @@ import {
   CONTACT_REQUEST_STATUS,
   STATUT_PUBLICATION,
 } from "@/lib/constants";
+import { consultantVisibilityWhere } from "@/lib/consultant-access";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function AdminDashboardPage() {
   const staleThreshold = new Date();
   staleThreshold.setDate(staleThreshold.getDate() - FICHE_FRAICHEUR_SEUIL_JOURS);
 
-  const bmFilter = isAdmin ? {} : { businessManagerId: session.user.id };
+  const bmFilter = consultantVisibilityWhere(session.user);
 
   const [total, publiees, brouillons, aRafraichir, demandesNouvelles, demandesBesoinNouvelles, aPurger] =
     await Promise.all([
@@ -39,7 +40,7 @@ export default async function AdminDashboardPage() {
       prisma.contactRequest.findMany({
         where: {
           status: CONTACT_REQUEST_STATUS.NOUVELLE,
-          ...(isAdmin ? {} : { consultant: { businessManagerId: session.user.id } }),
+          consultant: bmFilter,
         },
         orderBy: { createdAt: "desc" },
         take: 8,

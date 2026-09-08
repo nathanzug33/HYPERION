@@ -2,10 +2,10 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import {
-  ROLES,
   STATUT_PUBLICATION_LABELS,
   FICHE_FRAICHEUR_SEUIL_JOURS,
 } from "@/lib/constants";
+import { consultantVisibilityWhere } from "@/lib/consultant-access";
 
 export const dynamic = "force-dynamic";
 
@@ -22,24 +22,24 @@ export default async function ConsultantsListPage({
 
   const consultants = await prisma.consultant.findMany({
     where: {
-      ...(session.user.role === ROLES.ADMIN
-        ? {}
-        : { businessManagerId: session.user.id }),
-      ...(statut ? { statutPublication: statut } : {}),
-      ...(purge ? { dateConservationLimite: { lt: new Date() } } : {}),
-      ...(q
-        ? {
-            OR: [
-              { nom: { contains: q } },
-              { prenom: { contains: q } },
-              { referenceAnonyme: { contains: q } },
-              { intitulePoste: { contains: q } },
-            ],
-          }
-        : {}),
+      AND: [
+        consultantVisibilityWhere(session.user),
+        statut ? { statutPublication: statut } : {},
+        purge ? { dateConservationLimite: { lt: new Date() } } : {},
+        q
+          ? {
+              OR: [
+                { nom: { contains: q } },
+                { prenom: { contains: q } },
+                { referenceAnonyme: { contains: q } },
+                { intitulePoste: { contains: q } },
+              ],
+            }
+          : {},
+      ],
     },
     orderBy: { updatedAt: "desc" },
-    include: { businessManager: true },
+    include: { businessManager: true, _count: { select: { accesEquipe: true } } },
   });
 
   return (
@@ -120,6 +120,14 @@ export default async function ConsultantsListPage({
                   </td>
                   <td className="px-4 py-3 text-brand-body">
                     {c.businessManager.name}
+                    {c._count.accesEquipe > 0 && (
+                      <span
+                        className="ml-1.5 rounded-full bg-brand-blue-bg px-1.5 py-0.5 text-xs font-medium text-brand-blue-dark"
+                        title={`Accès élargi à ${c._count.accesEquipe} autre(s) business manager(s)`}
+                      >
+                        +{c._count.accesEquipe}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge statut={c.statutPublication} />

@@ -7,6 +7,7 @@ import { requireStaff, requireAdmin } from "@/lib/guards";
 import { generateNextReference } from "@/lib/reference-generator";
 import { COMPETENCE_CATEGORIES, ROLES, STATUT_PUBLICATION } from "@/lib/constants";
 import { findVille } from "@/lib/villes-france";
+import { canAccessConsultant } from "@/lib/consultant-access";
 
 function getMulti(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
@@ -43,10 +44,7 @@ async function assertOwnership(consultantId: string) {
     where: { id: consultantId },
   });
   if (!consultant) redirect("/admin/consultants");
-  if (
-    session.user.role !== ROLES.ADMIN &&
-    consultant.businessManagerId !== session.user.id
-  ) {
+  if (!(await canAccessConsultant(session.user, consultant))) {
     redirect("/admin/consultants");
   }
   return { session, consultant };
@@ -146,6 +144,14 @@ export async function updateConsultantAction(formData: FormData) {
   const typeMobiliteIds = getMulti(formData, "typeMobiliteIds");
   const zoneIds = getMulti(formData, "zoneIds");
   const langueIds = getMulti(formData, "langueIds");
+  // Accès élargi (au-delà du référent) : réservé à l'admin — un BM ne peut
+  // pas s'octroyer lui-même la visibilité sur des dossiers d'autres BM.
+  const accesEquipeIds =
+    session.user.role === ROLES.ADMIN
+      ? getMulti(formData, "accesEquipeIds").filter(
+          (userId) => userId !== data.businessManagerId
+        )
+      : null;
 
   const langueRows = langueIds.map((langueId) => ({
     consultantId: id,
@@ -194,6 +200,14 @@ export async function updateConsultantAction(formData: FormData) {
 
   await prisma.$transaction([
     prisma.consultant.update({ where: { id }, data }),
+    ...(accesEquipeIds !== null
+      ? [
+          prisma.consultantAccess.deleteMany({ where: { consultantId: id } }),
+          prisma.consultantAccess.createMany({
+            data: accesEquipeIds.map((userId) => ({ consultantId: id, userId })),
+          }),
+        ]
+      : []),
     prisma.consultantSecteur.deleteMany({ where: { consultantId: id } }),
     prisma.consultantSecteur.createMany({
       data: secteurIds.map((secteurId) => ({ consultantId: id, secteurId })),

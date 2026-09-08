@@ -61,6 +61,15 @@ Application sur http://localhost:3000.
   fraîcheur (`FICHE_FRAICHEUR_SEUIL_JOURS`), **aperçu anonymisé en direct**
   avant publication (panneau latéral utilisant le même composant que la vue
   client), garde-fous de publication (champs obligatoires + consentements).
+- **ATS interne — accès par dossier** — chaque candidat a un BM référent
+  (`Consultant.businessManagerId`, contact principal, notifications,
+  export DC) mais un business manager ne voit par défaut que ses propres
+  dossiers. L'administrateur peut, dossier par dossier, accorder un **accès
+  élargi** à d'autres BM (`ConsultantAccess`, gérée depuis la fiche du
+  candidat, section « Accès élargi ») pour le travail en équipe sans ouvrir
+  tout le vivier — `src/lib/consultant-access.ts` centralise la règle de
+  visibilité et est utilisée par toutes les pages/actions concernées (liste,
+  fiche, aperçu, export Word, demandes, tableau de bord).
 - **§5.3/§7 Bibliothèque client** — `src/app/bibliotheque` : espace client
   complet avec tableau de bord (`/bibliotheque`), recherche
   (`/bibliotheque/dossiers` — cartes, recherche plein texte, filtres

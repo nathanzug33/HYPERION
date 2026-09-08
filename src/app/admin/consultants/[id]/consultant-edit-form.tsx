@@ -35,6 +35,7 @@ type ConsultantWithRelations = Consultant & {
   competenceCategories: CompetenceCategorie[];
   formations: Formation[];
   experiences: Experience[];
+  accesEquipe: { userId: string }[];
 };
 
 const FORMATION_SLOTS = 6;
@@ -120,6 +121,24 @@ export default function ConsultantEditForm({
             </Field>
           )}
         </div>
+
+        {isAdmin && (
+          <div className="border-t border-slate-100 pt-3">
+            <Field label="Accès élargi (visible également par, en plus du référent)">
+              <CheckboxGroup
+                name="accesEquipeIds"
+                options={referentials.bms
+                  .filter((bm) => bm.id !== consultant.businessManagerId)
+                  .map((bm) => ({ id: bm.id, label: bm.name }))}
+                selectedIds={new Set(consultant.accesEquipe.map((a) => a.userId))}
+              />
+            </Field>
+            <p className="mt-1 text-xs text-brand-gray">
+              Le référent voit toujours ce dossier. Cochez d&apos;autres BM
+              pour leur donner accès en plus, sans changer le référent.
+            </p>
+          </div>
+        )}
 
         <Field label="Notes d'entretien">
           <textarea

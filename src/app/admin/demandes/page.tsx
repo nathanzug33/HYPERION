@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES } from "@/lib/constants";
+import { consultantVisibilityWhere } from "@/lib/consultant-access";
 import StatusSelect from "./status-select";
 
 export const dynamic = "force-dynamic";
@@ -10,10 +10,7 @@ export default async function DemandesPage() {
 
   const [requests, demandesBesoin] = await Promise.all([
     prisma.contactRequest.findMany({
-      where:
-        session.user.role === ROLES.ADMIN
-          ? {}
-          : { consultant: { businessManagerId: session.user.id } },
+      where: { consultant: consultantVisibilityWhere(session.user) },
       orderBy: { createdAt: "desc" },
       include: { consultant: true, clientUser: { include: { clientOrganization: true } } },
     }),

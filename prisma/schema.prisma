@@ -47,6 +47,7 @@ model User {
   contactRequests      ContactRequest[]  @relation("ClientDemandeur")
   contactRequestsRecues ContactRequest[] @relation("BmNotifie")
   demandesBesoin       DemandeBesoin[]   @relation("ClientDemandeurBesoin")
+  accesConsultants     ConsultantAccess[]
   loginLogs            LoginLog[]
   consultationLogs     ConsultationLog[]
   resetTokens          PasswordResetToken[]
@@ -223,10 +224,28 @@ model Consultant {
   competenceCategories CompetenceCategorie[]
   formations        Formation[]
   experiences       Experience[]
+  accesEquipe       ConsultantAccess[]
 
   @@index([statutPublication])
   @@index([businessManagerId])
   @@index([seniorityId])
+}
+
+// Accès élargi à un dossier candidat, au-delà du BM référent (§ ATS interne).
+// Géré exclusivement par l'administrateur : le référent reste le contact
+// principal (notifications, export DC), mais l'admin peut ici donner
+// visibilité + droit de modification à d'autres business managers, dossier
+// par dossier — utile pour le travail en équipe sur un même candidat sans
+// ouvrir tout le vivier à tout le monde.
+model ConsultantAccess {
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([consultantId, userId])
+  @@index([userId])
 }
 
 // Tables de jointure explicites (relations n-n paramétrables) --------------
