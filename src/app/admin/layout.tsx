@@ -7,6 +7,31 @@ import NavLink from "@/components/NavLink";
 import NavDropdown from "@/components/NavDropdown";
 import BrandMark from "@/components/BrandMark";
 
+function TopSearchForm({ action, placeholder }: { action: string; placeholder: string }) {
+  return (
+    <form action={action} className="relative">
+      <svg
+        className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/50"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+      <input
+        type="text"
+        name="q"
+        placeholder={placeholder}
+        className="w-36 rounded-full border border-white/15 bg-white/10 py-1.5 pl-8 pr-3 text-xs text-white placeholder:text-white/50 transition-all duration-200 focus:w-52 focus:border-white/30 focus:bg-white/15 focus:outline-none"
+      />
+    </form>
+  );
+}
+
 export default async function AdminLayout({
   children,
 }: {
@@ -84,6 +109,10 @@ export default async function AdminLayout({
                 {l.label}
               </NavLink>
             ))}
+            <span className="ml-auto flex items-center gap-2">
+              <TopSearchForm action="/admin/consultants" placeholder="Chercher un candidat…" />
+              <TopSearchForm action="/admin/crm" placeholder="Chercher un client/contact…" />
+            </span>
           </nav>
 
           <div className="flex items-center gap-3">

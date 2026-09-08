@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireStaff, requireAdmin } from "@/lib/guards";
+import { requireStaff, requireAdmin, requireAdminOrDirecteur } from "@/lib/guards";
 import { generateNextReference } from "@/lib/reference-generator";
 import {
   COMPETENCE_CATEGORIES,
@@ -389,6 +389,23 @@ export async function archiveConsultantAction(formData: FormData) {
   revalidatePath(`/admin/consultants/${id}`);
   revalidatePath("/admin/consultants");
   redirect(`/admin/consultants/${id}`);
+}
+
+/** Transfert d'un dossier candidat à un autre BM référent, un par un — voir
+ * transferEntrepriseAction (CRM) pour la même logique côté compte client. */
+export async function transferConsultantAction(formData: FormData) {
+  const session = await requireAdminOrDirecteur();
+  const id = String(formData.get("id") ?? "");
+  const targetId = String(formData.get("targetId") ?? "");
+  if (!id || !targetId) return;
+
+  const consultant = await prisma.consultant.findUnique({ where: { id } });
+  if (!consultant || !(await canAccessConsultant(session.user, consultant))) return;
+
+  await prisma.consultant.update({ where: { id }, data: { businessManagerId: targetId } });
+  revalidatePath(`/admin/consultants/${id}`);
+  revalidatePath("/admin/consultants");
+  revalidatePath("/admin");
 }
 
 export async function purgeConsultantAction(formData: FormData) {

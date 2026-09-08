@@ -10,6 +10,7 @@ import {
   archiveConsultantAction,
   publishConsultantAction,
   purgeConsultantAction,
+  transferConsultantAction,
   unpublishConsultantAction,
 } from "../actions";
 import { STATUT_PUBLICATION_LABELS, canReassignReferent } from "@/lib/constants";
@@ -244,6 +245,35 @@ export default async function ConsultantEditPage({
         <a href={`/admin/consultants/${id}/export-word`} className="btn btn-accent">
           Télécharger le DC (Word)
         </a>
+        {canReassignReferent(session.user) && (
+          <form
+            action={transferConsultantAction}
+            className={`flex items-center gap-1.5 ${session.user.role === ROLES.ADMIN ? "" : "ml-auto"}`}
+          >
+            <input type="hidden" name="id" value={id} />
+            <select
+              name="targetId"
+              required
+              defaultValue=""
+              className="input py-1.5 text-xs"
+              title="Transférer ce dossier à un autre BM"
+            >
+              <option value="" disabled>
+                Transférer à…
+              </option>
+              {bms
+                .filter((bm) => bm.id !== consultant.businessManagerId)
+                .map((bm) => (
+                  <option key={bm.id} value={bm.id}>
+                    {bm.name}
+                  </option>
+                ))}
+            </select>
+            <button type="submit" className="btn btn-secondary py-1.5 text-xs">
+              Transférer
+            </button>
+          </form>
+        )}
         {session.user.role === ROLES.ADMIN && (
           <form action={purgeConsultantAction} className="ml-auto">
             <input type="hidden" name="id" value={id} />
