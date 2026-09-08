@@ -17,12 +17,14 @@ export default async function NouveauConsultantPage() {
     <div className="max-w-lg space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-brand-ink">
-          Nouveau dossier de compétences
+          Nouveau candidat
         </h1>
         <p className="mt-1 text-sm text-brand-gray">
-          Renseignez d&apos;abord l&apos;identité du candidat. La référence
-          anonyme est générée automatiquement ; les champs exposables se
-          complètent à l&apos;étape suivante.
+          Renseignez d&apos;abord l&apos;identité du candidat — il rejoint
+          aussitôt votre vivier interne (ATS). La référence anonyme est
+          générée automatiquement ; les champs exposables (pour en faire un
+          dossier de compétences publiable) se complètent à l&apos;étape
+          suivante.
         </p>
       </div>
 

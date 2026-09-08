@@ -86,17 +86,27 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-brand-ink">Tableau de bord</h1>
-        <p className="mt-1 text-sm text-brand-gray">
-          Bienvenue {session.user.name}. Rituel hebdomadaire : vérifiez les
-          fiches à actualiser et traitez les nouvelles demandes.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-brand-ink">Tableau de bord</h1>
+          <p className="mt-1 text-sm text-brand-gray">
+            Bienvenue {session.user.name}. Rituel hebdomadaire : vérifiez les
+            fiches à actualiser et traitez les nouvelles demandes.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/admin/consultants/nouveau" className="btn btn-secondary">
+            + Ajouter un candidat
+          </Link>
+          <Link href="/admin/consultants/generer-ia" className="btn btn-primary">
+            ✨ Générer avec l&apos;IA
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard
-          label="Dossiers suivis"
+          label="Candidats suivis"
           value={total}
           accent="blue"
           icon={
