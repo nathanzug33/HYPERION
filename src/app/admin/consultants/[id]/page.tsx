@@ -15,6 +15,8 @@ import {
 import { STATUT_PUBLICATION_LABELS, canReassignReferent } from "@/lib/constants";
 import { canAccessConsultant } from "@/lib/consultant-access";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
+import { computeMatchScore } from "@/lib/matching";
+import MatchBadges from "@/components/MatchBadges";
 import SuiviSection from "./suivi-section";
 import PushCandidatForm from "./push-candidat-form";
 
@@ -108,6 +110,52 @@ export default async function ConsultantEditPage({
       },
     }),
   ]);
+
+  const consultantSecteurIds = consultant.secteurs.map((s) => s.secteurId);
+  const consultantExpertiseIds = consultant.expertises.map((e) => e.expertiseId);
+
+  const entreprisesInteressees =
+    consultantSecteurIds.length > 0 || consultantExpertiseIds.length > 0
+      ? await prisma.entreprise.findMany({
+          where: {
+            ...entrepriseVisibilityWhere(session.user),
+            OR: [
+              consultantSecteurIds.length > 0
+                ? { secteursRecherches: { some: { secteurId: { in: consultantSecteurIds } } } }
+                : undefined,
+              consultantExpertiseIds.length > 0
+                ? { expertisesRecherchees: { some: { expertiseId: { in: consultantExpertiseIds } } } }
+                : undefined,
+            ].filter((c): c is NonNullable<typeof c> => Boolean(c)),
+          },
+          select: {
+            id: true,
+            nom: true,
+            ville: true,
+            secteursRecherches: { select: { secteurId: true } },
+            expertisesRecherchees: { select: { expertiseId: true } },
+          },
+        })
+      : [];
+
+  const suggestionsClientsAvecScore = entreprisesInteressees
+    .map((e) => ({
+      id: e.id,
+      nom: e.nom,
+      match: computeMatchScore({
+        candidatSecteurIds: consultantSecteurIds,
+        candidatExpertiseIds: consultantExpertiseIds,
+        candidatVilleLat: consultant.villeLat,
+        candidatVilleLng: consultant.villeLng,
+        candidatRayonKm: consultant.rayonKm,
+        candidatDisponibilite: consultant.disponibilite,
+        entrepriseSecteurIds: e.secteursRecherches.map((s) => s.secteurId),
+        entrepriseExpertiseIds: e.expertisesRecherchees.map((x) => x.expertiseId),
+        entrepriseVille: e.ville,
+      }),
+    }))
+    .sort((a, b) => b.match.score - a.match.score)
+    .slice(0, 8);
 
   return (
     <div className="space-y-6">
@@ -245,6 +293,30 @@ export default async function ConsultantEditPage({
               </ul>
             )}
           </div>
+
+          {suggestionsClientsAvecScore.length > 0 && (
+            <div className="card p-4">
+              <h2 className="mb-1 text-sm font-semibold text-brand-ink">
+                Clients potentiellement intéressés
+              </h2>
+              <p className="mb-3 text-xs text-brand-gray">
+                Entreprises dont les secteurs / expertises recherchés correspondent à ce profil.
+              </p>
+              <ul className="space-y-1.5">
+                {suggestionsClientsAvecScore.map((e) => (
+                  <li key={e.id}>
+                    <Link
+                      href={`/admin/crm/${e.id}`}
+                      className="flex flex-col gap-1.5 rounded-lg border border-slate-100 px-3 py-2 text-sm hover:border-brand-blue-light hover:bg-brand-blue-bg-soft"
+                    >
+                      <span className="font-medium text-brand-ink">{e.nom}</span>
+                      <MatchBadges match={e.match} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="card p-4">
             <div className="mb-3 flex items-center justify-between">

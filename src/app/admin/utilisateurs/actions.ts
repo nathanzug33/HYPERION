@@ -5,8 +5,8 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/guards";
-import { sendPasswordResetEmail } from "@/lib/mail";
-import { ROLES } from "@/lib/constants";
+import { sendAccountInvitationEmail } from "@/lib/mail";
+import { ROLES, ROLE_LABELS, type Role } from "@/lib/constants";
 
 export type CreateUserState = { error?: string; success?: string };
 
@@ -63,11 +63,15 @@ export async function createUserAction(
     },
   });
   const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  await sendPasswordResetEmail(email, `${base}/reinitialiser/${token}`);
+  await sendAccountInvitationEmail(email, {
+    name,
+    roleLabel: ROLE_LABELS[role as Role],
+    setPasswordUrl: `${base}/reinitialiser/${token}`,
+  });
 
   revalidatePath("/admin/utilisateurs");
   return {
-    success: `Compte créé pour ${email}. Un lien de définition de mot de passe a été envoyé (valable 72h).`,
+    success: `Compte créé pour ${email}. Une invitation avec un lien de définition de mot de passe a été envoyée (valable 72h).`,
   };
 }
 

@@ -63,6 +63,11 @@ export default async function ConsultantsListPage({
           <Link href="/admin/consultants/recherche" className="btn btn-secondary">
             🔍 Recherche avancée
           </Link>
+          {/* Route Handler (téléchargement CSV), pas une page : <a> volontaire pour forcer une navigation complète. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/admin/consultants/export/vivier" className="btn btn-secondary">
+            ⬇️ Export CSV
+          </a>
           <Link href="/admin/consultants/nouveau" className="btn btn-secondary">
             + Ajouter un candidat
           </Link>

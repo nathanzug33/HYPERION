@@ -39,6 +39,20 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
   });
 }
 
+/** Invitation à la création d'un compte (BM, directeur de BU, admin, client) —
+ * même mécanisme que la réinitialisation (lien à durée limitée), mais texte
+ * dédié pour un premier accès plutôt qu'un oubli de mot de passe. */
+export async function sendAccountInvitationEmail(
+  to: string,
+  params: { name: string; roleLabel: string; setPasswordUrl: string }
+) {
+  await deliver({
+    to,
+    subject: "Bienvenue sur HYPERION — activez votre compte",
+    text: `Bonjour ${params.name},\n\nUn compte ${params.roleLabel} vient d'être créé pour vous sur HYPERION.\n\nPour définir votre mot de passe et accéder à votre compte, suivez ce lien (valable 72h) :\n${params.setPasswordUrl}`,
+  });
+}
+
 export async function sendContactRequestNotification(
   to: string,
   params: { clientName: string; reference: string; besoin: string }

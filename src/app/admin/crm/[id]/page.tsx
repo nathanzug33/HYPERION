@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { ROLES, STATUT_ENTREPRISE_LABELS, canReassignReferent } from "@/lib/constants";
 import { canAccessEntreprise } from "@/lib/crm-access";
+import { computeMatchScore } from "@/lib/matching";
 import EntrepriseEditForm from "./entreprise-edit-form";
 import EntrepriseInfoModal from "./entreprise-info-modal";
 import ContactsSection from "./contacts-section";
+import MatchBadges from "@/components/MatchBadges";
 import { deleteEntrepriseAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +78,10 @@ export default async function EntrepriseDetailPage({
             id: true,
             referenceAnonyme: true,
             intitulePoste: true,
+            villeLat: true,
+            villeLng: true,
+            rayonKm: true,
+            disponibilite: true,
             secteurs: { select: { secteurId: true } },
             expertises: { select: { expertiseId: true } },
           },
@@ -83,14 +89,23 @@ export default async function EntrepriseDetailPage({
       : [];
 
   const suggestionsAvecScore = suggestions
-    .map((c) => {
-      const secteursMatch = c.secteurs.filter((s) => secteurRechercheIds.includes(s.secteurId)).length;
-      const expertisesMatch = c.expertises.filter((e) =>
-        expertiseRechercheIds.includes(e.expertiseId)
-      ).length;
-      return { ...c, score: secteursMatch + expertisesMatch };
-    })
-    .sort((a, b) => b.score - a.score)
+    .map((c) => ({
+      id: c.id,
+      referenceAnonyme: c.referenceAnonyme,
+      intitulePoste: c.intitulePoste,
+      match: computeMatchScore({
+        candidatSecteurIds: c.secteurs.map((s) => s.secteurId),
+        candidatExpertiseIds: c.expertises.map((e) => e.expertiseId),
+        candidatVilleLat: c.villeLat,
+        candidatVilleLng: c.villeLng,
+        candidatRayonKm: c.rayonKm,
+        candidatDisponibilite: c.disponibilite,
+        entrepriseSecteurIds: secteurRechercheIds,
+        entrepriseExpertiseIds: expertiseRechercheIds,
+        entrepriseVille: entreprise.ville,
+      }),
+    }))
+    .sort((a, b) => b.match.score - a.match.score)
     .slice(0, 8);
 
   return (
@@ -170,15 +185,13 @@ export default async function EntrepriseDetailPage({
               <li key={c.id}>
                 <Link
                   href={`/admin/consultants/${c.id}`}
-                  className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-sm hover:border-brand-blue-light hover:bg-brand-blue-bg-soft"
+                  className="flex flex-col gap-1.5 rounded-lg border border-slate-100 px-3 py-2 text-sm hover:border-brand-blue-light hover:bg-brand-blue-bg-soft"
                 >
                   <span>
                     <span className="font-mono text-xs text-brand-gray">{c.referenceAnonyme}</span>
                     {c.intitulePoste && <span className="ml-2 text-brand-body">{c.intitulePoste}</span>}
                   </span>
-                  <span className="rounded-full bg-brand-blue-bg px-2 py-0.5 text-[10px] font-medium text-brand-blue-dark">
-                    {c.score} correspondance{c.score > 1 ? "s" : ""}
-                  </span>
+                  <MatchBadges match={c.match} />
                 </Link>
               </li>
             ))}

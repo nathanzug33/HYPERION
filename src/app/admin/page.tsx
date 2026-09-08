@@ -5,6 +5,9 @@ import {
   FICHE_FRAICHEUR_SEUIL_JOURS,
   CONTACT_REQUEST_STATUS,
   STATUT_PUBLICATION,
+  STATUT_ENTREPRISE_LABELS,
+  ROLES,
+  canReassignReferent,
 } from "@/lib/constants";
 import { consultantVisibilityWhere } from "@/lib/consultant-access";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
@@ -133,6 +136,47 @@ export default async function AdminDashboardPage({
       where: { ...entrepriseFilter, createdAt: { gte: periode.debut, lte: periode.fin } },
     }),
   ]);
+
+  const pipelineParStatut = await prisma.entreprise.groupBy({
+    by: ["statutCommercial"],
+    where: entrepriseFilter,
+    _count: { _all: true },
+  });
+
+  const peutVoirActivteParBm = canReassignReferent(session.user);
+  const activiteParBm = peutVoirActivteParBm
+    ? await (async () => {
+        const bms = await prisma.user.findMany({
+          where: { role: ROLES.BM, active: true },
+          orderBy: { name: "asc" },
+        });
+        const [entreprisesParBm, candidatsParBm, suivisParBmPeriode] = await Promise.all([
+          prisma.entreprise.groupBy({ by: ["businessManagerId"], _count: { _all: true } }),
+          prisma.consultant.groupBy({ by: ["businessManagerId"], _count: { _all: true } }),
+          prisma.suiviCommercial.groupBy({
+            by: ["createdById", "type"],
+            where: { ...periodeCrmDate, type: { in: ["RDV", "PROPOSITION_ENVOYEE", "CONTRAT_SIGNE"] } },
+            _count: { _all: true },
+          }),
+        ]);
+        const entMap = new Map(entreprisesParBm.map((e) => [e.businessManagerId, e._count._all]));
+        const candMap = new Map(candidatsParBm.map((c) => [c.businessManagerId, c._count._all]));
+        return bms.map((bm) => {
+          const suivisBm = suivisParBmPeriode.filter((s) => s.createdById === bm.id);
+          const countType = (type: string) =>
+            suivisBm.find((s) => s.type === type)?._count._all ?? 0;
+          return {
+            id: bm.id,
+            name: bm.name,
+            entreprises: entMap.get(bm.id) ?? 0,
+            candidats: candMap.get(bm.id) ?? 0,
+            rdv: countType("RDV"),
+            propositions: countType("PROPOSITION_ENVOYEE"),
+            contrats: countType("CONTRAT_SIGNE"),
+          };
+        });
+      })()
+    : [];
 
   const taskCounts = await getTaskCounts(session.user);
   const now = new Date();
@@ -415,6 +459,15 @@ export default async function AdminDashboardPage({
           </div>
         </div>
 
+        {pipelineParStatut.length > 0 && (
+          <div className="card p-5">
+            <h3 className="mb-3 text-sm font-semibold text-brand-ink">
+              Pipeline commercial — répartition par statut
+            </h3>
+            <PipelineBreakdown data={pipelineParStatut} total={entreprisesTotal} />
+          </div>
+        )}
+
         <div>
           <p className="mb-2 text-xs font-medium text-brand-gray">
             Activité — {periode.label}
@@ -500,7 +553,84 @@ export default async function AdminDashboardPage({
             </ul>
           )}
         </section>
+
+        {peutVoirActivteParBm && activiteParBm.length > 0 && (
+          <section className="card p-5">
+            <h3 className="text-sm font-semibold text-brand-ink mb-1">
+              Activité par business manager
+            </h3>
+            <p className="mb-3 text-xs text-brand-gray">
+              Vivier (à date) et actions commerciales — {periode.label}.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
+                  <tr>
+                    <th className="py-2 pr-3">BM</th>
+                    <th className="py-2 pr-3">Candidats gérés</th>
+                    <th className="py-2 pr-3">Entreprises référentes</th>
+                    <th className="py-2 pr-3">RDV</th>
+                    <th className="py-2 pr-3">Propositions</th>
+                    <th className="py-2 pr-3">Contrats signés</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {activiteParBm.map((bm) => (
+                    <tr key={bm.id}>
+                      <td className="py-2 pr-3 font-medium text-brand-ink">{bm.name}</td>
+                      <td className="py-2 pr-3 text-brand-body">{bm.candidats}</td>
+                      <td className="py-2 pr-3 text-brand-body">{bm.entreprises}</td>
+                      <td className="py-2 pr-3 text-brand-body">{bm.rdv}</td>
+                      <td className="py-2 pr-3 text-brand-body">{bm.propositions}</td>
+                      <td className="py-2 pr-3 text-brand-body">{bm.contrats}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
       </section>
+    </div>
+  );
+}
+
+function PipelineBreakdown({
+  data,
+  total,
+}: {
+  data: { statutCommercial: string; _count: { _all: number } }[];
+  total: number;
+}) {
+  const styles: Record<string, string> = {
+    PROSPECT: "bg-slate-300",
+    EN_COURS: "bg-brand-blue",
+    CLIENT: "bg-brand-green",
+    PERDU: "bg-red-300",
+  };
+  return (
+    <div className="space-y-2">
+      {data.map((row) => {
+        const pct = total > 0 ? Math.round((row._count._all / total) * 100) : 0;
+        return (
+          <div key={row.statutCommercial} className="flex items-center gap-3 text-sm">
+            <span className="w-32 shrink-0 text-brand-body">
+              {STATUT_ENTREPRISE_LABELS[
+                row.statutCommercial as keyof typeof STATUT_ENTREPRISE_LABELS
+              ] ?? row.statutCommercial}
+            </span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className={`h-full rounded-full ${styles[row.statutCommercial] ?? "bg-slate-300"}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="w-16 shrink-0 text-right text-xs text-brand-gray">
+              {row._count._all} ({pct}%)
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

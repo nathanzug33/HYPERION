@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { STATUT_ENTREPRISE_LABELS } from "@/lib/constants";
+import { ROLES, STATUT_ENTREPRISE_LABELS, canReassignReferent } from "@/lib/constants";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import type { Prisma } from "@prisma/client";
 
@@ -10,15 +10,18 @@ export const dynamic = "force-dynamic";
 export default async function CrmListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; ville?: string; businessManagerId?: string }>;
 }) {
   const session = await requireStaff();
-  const { q, statut } = await searchParams;
+  const { q, statut, ville, businessManagerId } = await searchParams;
+  const peutFiltrerParBm = canReassignReferent(session.user);
 
   const where: Prisma.EntrepriseWhereInput = {
     AND: [
       entrepriseVisibilityWhere(session.user),
       statut ? { statutCommercial: statut } : {},
+      ville ? { ville: { contains: ville } } : {},
+      peutFiltrerParBm && businessManagerId ? { businessManagerId } : {},
       q
         ? {
             OR: [
@@ -35,14 +38,19 @@ export default async function CrmListPage({
     ],
   };
 
-  const entreprises = await prisma.entreprise.findMany({
-    where,
-    orderBy: { updatedAt: "desc" },
-    include: {
-      businessManager: true,
-      _count: { select: { contacts: true } },
-    },
-  });
+  const [entreprises, bms] = await Promise.all([
+    prisma.entreprise.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      include: {
+        businessManager: true,
+        _count: { select: { contacts: true } },
+      },
+    }),
+    peutFiltrerParBm
+      ? prisma.user.findMany({ where: { role: ROLES.BM, active: true }, orderBy: { name: "asc" } })
+      : Promise.resolve([]),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -56,6 +64,11 @@ export default async function CrmListPage({
           </p>
         </div>
         <div className="flex gap-2">
+          {/* Route Handler (téléchargement CSV), pas une page : <a> volontaire pour forcer une navigation complète. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/admin/crm/export/pipeline" className="btn btn-secondary">
+            ⬇️ Export CSV
+          </a>
           <Link href="/admin/crm/nouvelle" className="btn btn-primary">
             + Ajouter une entreprise
           </Link>
@@ -68,7 +81,14 @@ export default async function CrmListPage({
           name="q"
           defaultValue={q}
           placeholder="Rechercher (entreprise, secteur, ville, contact…)"
-          className="input w-72"
+          className="input w-64"
+        />
+        <input
+          type="text"
+          name="ville"
+          defaultValue={ville}
+          placeholder="Ville"
+          className="input w-36"
         />
         <select name="statut" defaultValue={statut ?? ""} className="input w-auto">
           <option value="">Tous les statuts</option>
@@ -78,6 +98,16 @@ export default async function CrmListPage({
             </option>
           ))}
         </select>
+        {peutFiltrerParBm && (
+          <select name="businessManagerId" defaultValue={businessManagerId ?? ""} className="input w-auto">
+            <option value="">Tous les BM référents</option>
+            {bms.map((bm) => (
+              <option key={bm.id} value={bm.id}>
+                {bm.name}
+              </option>
+            ))}
+          </select>
+        )}
         <button type="submit" className="btn btn-secondary">
           Filtrer
         </button>
