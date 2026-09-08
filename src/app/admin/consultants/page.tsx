@@ -60,6 +60,9 @@ export default async function ConsultantsListPage({
           </p>
         </div>
         <div className="flex gap-2">
+          <Link href="/admin/consultants/recherche" className="btn btn-secondary">
+            🔍 Recherche avancée
+          </Link>
           <Link href="/admin/consultants/nouveau" className="btn btn-secondary">
             + Ajouter un candidat
           </Link>

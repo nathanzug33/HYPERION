@@ -1,6 +1,7 @@
 import { requireStaff } from "@/lib/guards";
 import LogoutButton from "@/components/LogoutButton";
 import NavLink from "@/components/NavLink";
+import NavDropdown from "@/components/NavDropdown";
 import BrandMark from "@/components/BrandMark";
 
 export default async function AdminLayout({
@@ -11,9 +12,20 @@ export default async function AdminLayout({
   const session = await requireStaff();
   const isAdmin = session.user.role === "ADMIN";
 
+  const atsItems = [
+    {
+      href: "/admin/consultants",
+      label: "Tous les candidats",
+      description: "Liste du vivier, création manuelle ou par IA",
+    },
+    {
+      href: "/admin/consultants/recherche",
+      label: "Recherche avancée",
+      description: "Filtrer par compétences, mobilité, séniorité…",
+    },
+  ];
+
   const links = [
-    { href: "/admin", label: "Tableau de bord" },
-    { href: "/admin/consultants", label: "Candidats (ATS)" },
     { href: "/admin/demandes", label: "Demandes" },
     ...(isAdmin
       ? [
@@ -48,8 +60,12 @@ export default async function AdminLayout({
           </div>
 
           <nav className="flex flex-1 flex-wrap items-center gap-1 pt-1">
+            <NavLink href="/admin" exact>
+              Tableau de bord
+            </NavLink>
+            <NavDropdown label="ATS" items={atsItems} />
             {links.map((l) => (
-              <NavLink key={l.href} href={l.href} exact={l.href === "/admin"}>
+              <NavLink key={l.href} href={l.href}>
                 {l.label}
               </NavLink>
             ))}
