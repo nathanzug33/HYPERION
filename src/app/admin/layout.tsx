@@ -14,7 +14,7 @@ export default async function AdminLayout({
   const links = [
     { href: "/admin", label: "Tableau de bord" },
     { href: "/admin/consultants", label: "Dossiers de compétences" },
-    { href: "/admin/demandes", label: "Demandes de contact" },
+    { href: "/admin/demandes", label: "Demandes" },
     ...(isAdmin
       ? [
           { href: "/admin/referentiels", label: "Référentiels" },

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff, requireAdmin } from "@/lib/guards";
 import { generateNextReference } from "@/lib/reference-generator";
 import { COMPETENCE_CATEGORIES, ROLES, STATUT_PUBLICATION } from "@/lib/constants";
+import { findVille } from "@/lib/villes-france";
 
 function getMulti(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
@@ -21,6 +22,19 @@ function computeRetentionDate(dateCollecte: Date, dureeMois: number): Date {
   const d = new Date(dateCollecte);
   d.setMonth(d.getMonth() + dureeMois);
   return d;
+}
+
+/** Résout une ville saisie librement en coordonnées connues (référentiel
+ * villes-france) pour activer la recherche « ville + rayon » côté client.
+ * Ville non reconnue : conservée telle quelle en texte, sans coordonnées. */
+function resolveVille(saisie: string) {
+  const ville = saisie.trim() || null;
+  const ref = ville ? findVille(ville) : null;
+  return {
+    villeRattachement: ville,
+    villeLat: ref?.lat ?? null,
+    villeLng: ref?.lng ?? null,
+  };
 }
 
 async function assertOwnership(consultantId: string) {
@@ -123,8 +137,7 @@ export async function updateConsultantAction(formData: FormData) {
     typeContrat: String(formData.get("typeContrat") ?? "") || null,
     rayonKm: formData.get("rayonKm") ? Number(formData.get("rayonKm")) : null,
     ouvertGrandDeplacement: formData.get("ouvertGrandDeplacement") === "on",
-    villeRattachementZoneLarge:
-      String(formData.get("villeRattachementZoneLarge") ?? "") || null,
+    ...resolveVille(String(formData.get("villeRattachement") ?? "")),
   };
 
   const secteurIds = getMulti(formData, "secteurIds");

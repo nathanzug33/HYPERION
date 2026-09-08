@@ -95,6 +95,16 @@ export const CONTACT_REQUEST_STATUS_LABELS: Record<
   SANS_SUITE: "Sans suite",
 };
 
+// Durées estimées proposées pour une demande de besoin (§ espace client).
+export const DUREE_ESTIMEE_OPTIONS = [
+  "Moins d'1 mois",
+  "1 à 3 mois",
+  "3 à 6 mois",
+  "6 à 12 mois",
+  "Plus d'1 an",
+  "Indéterminée",
+] as const;
+
 // Niveaux 1 (notions) à 5 (expert) — gabarit HYPERION (compétences & langues).
 export const NIVEAU_LABELS: Record<number, string> = {
   1: "Notions",

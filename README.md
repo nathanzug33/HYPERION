@@ -61,16 +61,26 @@ Application sur http://localhost:3000.
   fraîcheur (`FICHE_FRAICHEUR_SEUIL_JOURS`), **aperçu anonymisé en direct**
   avant publication (panneau latéral utilisant le même composant que la vue
   client), garde-fous de publication (champs obligatoires + consentements).
-- **§5.3/§7 Bibliothèque client** — `src/app/bibliotheque` : cartes,
-  recherche plein texte, filtres combinables (ET entre catégories, OU au
-  sein d'une catégorie), tri, message si aucun résultat.
+- **§5.3/§7 Bibliothèque client** — `src/app/bibliotheque` : espace client
+  complet avec tableau de bord (`/bibliotheque`), recherche
+  (`/bibliotheque/dossiers` — cartes, recherche plein texte, filtres
+  combinables, **recherche par ville + rayon en km**, tri, message si aucun
+  résultat), fiche détail (`/bibliotheque/dossiers/[reference]`), demandes
+  (`/bibliotheque/demandes`) et profil (`/bibliotheque/profil`) — voir
+  « Espace client » plus bas.
 - **§5.4 Demande de contact** — `src/components/consultant/ContactRequestButton.tsx`
   + `src/app/bibliotheque/actions.ts` : formulaire, enregistrement,
-  notification au BM référent.
+  notification au BM référent. Complétée par une **demande de besoin libre**
+  (sans profil ciblé) — voir plus bas.
 - **§5.5 Journalisation** — `LoginLog`, `ConsultationLog`, `ContactRequest`
   + pages `src/app/admin/journaux` avec export CSV.
-- **§6.3 Mobilité** — modèle dédié (type, zones, rayon, grand déplacement,
-  zone de rattachement large — jamais l'adresse précise).
+- **§6.3 Mobilité** — type de mobilité, zones géographiques (large), rayon
+  accepté, grand déplacement, et une **ville de rattachement précise**
+  (`Consultant.villeRattachement` + coordonnées résolues automatiquement
+  via `src/lib/villes-france.ts`) — précision « ville », jamais l'adresse
+  exacte, mais suffisante pour un vrai filtre « ville + rayon » côté client
+  (les zones larges type « Île-de-France » restent disponibles en filtre
+  complémentaire).
 - **§7 Référentiels** — Secteur, Expertise, Séniorité, TypeMobilité,
   ZoneGéographique, Compétence, Langue : paramétrables par l'admin
   (`src/app/admin/referentiels`), jamais codés en dur dans l'UI.
@@ -139,6 +149,40 @@ exigent un en-tête supplémentaire. Deux solutions :
 - **Alternative** : renseignez `ANTHROPIC_WORKSPACE_ID` dans `.env` avec
   l'identifiant du workspace à utiliser (la clé existante fonctionne alors
   telle quelle).
+
+## Espace client
+
+Le portail client (`src/app/bibliotheque`) va au-delà de la simple
+consultation de fiches :
+
+- **Tableau de bord** (`/bibliotheque`) — statistiques personnelles
+  (dossiers consultés, demandes envoyées, demandes en cours, profils
+  disponibles dans la bibliothèque), dossiers consultés récemment et
+  demandes récentes avec leur statut. Un compte BM/admin qui prévisualise
+  la bibliothèque est redirigé directement vers la recherche (ce tableau de
+  bord n'a de sens que pour un compte client).
+- **Recherche** (`/bibliotheque/dossiers`) — filtres existants (secteur,
+  expertise, séniorité, mobilité, disponibilité) **plus une recherche par
+  ville + rayon en km** : le client saisit une ville (autocomplétion sur le
+  référentiel `src/lib/villes-france.ts`) et un rayon (25 à 300 km), et
+  seuls les profils dont la ville de rattachement est à distance calculée
+  (formule de haversine, `src/lib/villes-france.ts`) apparaissent — bien
+  plus précis qu'un simple filtre par région (« Île-de-France » reste
+  disponible en complément, pour les cas où aucune ville précise n'est
+  renseignée).
+- **Demandes** (`/bibliotheque/demandes`) — historique fusionné des
+  demandes envoyées sur un profil précis (`ContactRequest`) et des
+  **demandes de besoin libres** (`DemandeBesoin`, `/bibliotheque/demandes/nouvelle`) :
+  poste recherché, descriptif, séniorité souhaitée, TJM cible, localisation,
+  durée estimée — pour les cas où le client n'a pas encore de profil précis
+  en tête. Non rattachées à un business manager référent (aucun consultant
+  ciblé), ces demandes sont visibles par tout le back-office
+  (`/admin/demandes`, section dédiée) jusqu'à ce qu'un profil soit
+  identifié.
+- **Profil** (`/bibliotheque/profil`) — le client peut renseigner/modifier
+  lui-même son poste et son téléphone (nom, email et société restent
+  gérés par HYPERION pour garantir la fiabilité des accès) : la fiabilité
+  de ces coordonnées facilite le recontact côté business manager.
 
 ## Export Word (.docx) du dossier
 

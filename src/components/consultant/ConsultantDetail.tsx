@@ -204,8 +204,8 @@ export default function ConsultantDetail({
           </div>
           <p className="text-sm text-brand-body">
             {zones.length > 0 && `Zones : ${zones.join(", ")}. `}
-            {consultant.villeRattachementZoneLarge &&
-              `Rattachement : ${consultant.villeRattachementZoneLarge}. `}
+            {consultant.villeRattachement &&
+              `Rattachement : ${consultant.villeRattachement}. `}
             {consultant.rayonKm && `Rayon accepté : jusqu'à ${consultant.rayonKm} km. `}
             {consultant.ouvertGrandDeplacement &&
               "Ouvert aux déplacements avec découchés."}

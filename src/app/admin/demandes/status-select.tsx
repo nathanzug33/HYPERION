@@ -2,18 +2,21 @@
 
 import { useRef } from "react";
 import { CONTACT_REQUEST_STATUS_LABELS } from "@/lib/constants";
-import { updateContactRequestStatus } from "./actions";
+import { updateContactRequestStatus, updateDemandeBesoinStatus } from "./actions";
 
 export default function StatusSelect({
   id,
   status,
+  kind = "profil",
 }: {
   id: string;
   status: string;
+  kind?: "profil" | "besoin";
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const action = kind === "besoin" ? updateDemandeBesoinStatus : updateContactRequestStatus;
   return (
-    <form ref={formRef} action={updateContactRequestStatus}>
+    <form ref={formRef} action={action}>
       <input type="hidden" name="id" value={id} />
       <select
         name="status"

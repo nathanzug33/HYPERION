@@ -35,6 +35,10 @@ model User {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
+  // Renseigné uniquement pour les comptes CLIENT (auto-déclaratif, page profil).
+  poste     String?
+  telephone String?
+
   // Renseigné uniquement pour les comptes CLIENT.
   clientOrganizationId String?
   clientOrganization    ClientOrganization? @relation(fields: [clientOrganizationId], references: [id])
@@ -42,6 +46,7 @@ model User {
   consultantsSuivis    Consultant[]      @relation("BusinessManagerReferent")
   contactRequests      ContactRequest[]  @relation("ClientDemandeur")
   contactRequestsRecues ContactRequest[] @relation("BmNotifie")
+  demandesBesoin       DemandeBesoin[]   @relation("ClientDemandeurBesoin")
   loginLogs            LoginLog[]
   consultationLogs     ConsultationLog[]
   resetTokens          PasswordResetToken[]
@@ -185,7 +190,14 @@ model Consultant {
   // Mobilité (§6.3)
   rayonKm                Int?
   ouvertGrandDeplacement Boolean  @default(false)
-  villeRattachementZoneLarge String? // ex. "Île-de-France" — jamais l'adresse précise
+  // Ville de rattachement (précision "ville", jamais l'adresse précise —
+  // cohérent avec l'anonymisation : une ville ne trahit pas l'identité).
+  // villeLat/villeLng sont résolues automatiquement depuis ce nom (référentiel
+  // src/lib/villes-france.ts) pour permettre la recherche "ville + rayon"
+  // côté bibliothèque client ; restent nulles si la ville n'est pas reconnue.
+  villeRattachement      String?
+  villeLat               Float?
+  villeLng               Float?
 
   // Publication (§5.2 / §10)
   statutPublication      String   @default("BROUILLON") // BROUILLON | PUBLIEE | DEPUBLIEE | ARCHIVEE
@@ -362,6 +374,34 @@ model ContactRequest {
   updatedAt DateTime @updatedAt
 
   @@index([consultantId])
+  @@index([clientUserId])
+  @@index([status])
+}
+
+// Demande de besoin "à froid" : le client décrit un poste à pourvoir sans
+// viser un profil précis de la bibliothèque (à la différence de
+// ContactRequest, toujours rattachée à un Consultant). Visible par
+// l'ensemble du back-office (admin + BM) tant qu'aucun consultant/mission
+// précis n'est identifié — pas de référent naturel à la création.
+model DemandeBesoin {
+  id           String   @id @default(cuid())
+  clientUserId String
+  clientUser   User     @relation("ClientDemandeurBesoin", fields: [clientUserId], references: [id])
+
+  intitulePoste          String
+  descriptifPoste         String
+  seniorite               String?
+  tjmCibleMin              Int?
+  tjmCibleMax              Int?
+  localisation             String?
+  dateDemarrageSouhaitee   DateTime?
+  dureeEstimee             String? // ex. "3 mois", "6-12 mois", "long terme"
+
+  status String @default("NOUVELLE") // NOUVELLE | EN_COURS | TRAITEE | SANS_SUITE
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([clientUserId])
   @@index([status])
 }

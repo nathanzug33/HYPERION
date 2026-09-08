@@ -23,6 +23,7 @@ import {
   TYPE_CONTRAT_LABELS,
 } from "@/lib/constants";
 import { updateConsultantAction } from "../actions";
+import { VILLES_FRANCE } from "@/lib/villes-france";
 
 type ConsultantWithRelations = Consultant & {
   secteurs: ConsultantSecteur[];
@@ -310,12 +311,18 @@ export default function ConsultantEditForm({
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Ville / zone de rattachement (large, ex. région)">
+              <Field label="Ville de rattachement">
                 <input
-                  name="villeRattachementZoneLarge"
-                  defaultValue={consultant.villeRattachementZoneLarge ?? ""}
+                  name="villeRattachement"
+                  defaultValue={consultant.villeRattachement ?? ""}
+                  list="villes-france"
+                  placeholder="Ex. Lyon"
                   className="input"
                 />
+                <p className="mt-1 text-xs text-brand-gray">
+                  Reconnue automatiquement dans le référentiel de villes pour
+                  activer la recherche « ville + rayon » côté client.
+                </p>
               </Field>
               <Field label="Rayon accepté (km)">
                 <input
@@ -437,6 +444,12 @@ export default function ConsultantEditForm({
           );
         })}
       </fieldset>
+
+      <datalist id="villes-france">
+        {VILLES_FRANCE.map((v) => (
+          <option key={v.nom} value={v.nom} />
+        ))}
+      </datalist>
 
       <button
         type="submit"

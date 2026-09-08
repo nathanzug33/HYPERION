@@ -32,7 +32,7 @@ export default async function ConsultantDetailPage({
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <Link href="/bibliotheque" className="link-underline text-sm text-brand-gray hover:text-brand-ink">
+      <Link href="/bibliotheque/dossiers" className="link-underline text-sm text-brand-gray hover:text-brand-ink">
         ← Retour à la bibliothèque
       </Link>
 

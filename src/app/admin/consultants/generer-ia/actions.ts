@@ -9,6 +9,7 @@ import { extractPdfText } from "@/lib/pdf-text";
 import { extractDocxText } from "@/lib/docx-text";
 import { extractDocText } from "@/lib/doc-text";
 import { generateNextReference } from "@/lib/reference-generator";
+import { findVille } from "@/lib/villes-france";
 
 export type GenerateIaState = { error?: string };
 
@@ -200,7 +201,9 @@ export async function generateConsultantFromAI(
       typeContrat: generated.typeContrat,
       rayonKm: generated.rayonKm,
       ouvertGrandDeplacement: generated.ouvertGrandDeplacement,
-      villeRattachementZoneLarge: generated.villeRattachementZoneLarge,
+      villeRattachement: generated.villeRattachement,
+      villeLat: generated.villeRattachement ? findVille(generated.villeRattachement)?.lat ?? null : null,
+      villeLng: generated.villeRattachement ? findVille(generated.villeRattachement)?.lng ?? null : null,
       statutPublication: STATUT_PUBLICATION.BROUILLON,
 
       genereParIA: true,

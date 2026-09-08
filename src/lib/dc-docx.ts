@@ -324,7 +324,7 @@ function fillSimplePlaceholders(xml: string, c: DcConsultant): string {
         : `${c.anneesExperienceMin}+ ans d'expérience`
       : "";
   const compClesLabels = c.competences.filter((x) => x.estCle).map((x) => x.competence.label);
-  const mobiliteLabel = [c.typesMobilite[0]?.typeMobilite.label, c.villeRattachementZoneLarge]
+  const mobiliteLabel = [c.typesMobilite[0]?.typeMobilite.label, c.villeRattachement]
     .filter(Boolean)
     .join(" / ");
 

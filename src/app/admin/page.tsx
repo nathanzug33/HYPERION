@@ -17,7 +17,7 @@ export default async function AdminDashboardPage() {
 
   const bmFilter = isAdmin ? {} : { businessManagerId: session.user.id };
 
-  const [total, publiees, brouillons, aRafraichir, demandesNouvelles, aPurger] =
+  const [total, publiees, brouillons, aRafraichir, demandesNouvelles, demandesBesoinNouvelles, aPurger] =
     await Promise.all([
       prisma.consultant.count({ where: bmFilter }),
       prisma.consultant.count({
@@ -44,6 +44,13 @@ export default async function AdminDashboardPage() {
         orderBy: { createdAt: "desc" },
         take: 8,
         include: { consultant: true, clientUser: true },
+      }),
+      // Non rattachées à un BM référent : comptées pour tout le back-office.
+      prisma.demandeBesoin.findMany({
+        where: { status: CONTACT_REQUEST_STATUS.NOUVELLE },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        include: { clientUser: true },
       }),
       isAdmin
         ? prisma.consultant.count({
@@ -87,8 +94,8 @@ export default async function AdminDashboardPage() {
         />
         <StatCard
           label="Demandes non traitées"
-          value={demandesNouvelles.length}
-          accent={demandesNouvelles.length > 0 ? "amber" : "gray"}
+          value={demandesNouvelles.length + demandesBesoinNouvelles.length}
+          accent={demandesNouvelles.length + demandesBesoinNouvelles.length > 0 ? "amber" : "gray"}
           icon={<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v10a1.5 1.5 0 0 1-1.5 1.5H9l-4.5 3.5V17H5.5A1.5 1.5 0 0 1 4 15.5v-10Z" />}
         />
       </div>
@@ -143,15 +150,15 @@ export default async function AdminDashboardPage() {
 
         <section className="card p-5">
           <h2 className="text-sm font-semibold text-brand-ink mb-3">
-            Dernières demandes de contact non traitées
+            Dernières demandes non traitées
           </h2>
-          {demandesNouvelles.length === 0 ? (
+          {demandesNouvelles.length === 0 && demandesBesoinNouvelles.length === 0 ? (
             <p className="text-sm text-brand-gray">Aucune demande en attente.</p>
           ) : (
             <ul className="-mx-2 divide-y divide-slate-100">
               {demandesNouvelles.map((d) => (
                 <li
-                  key={d.id}
+                  key={`profil-${d.id}`}
                   className="flex items-center justify-between rounded-lg px-2 py-2.5 transition-colors hover:bg-brand-blue-bg-soft"
                 >
                   <div className="text-sm">
@@ -159,6 +166,22 @@ export default async function AdminDashboardPage() {
                       {d.consultant.referenceAnonyme}
                     </span>{" "}
                     <span className="text-brand-gray">— demandé par {d.clientUser.name}</span>
+                  </div>
+                  <Link href="/admin/demandes" className="link-underline text-sm text-brand-blue-dark">
+                    Traiter
+                  </Link>
+                </li>
+              ))}
+              {demandesBesoinNouvelles.map((d) => (
+                <li
+                  key={`besoin-${d.id}`}
+                  className="flex items-center justify-between rounded-lg px-2 py-2.5 transition-colors hover:bg-brand-blue-bg-soft"
+                >
+                  <div className="text-sm">
+                    <span className="font-medium text-brand-ink">{d.intitulePoste}</span>{" "}
+                    <span className="text-brand-gray">
+                      — besoin décrit par {d.clientUser.name}
+                    </span>
                   </div>
                   <Link href="/admin/demandes" className="link-underline text-sm text-brand-blue-dark">
                     Traiter

@@ -38,3 +38,14 @@ export async function sendContactRequestNotification(
     text: `${params.clientName} s'intéresse au profil ${params.reference}.\n\nBesoin exprimé :\n${params.besoin}\n\nConsultez le back-office pour donner suite.`,
   });
 }
+
+export async function sendDemandeBesoinNotification(
+  to: string,
+  params: { clientName: string; intitulePoste: string; descriptifPoste: string }
+) {
+  await deliver({
+    to,
+    subject: `Nouvelle demande de besoin — ${params.intitulePoste}`,
+    text: `${params.clientName} a décrit un nouveau besoin, sans profil précis en cible.\n\nPoste recherché : ${params.intitulePoste}\n\n${params.descriptifPoste}\n\nConsultez le back-office pour donner suite.`,
+  });
+}

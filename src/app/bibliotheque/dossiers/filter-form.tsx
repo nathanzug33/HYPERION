@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { DISPONIBILITE_LABELS } from "@/lib/constants";
+import { VILLES_FRANCE } from "@/lib/villes-france";
 
 type Ref = { id: string; label: string };
 
@@ -12,6 +13,7 @@ export default function FilterForm({
   seniorites,
   typesMobilite,
   zones,
+  rayons,
   defaults,
 }: {
   secteurs: Ref[];
@@ -19,6 +21,7 @@ export default function FilterForm({
   seniorites: Ref[];
   typesMobilite: Ref[];
   zones: Ref[];
+  rayons: number[];
   defaults: {
     q: string;
     secteur: string[];
@@ -28,6 +31,8 @@ export default function FilterForm({
     zone: string[];
     disponibilite: string[];
     tri: string;
+    ville: string;
+    rayon: number;
   };
 }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -46,6 +51,43 @@ export default function FilterForm({
           placeholder="Rechercher (intitulé, compétences, contexte)…"
           className="input"
         />
+      </div>
+
+      <div className="border-t border-slate-100 pt-3.5 first:border-0 first:pt-0">
+        <span className="block text-xs font-semibold uppercase tracking-wide text-brand-blue-dark mb-1.5">
+          Ville + rayon
+        </span>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            name="ville"
+            defaultValue={defaults.ville}
+            list="villes-france-recherche"
+            placeholder="Ex. Lyon"
+            className="input min-w-0 flex-1"
+          />
+          <select
+            name="rayon"
+            defaultValue={defaults.rayon}
+            onChange={submitNow}
+            className="input w-28 shrink-0"
+          >
+            {rayons.map((r) => (
+              <option key={r} value={r}>
+                {r} km
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="mt-1 text-xs text-brand-gray">
+          Plus précis que les zones ci-dessous : profils dont la ville de
+          rattachement est à moins de N km de la ville saisie.
+        </p>
+        <datalist id="villes-france-recherche">
+          {VILLES_FRANCE.map((v) => (
+            <option key={v.nom} value={v.nom} />
+          ))}
+        </datalist>
       </div>
 
       <FilterGroup
@@ -77,7 +119,7 @@ export default function FilterForm({
         onChange={submitNow}
       />
       <FilterGroup
-        title="Zone géographique"
+        title="Zone géographique (large)"
         name="zone"
         options={zones}
         selected={defaults.zone}
@@ -109,7 +151,7 @@ export default function FilterForm({
         <button type="submit" className="btn btn-primary flex-1 py-2">
           Filtrer
         </button>
-        <Link href="/bibliotheque" className="btn btn-secondary">
+        <Link href="/bibliotheque/dossiers" className="btn btn-secondary">
           Réinitialiser
         </Link>
       </div>

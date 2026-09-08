@@ -51,10 +51,12 @@ const schema = z.object({
     .describe("Valeurs EXACTES parmi le référentiel « Zones géographiques » fourni"),
   rayonKm: z.number().int().nullable(),
   ouvertGrandDeplacement: z.boolean(),
-  villeRattachementZoneLarge: z
+  villeRattachement: z
     .string()
     .nullable()
-    .describe("Zone large uniquement (ex. région), jamais une adresse précise"),
+    .describe(
+      "Ville de rattachement du consultant (ex. 'Lyon'), telle que trouvée sur le CV/transcript — jamais une adresse précise (pas de rue ni de numéro)"
+    ),
   disponibilite: z.enum(["IMMEDIATE", "SOUS_1_MOIS", "SOUS_2_MOIS", "SUR_PREAVIS"]),
   typeContrat: z.enum(["REGIE", "FORFAIT", "TEMPS_PARTAGE"]).nullable(),
   resumeContexte: z

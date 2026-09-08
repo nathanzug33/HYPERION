@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { findVille } from "../src/lib/villes-france";
 
 const prisma = new PrismaClient();
 
@@ -190,6 +191,8 @@ async function main() {
       role: "CLIENT",
       passwordHash,
       clientOrganizationId: clientOrg.id,
+      poste: "Responsable IT",
+      telephone: "06 12 34 56 78",
     },
   });
 
@@ -224,6 +227,8 @@ async function main() {
     resume: string;
     bm: string;
     langues: string[];
+    ville: string;
+    rayonKm: number;
   };
 
   const samples: Sample[] = [
@@ -245,6 +250,8 @@ async function main() {
         "Pilotage de la mise en service de lignes de production automatisées pour un grand groupe automobile ; programmation d'automates et supervision SCADA.",
       bm: "sophie.martin@societe-conseil.fr",
       langues: ["Français", "Anglais"],
+      ville: "Lyon",
+      rayonKm: 100,
     },
     {
       ref: "IT-042",
@@ -264,6 +271,8 @@ async function main() {
         "Conception de pipelines de données pour un acteur bancaire : ingestion, transformation et mise à disposition de données pour des équipes data science.",
       bm: "karim.benali@societe-conseil.fr",
       langues: ["Français", "Anglais"],
+      ville: "Paris",
+      rayonKm: 50,
     },
     {
       ref: "CLD-009",
@@ -283,6 +292,8 @@ async function main() {
         "Refonte de l'infrastructure cloud d'une plateforme e-commerce à fort trafic : industrialisation CI/CD, conteneurisation, observabilité.",
       bm: "sophie.martin@societe-conseil.fr",
       langues: ["Français", "Anglais", "Espagnol"],
+      ville: "Rennes",
+      rayonKm: 300,
     },
     {
       ref: "QA-005",
@@ -302,6 +313,8 @@ async function main() {
         "Mise en place d'une stratégie de tests automatisés pour une application e-santé réglementée (traçabilité, exigences qualité strictes).",
       bm: "karim.benali@societe-conseil.fr",
       langues: ["Français", "Anglais"],
+      ville: "Toulouse",
+      rayonKm: 50,
     },
     {
       ref: "CY-023",
@@ -321,6 +334,8 @@ async function main() {
         "Audit et durcissement de la sécurité d'infrastructures critiques pour un opérateur d'énergie ; gestion de crise et sensibilisation des équipes.",
       bm: "sophie.martin@societe-conseil.fr",
       langues: ["Français", "Anglais", "Allemand"],
+      ville: "Marseille",
+      rayonKm: 150,
     },
   ];
 
@@ -348,7 +363,10 @@ async function main() {
         disponibilite: s.disponibilite,
         disponibiliteConfirmeeLe: new Date(),
         typeContrat: "REGIE",
-        villeRattachementZoneLarge: s.zones[0],
+        villeRattachement: s.ville,
+        villeLat: findVille(s.ville)?.lat ?? null,
+        villeLng: findVille(s.ville)?.lng ?? null,
+        rayonKm: s.rayonKm,
         statutPublication: "PUBLIEE",
         datePublication: new Date(),
         secteurs: {
@@ -435,6 +453,50 @@ async function main() {
         ],
       });
     }
+  }
+
+  console.log("Seed — demandes du client de démonstration…");
+
+  const consultantCyberSecu = await prisma.consultant.findUnique({
+    where: { referenceAnonyme: "CY-023" },
+  });
+  if (consultantCyberSecu) {
+    const existingContactRequest = await prisma.contactRequest.findFirst({
+      where: { clientUserId: clientUser.id, consultantId: consultantCyberSecu.id },
+    });
+    if (!existingContactRequest) {
+      await prisma.contactRequest.create({
+        data: {
+          consultantId: consultantCyberSecu.id,
+          clientUserId: clientUser.id,
+          besoin:
+            "Nous cherchons un renfort pour un audit de sécurité de nos infrastructures cloud, démarrage rapide souhaité.",
+          localisation: "Paris, hybride",
+          status: "EN_COURS",
+          bmNotifieId: consultantCyberSecu.businessManagerId,
+        },
+      });
+    }
+  }
+
+  const existingDemandeBesoin = await prisma.demandeBesoin.findFirst({
+    where: { clientUserId: clientUser.id, intitulePoste: "Chef de projet SI" },
+  });
+  if (!existingDemandeBesoin) {
+    await prisma.demandeBesoin.create({
+      data: {
+        clientUserId: clientUser.id,
+        intitulePoste: "Chef de projet SI",
+        descriptifPoste:
+          "Pilotage d'un programme de refonte du SI RH sur 8 mois, coordination de 3 équipes internes et de prestataires externes.",
+        seniorite: "Senior",
+        tjmCibleMin: 550,
+        tjmCibleMax: 650,
+        localisation: "Lyon",
+        dureeEstimee: "6 à 12 mois",
+        status: "NOUVELLE",
+      },
+    });
   }
 
   console.log("\nComptes de démonstration (mot de passe : ChangeMe!2024) :");
