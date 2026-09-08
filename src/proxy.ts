@@ -27,12 +27,13 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/bibliotheque", req.nextUrl.origin));
   }
 
-  if (pathname.startsWith("/bibliotheque") && user.role === "CLIENT") {
-    // ok
-  } else if (
+  // Le staff (admin, directeur de BU, BM) peut prévisualiser l'espace
+  // client ; seul CLIENT y a un accès natif.
+  const STAFF_ROLES = ["ADMIN", "DIRECTEUR_BU", "BM"];
+  if (
     pathname.startsWith("/bibliotheque") &&
-    user.role !== "ADMIN" &&
-    user.role !== "BM"
+    user.role !== "CLIENT" &&
+    !STAFF_ROLES.includes(user.role as string)
   ) {
     return NextResponse.redirect(new URL("/connexion", req.nextUrl.origin));
   }

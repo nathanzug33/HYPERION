@@ -23,17 +23,21 @@ datasource db {
 // Stocké en String (pas d'enum natif SQLite) ; les valeurs valides sont
 // centralisées dans src/lib/constants.ts.
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
-  passwordHash     String
-  name             String
-  role             String // ADMIN | DIRECTEUR_BU | BM | CLIENT
-  active           Boolean   @default(true)
-  twoFactorEnabled Boolean   @default(false)
-  twoFactorSecret  String?
-  lastLoginAt      DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  passwordHash        String
+  name                String
+  role                String // ADMIN | DIRECTEUR_BU | BM | CLIENT
+  active              Boolean   @default(true)
+  twoFactorEnabled    Boolean   @default(false)
+  twoFactorSecret     String?
+  lastLoginAt         DateTime?
+  // Verrouillage temporaire après plusieurs échecs de connexion consécutifs
+  // (protection brute-force, § MAX_FAILED_LOGIN_ATTEMPTS / LOCKOUT_DURATION_MINUTES).
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   // Renseigné uniquement pour les comptes CLIENT (auto-déclaratif, page profil).
   poste     String?
@@ -43,16 +47,18 @@ model User {
   clientOrganizationId String?
   clientOrganization   ClientOrganization? @relation(fields: [clientOrganizationId], references: [id])
 
-  consultantsSuivis      Consultant[]         @relation("BusinessManagerReferent")
-  contactRequests        ContactRequest[]     @relation("ClientDemandeur")
-  contactRequestsRecues  ContactRequest[]     @relation("BmNotifie")
-  demandesBesoin         DemandeBesoin[]      @relation("ClientDemandeurBesoin")
-  suivisCrees            SuiviCandidat[]
-  entreprisesSuivies     Entreprise[]         @relation("BusinessManagerReferentEntreprise")
-  suivisCommerciauxCrees SuiviCommercial[]    @relation("SuivisCommerciauxCrees")
-  loginLogs              LoginLog[]
-  consultationLogs       ConsultationLog[]
-  resetTokens            PasswordResetToken[]
+  consultantsSuivis        Consultant[]         @relation("BusinessManagerReferent")
+  contactRequests          ContactRequest[]     @relation("ClientDemandeur")
+  contactRequestsRecues    ContactRequest[]     @relation("BmNotifie")
+  contactRequestsRepondues ContactRequest[]     @relation("DemandeRepondue")
+  demandesBesoin           DemandeBesoin[]      @relation("ClientDemandeurBesoin")
+  demandesBesoinRepondues  DemandeBesoin[]      @relation("DemandeBesoinRepondue")
+  suivisCrees              SuiviCandidat[]
+  entreprisesSuivies       Entreprise[]         @relation("BusinessManagerReferentEntreprise")
+  suivisCommerciauxCrees   SuiviCommercial[]    @relation("SuivisCommerciauxCrees")
+  loginLogs                LoginLog[]
+  consultationLogs         ConsultationLog[]
+  resetTokens              PasswordResetToken[]
 
   @@index([role])
   @@index([clientOrganizationId])
@@ -534,6 +540,13 @@ model ContactRequest {
   bmNotifieId String?
   bmNotifie   User?   @relation("BmNotifie", fields: [bmNotifieId], references: [id])
 
+  // Réponse laissée par le back-office — visible par le client sur sa fiche
+  // de demande (§ boucle de suivi, distincte de la trace CRM côté prospects).
+  reponseNote  String?
+  reponduLe    DateTime?
+  reponduParId String?
+  reponduPar   User?     @relation("DemandeRepondue", fields: [reponduParId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -562,6 +575,11 @@ model DemandeBesoin {
   dureeEstimee           String? // ex. "3 mois", "6-12 mois", "long terme"
 
   status String @default("NOUVELLE") // NOUVELLE | EN_COURS | TRAITEE | SANS_SUITE
+
+  reponseNote  String?
+  reponduLe    DateTime?
+  reponduParId String?
+  reponduPar   User?     @relation("DemandeBesoinRepondue", fields: [reponduParId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireStaff } from "@/lib/guards";
 import { ROLE_LABELS, canReassignReferent } from "@/lib/constants";
 import { getTaskCounts } from "@/lib/task-counts";
@@ -89,7 +90,11 @@ export default async function AdminLayout({
           </nav>
 
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 sm:flex">
+            <Link
+              href="/admin/profil"
+              className="hidden items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 transition-colors hover:bg-white/20 sm:flex"
+              title="Mon compte"
+            >
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-blue-light text-[11px] font-semibold text-brand-ink">
                 {initials}
               </span>
@@ -99,7 +104,7 @@ export default async function AdminLayout({
                   {ROLE_LABELS[session.user.role as keyof typeof ROLE_LABELS] ?? session.user.role}
                 </div>
               </div>
-            </div>
+            </Link>
             <LogoutButton dark />
           </div>
         </div>

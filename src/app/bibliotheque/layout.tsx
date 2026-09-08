@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/guards";
-import { ROLES } from "@/lib/constants";
+import { ROLES, ROLE_LABELS } from "@/lib/constants";
 import LogoutButton from "@/components/LogoutButton";
 import BrandMark from "@/components/BrandMark";
 import NavLink from "@/components/NavLink";
@@ -10,7 +10,12 @@ export default async function BibliothequeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await requireRole(ROLES.CLIENT, ROLES.ADMIN, ROLES.BM);
+  const session = await requireRole(
+    ROLES.CLIENT,
+    ROLES.ADMIN,
+    ROLES.DIRECTEUR_BU,
+    ROLES.BM
+  );
   const isClient = session.user.role === ROLES.CLIENT;
   const isPreview = !isClient;
 
@@ -50,7 +55,8 @@ export default async function BibliothequeLayout({
           <div className="flex items-center gap-3">
             {isPreview && (
               <span className="hidden rounded-full bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-200 ring-1 ring-amber-300/30 sm:inline-block">
-                Aperçu vue client (compte {session.user.role === ROLES.ADMIN ? "admin" : "BM"})
+                Aperçu vue client (compte{" "}
+                {ROLE_LABELS[session.user.role as keyof typeof ROLE_LABELS] ?? session.user.role})
               </span>
             )}
             <div className="hidden text-right text-xs leading-tight text-white/70 sm:block">

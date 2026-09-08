@@ -32,6 +32,7 @@ export default async function DemandesClientPage({
     detail: string;
     status: string;
     createdAt: Date;
+    reponseNote: string | null;
   };
 
   const demandes: DemandeMerged[] = [
@@ -42,6 +43,7 @@ export default async function DemandesClientPage({
       detail: d.besoin,
       status: d.status,
       createdAt: d.createdAt,
+      reponseNote: d.reponseNote,
     })),
     ...demandesBesoin.map((d) => ({
       id: d.id,
@@ -50,6 +52,7 @@ export default async function DemandesClientPage({
       detail: d.descriptifPoste,
       status: d.status,
       createdAt: d.createdAt,
+      reponseNote: d.reponseNote,
     })),
   ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
@@ -92,6 +95,7 @@ export default async function DemandesClientPage({
                 <th className="px-4 py-3">Objet</th>
                 <th className="px-4 py-3">Détail</th>
                 <th className="px-4 py-3">Statut</th>
+                <th className="px-4 py-3">Réponse</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -111,6 +115,13 @@ export default async function DemandesClientPage({
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={d.status} />
+                  </td>
+                  <td className="px-4 py-3 max-w-sm text-brand-body">
+                    {d.reponseNote ? (
+                      <div className="line-clamp-3 whitespace-pre-line">{d.reponseNote}</div>
+                    ) : (
+                      <span className="text-brand-gray">—</span>
+                    )}
                   </td>
                 </tr>
               ))}

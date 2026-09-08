@@ -257,3 +257,8 @@ export const FICHE_FRAICHEUR_SEUIL_JOURS = Number(
 export const SESSION_IDLE_TIMEOUT_MINUTES = Number(
   process.env.SESSION_IDLE_TIMEOUT_MINUTES ?? 30
 );
+
+// Verrouillage temporaire du compte après plusieurs échecs de connexion
+// consécutifs (protection brute-force sur le mot de passe).
+export const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+export const LOCKOUT_DURATION_MINUTES = 15;

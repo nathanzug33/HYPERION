@@ -7,7 +7,12 @@ import { ROLES, CONTACT_REQUEST_STATUS_LABELS } from "@/lib/constants";
 export const dynamic = "force-dynamic";
 
 export default async function EspaceClientDashboard() {
-  const session = await requireRole(ROLES.CLIENT, ROLES.ADMIN, ROLES.BM);
+  const session = await requireRole(
+    ROLES.CLIENT,
+    ROLES.ADMIN,
+    ROLES.DIRECTEUR_BU,
+    ROLES.BM
+  );
 
   // Le tableau de bord (stats personnelles) n'a de sens que pour un compte
   // client — un admin/BM qui prévisualise la bibliothèque va directement à

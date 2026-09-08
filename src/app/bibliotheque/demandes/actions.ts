@@ -48,7 +48,7 @@ export async function submitDemandeBesoin(
   });
 
   const staff = await prisma.user.findMany({
-    where: { active: true, role: { in: [ROLES.ADMIN, ROLES.BM] } },
+    where: { active: true, role: { in: [ROLES.ADMIN, ROLES.DIRECTEUR_BU, ROLES.BM] } },
     select: { email: true },
   });
   await Promise.all(
