@@ -57,11 +57,6 @@ export default async function CrmListPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-brand-ink">CRM — Entreprises</h1>
-          <p className="mt-1 text-sm text-brand-gray">
-            Prospects et clients suivis commercialement, avec leurs
-            interlocuteurs (responsable qualité, production…) et l&apos;historique
-            d&apos;échanges.
-          </p>
         </div>
         <div className="flex gap-2">
           <Link href="/admin/crm/besoins" className="btn btn-secondary">

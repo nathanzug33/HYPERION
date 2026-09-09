@@ -28,19 +28,15 @@ export default async function NouvelleOffrePage({
         <h1 className="text-2xl font-semibold text-brand-ink">
           {besoin ? `Nouvelle offre — à partir du besoin` : "Nouvelle offre"}
         </h1>
-        <p className="mt-1 text-sm text-brand-gray">
-          {besoin ? (
-            <>
-              Pré-remplie depuis « {besoin.intitulePoste} » chez{" "}
-              <Link href={`/admin/crm/${besoin.entrepriseId}`} className="link-underline text-brand-blue-dark">
-                {besoin.entreprise.nom}
-              </Link>
-              . Un même besoin peut donner lieu à plusieurs offres (ex. une en régie, une en CDI).
-            </>
-          ) : (
-            "Offre libre, sans client identifié (sourcing proactif) — vous pourrez la relier à un besoin plus tard si besoin."
-          )}
-        </p>
+        {besoin && (
+          <p className="mt-1 text-sm text-brand-gray">
+            Pré-remplie depuis « {besoin.intitulePoste} » chez{" "}
+            <Link href={`/admin/crm/${besoin.entrepriseId}`} className="link-underline text-brand-blue-dark">
+              {besoin.entreprise.nom}
+            </Link>
+            . Un même besoin peut donner lieu à plusieurs offres (ex. une en régie, une en CDI).
+          </p>
+        )}
       </div>
 
       <form action={createOffreAction} className="card space-y-3 p-5">

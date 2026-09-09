@@ -58,10 +58,6 @@ export default async function MissionsPage({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-brand-ink">Portefeuille de missions</h1>
-          <p className="mt-1 text-sm text-brand-gray">
-            Consultants staffés en mission chez vos clients — dates, TJM et fins de mission
-            approchantes.
-          </p>
         </div>
         <Link href="/admin/missions/marge" className="btn btn-secondary">
           💶 CA &amp; Marge

@@ -52,12 +52,11 @@ export default async function ConsultantsListPage({
           <h1 className="text-2xl font-semibold text-brand-ink">
             Candidats (ATS)
           </h1>
-          <p className="mt-1 text-sm text-brand-gray">
-            Vivier commun à toutes les agences — noms et coordonnées visibles
-            ici uniquement. Un candidat devient un « dossier de compétences »
-            visible des clients une fois publié depuis sa fiche.
-            {purge && " Filtré sur les dossiers ayant dépassé leur durée de conservation RGPD."}
-          </p>
+          {purge && (
+            <p className="mt-1 text-sm text-brand-gray">
+              Filtré sur les dossiers ayant dépassé leur durée de conservation RGPD.
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <Link href="/admin/consultants/recherche" className="btn btn-secondary">

@@ -34,10 +34,6 @@ export default async function DemandesPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-brand-ink">Demandes</h1>
-        <p className="mt-1 text-sm text-brand-gray">
-          Suivi commercial des demandes générées par la bibliothèque —
-          rattachées à un profil précis ou décrites librement par le client.
-        </p>
       </div>
 
       <section className="space-y-3">

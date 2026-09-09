@@ -26,10 +26,6 @@ export default async function JournauxPage() {
         <h1 className="text-2xl font-semibold text-brand-ink">
           Journaux et traçabilité
         </h1>
-        <p className="mt-1 text-sm text-brand-gray">
-          Réservé à l&apos;administrateur. Les 50 dernières entrées sont
-          affichées ; utilisez les exports pour l&apos;historique complet.
-        </p>
       </div>
 
       <section>

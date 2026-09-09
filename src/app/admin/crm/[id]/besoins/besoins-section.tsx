@@ -33,12 +33,7 @@ export default function BesoinsSection({
 }) {
   return (
     <div className="card space-y-4 p-5">
-      <h2 className="text-sm font-semibold text-brand-ink">
-        Besoins{" "}
-        <span className="font-normal text-brand-gray">
-          (poste à pourvoir exprimé lors d&apos;un RDV) — staffez-les avec des candidats du vivier ATS
-        </span>
-      </h2>
+      <h2 className="text-sm font-semibold text-brand-ink">Besoins</h2>
 
       {besoins.length === 0 ? (
         <p className="text-xs text-brand-gray">Aucun besoin enregistré pour le moment.</p>

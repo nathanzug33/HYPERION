@@ -20,12 +20,7 @@ export default function ContactsSection({
 }) {
   return (
     <div className="card p-5 space-y-4">
-      <h2 className="text-sm font-semibold text-brand-ink">
-        Interlocuteurs{" "}
-        <span className="font-normal text-brand-gray">
-          (responsable qualité, production…) — cliquez sur un nom pour son historique
-        </span>
-      </h2>
+      <h2 className="text-sm font-semibold text-brand-ink">Interlocuteurs</h2>
 
       {contacts.length === 0 ? (
         <p className="text-xs text-brand-gray">Aucun interlocuteur enregistré pour le moment.</p>

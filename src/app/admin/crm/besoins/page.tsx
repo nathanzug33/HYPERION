@@ -51,10 +51,6 @@ export default async function BesoinsBibliothequePage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-brand-ink">Bibliothèque des besoins</h1>
-        <p className="mt-1 text-sm text-brand-gray">
-          Tous les postes à pourvoir exprimés par vos prospects/clients, tous BM confondus si vous
-          avez la vue globale.
-        </p>
       </div>
 
       <form className="card flex flex-wrap items-center gap-2 p-3">

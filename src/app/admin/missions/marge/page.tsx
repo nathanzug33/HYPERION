@@ -119,11 +119,6 @@ export default async function MargePage({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-brand-ink">CA &amp; Marge</h1>
-          <p className="mt-1 text-sm text-brand-gray">
-            Salarié (CDI/CDIC) : coût journalier = (salaire brut annuel × 1,75 + frais annuels) / 218.
-            Indépendant : coût journalier = TJM payé + frais annuels / 218. Marge journalière = TJM
-            client − coût journalier.
-          </p>
         </div>
         <Link href="/admin/missions" className="link-underline text-sm text-brand-gray hover:text-brand-ink">
           ← Portefeuille de missions

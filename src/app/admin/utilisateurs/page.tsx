@@ -24,10 +24,6 @@ export default async function UtilisateursPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-brand-ink">Utilisateurs</h1>
-        <p className="mt-1 text-sm text-brand-gray">
-          Les comptes sont créés uniquement par un administrateur — pas
-          d&apos;auto-inscription. Un accès peut être révoqué à tout moment.
-        </p>
       </div>
 
       <CreateUserForm organizations={organizations} />

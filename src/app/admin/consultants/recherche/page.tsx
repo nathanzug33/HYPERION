@@ -117,10 +117,6 @@ export default async function RechercheAvanceePage({
             <h1 className="text-2xl font-semibold text-brand-ink">
               Recherche avancée — base candidats (ATS)
             </h1>
-            <p className="mt-1 text-sm text-brand-gray">
-              Combinez les filtres pour cibler un profil dans votre vivier
-              interne, publié ou non.
-            </p>
           </div>
           <span className="rounded-full bg-brand-blue-bg px-3 py-1 text-sm font-medium text-brand-blue-dark">
             {consultants.length} candidat{consultants.length > 1 ? "s" : ""}

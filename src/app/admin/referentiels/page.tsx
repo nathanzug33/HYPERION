@@ -47,12 +47,6 @@ export default async function ReferentielsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-brand-ink">Référentiels</h1>
-        <p className="mt-1 text-sm text-brand-gray">
-          Ces listes alimentent les filtres de la bibliothèque client et les
-          formulaires de saisie des dossiers. Désactiver une valeur ne
-          supprime pas l&apos;historique, elle disparaît simplement des
-          nouveaux choix proposés.
-        </p>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2">
