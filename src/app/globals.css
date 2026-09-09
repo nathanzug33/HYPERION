@@ -175,3 +175,10 @@ body {
 .topbar-gradient {
   background: linear-gradient(100deg, var(--brand-ink) 0%, #2d3f57 32%, var(--brand-blue-dark) 68%, var(--brand-blue) 100%);
 }
+
+/* Même famille de couleurs que .topbar-gradient (connexion), réorientée
+   pour une forme haute et étroite (sidebar interne) plutôt qu'un bandeau
+   large. */
+.sidebar-gradient {
+  background: linear-gradient(165deg, var(--brand-ink) 0%, #2d3f57 45%, var(--brand-blue-dark) 100%);
+}

@@ -26,22 +26,22 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen">
-      <aside className="flex w-64 shrink-0 flex-col border-r border-slate-200 bg-white">
-        <div className="flex items-center gap-2 px-5 pb-4 pt-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-hyperion-group.svg"
-            alt="Hyperion Group"
-            className="h-9 w-auto"
-          />
+      <aside className="sidebar-gradient flex w-64 shrink-0 flex-col">
+        <div className="px-4 pb-4 pt-5">
+          <div className="flex h-12 items-center justify-center rounded-xl bg-white px-3 shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-hyperion-group.png"
+              alt="Hyperion Group"
+              className="h-full max-h-8 w-full object-contain"
+            />
+          </div>
         </div>
         <div className="px-5 pb-4">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-blue-dark">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-green-light">
             Pilot
           </span>
-          <span className="ml-1.5 text-[11px] text-brand-gray">
-            · ATS · CRM · Pilotage
-          </span>
+          <span className="ml-1.5 text-[11px] text-white/60">· ATS · CRM · Pilotage</span>
         </div>
 
         <div className="px-4 pb-4">
@@ -57,7 +57,7 @@ export default async function AdminLayout({
           <SidebarLink href="/admin/demandes">Demandes</SidebarLink>
           {isAdmin && (
             <>
-              <div className="my-2 border-t border-slate-100" />
+              <div className="my-2 border-t border-white/15" />
               <SidebarLink href="/admin/referentiels">Référentiels</SidebarLink>
               <SidebarLink href="/admin/utilisateurs">Utilisateurs</SidebarLink>
               <SidebarLink href="/admin/journaux">Journaux</SidebarLink>

@@ -57,7 +57,7 @@ export default function GlobalSearch() {
     <div ref={containerRef} className="relative">
       <div className="relative">
         <svg
-          className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-gray"
+          className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -74,7 +74,7 @@ export default function GlobalSearch() {
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => setOpen(true)}
           placeholder="Rechercher un candidat, un client…"
-          className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-8 pr-3 text-xs text-brand-ink placeholder:text-brand-gray focus:border-brand-blue focus:bg-white focus:outline-none"
+          className="w-full rounded-lg border border-white/15 bg-white/10 py-2 pl-8 pr-3 text-xs text-white placeholder:text-white/50 focus:border-white/30 focus:bg-white/15 focus:outline-none"
         />
       </div>
 
