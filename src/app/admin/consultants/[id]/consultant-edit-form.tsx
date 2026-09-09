@@ -13,12 +13,12 @@ import type {
 } from "@prisma/client";
 import CheckboxGroup from "@/components/form/CheckboxGroup";
 import LangueNiveauGroup from "@/components/form/LangueNiveauGroup";
+import NatureContratFields from "@/components/NatureContratFields";
 import {
   COMPETENCE_CATEGORIES,
   COMPETENCE_CATEGORIE_LABELS,
   DISPONIBILITE_LABELS,
   FORMATION_TYPE,
-  NATURE_CONTRAT_LABELS,
   NIVEAU_LABELS,
   STATUT_CANDIDAT_INTERNE_LABELS,
   TYPE_CONTRAT_LABELS,
@@ -47,7 +47,6 @@ export default function ConsultantEditForm({
   consultant,
   referentials,
   canReassignReferent,
-  isAdmin,
 }: {
   consultant: ConsultantWithRelations;
   referentials: {
@@ -61,7 +60,6 @@ export default function ConsultantEditForm({
     bms: User[];
   };
   canReassignReferent: boolean;
-  isAdmin: boolean;
 }) {
   const fmtDate = (d: Date | null) =>
     d ? new Date(d).toISOString().slice(0, 10) : "";
@@ -124,48 +122,17 @@ export default function ConsultantEditForm({
           )}
         </div>
 
-        {isAdmin && (
-          <div className="grid gap-4 border-t border-slate-100 pt-3 sm:grid-cols-2">
-            <Field label="Nature du contrat — coût/marge, sensible">
-              <select name="natureContrat" defaultValue={consultant.natureContrat ?? ""} className="input">
-                <option value="">—</option>
-                {Object.entries(NATURE_CONTRAT_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <div />
-            <Field label="Salaire brut annuel (€) — si CDI / CDIC">
-              <input
-                type="number"
-                name="salaireBrutAnnuel"
-                min={0}
-                defaultValue={consultant.salaireBrutAnnuel ?? ""}
-                className="input"
-              />
-            </Field>
-            <Field label="TJM payé (€/j) — si indépendant, sans coefficient">
-              <input
-                type="number"
-                name="tjmAchat"
-                min={0}
-                defaultValue={consultant.tjmAchat ?? ""}
-                className="input"
-              />
-            </Field>
-            <Field label="Frais annuels (€) — IGD, IK…">
-              <input
-                type="number"
-                name="fraisAnnuels"
-                min={0}
-                defaultValue={consultant.fraisAnnuels ?? ""}
-                className="input"
-              />
-            </Field>
-          </div>
-        )}
+        <div className="grid gap-4 border-t border-slate-100 pt-3 sm:grid-cols-2">
+          <p className="col-span-2 -mb-2 text-xs font-medium text-brand-blue-dark">
+            Coût / marge — utilisé pour calculer la marge du centre de profit
+          </p>
+          <NatureContratFields
+            defaultNatureContrat={consultant.natureContrat ?? ""}
+            defaultSalaireBrutAnnuel={consultant.salaireBrutAnnuel ?? ""}
+            defaultTjmAchat={consultant.tjmAchat ?? ""}
+            defaultFraisAnnuels={consultant.fraisAnnuels ?? ""}
+          />
+        </div>
 
         <div className="border-t border-slate-100 pt-3">
           <Field label={consultant.cvFileUrl ? "Remplacer le CV" : "CV"}>

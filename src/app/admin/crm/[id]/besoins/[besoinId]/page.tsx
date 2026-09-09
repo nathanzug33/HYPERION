@@ -5,7 +5,6 @@ import { requireStaff } from "@/lib/guards";
 import { canAccessEntreprise } from "@/lib/crm-access";
 import {
   DUREE_ESTIMEE_OPTIONS,
-  NATURE_CONTRAT_LABELS,
   STATUT_BESOIN,
   STATUT_BESOIN_LABELS,
   STATUT_BESOIN_CANDIDAT,
@@ -22,6 +21,7 @@ import {
   removeBesoinCandidatAction,
   marquerBesoinGagneAction,
 } from "../actions";
+import NatureContratFields from "@/components/NatureContratFields";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +38,6 @@ export default async function BesoinDetailPage({
   params: Promise<{ id: string; besoinId: string }>;
 }) {
   const session = await requireStaff();
-  const isAdmin = session.user.role === "ADMIN";
   const { id, besoinId } = await params;
 
   const besoin = await prisma.besoin.findUnique({
@@ -343,63 +342,14 @@ export default async function BesoinDetailPage({
                     <input type="date" name="dateFinPrevue" className="input text-xs" />
                   </div>
 
-                  {isAdmin ? (
-                    <div className="space-y-2 rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 p-2.5">
-                      <p className="text-[11px] font-medium text-brand-ink">
-                        Coût / marge — sensible
-                      </p>
-                      <p className="text-[10px] text-brand-gray">
-                        Nécessaire pour calculer la marge (CA &amp; Marge). Laissez un champ
-                        vide pour ne pas modifier une valeur déjà enregistrée.
-                      </p>
-                      <div>
-                        <label className="block text-[11px] text-brand-gray">
-                          Nature du contrat
-                        </label>
-                        <select name="natureContrat" defaultValue="" className="input text-xs">
-                          <option value="">— Ne pas modifier —</option>
-                          {Object.entries(NATURE_CONTRAT_LABELS).map(([k, v]) => (
-                            <option key={k} value={k}>
-                              {v}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-brand-gray">
-                          Salaire brut annuel (€) — si CDI / CDIC
-                        </label>
-                        <input
-                          type="number"
-                          name="salaireBrutAnnuel"
-                          min={0}
-                          className="input text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-brand-gray">
-                          TJM payé (€/j) — si indépendant, sans coefficient
-                        </label>
-                        <input type="number" name="tjmAchat" min={0} className="input text-xs" />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-brand-gray">
-                          Frais annuels (€) — IGD, IK…
-                        </label>
-                        <input
-                          type="number"
-                          name="fraisAnnuels"
-                          min={0}
-                          className="input text-xs"
-                        />
-                      </div>
-                    </div>
-                  ) : (
+                  <div className="space-y-2 rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 p-2.5">
+                    <p className="text-[11px] font-medium text-brand-ink">Coût / marge</p>
                     <p className="text-[10px] text-brand-gray">
-                      Le calcul de marge nécessite que le salaire (ou le TJM indépendant) du
-                      consultant soit renseigné par un administrateur.
+                      Obligatoire — nécessaire pour calculer la marge de ce consultant dès la
+                      création de la mission (CA &amp; Marge de votre centre de profit).
                     </p>
-                  )}
+                    <NatureContratFields required compact />
+                  </div>
 
                   <button
                     type="submit"

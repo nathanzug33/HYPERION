@@ -10,7 +10,6 @@ import {
   STATUT_PUBLICATION,
   STATUT_CANDIDAT_INTERNE_LABELS,
   SUIVI_TYPE,
-  ROLES,
   canReassignReferent,
 } from "@/lib/constants";
 import { findVille } from "@/lib/villes-france";
@@ -141,21 +140,15 @@ export async function updateConsultantAction(formData: FormData) {
         ? String(formData.get("businessManagerId"))
         : consultant.businessManagerId,
 
-    // Données salariales sensibles : uniquement modifiables par un admin
-    // (le champ est de toute façon masqué côté formulaire pour les autres
-    // rôles, mais on ne fait jamais confiance au seul masquage front).
-    ...(session.user.role === ROLES.ADMIN
-      ? {
-          natureContrat: String(formData.get("natureContrat") ?? "") || null,
-          salaireBrutAnnuel: formData.get("salaireBrutAnnuel")
-            ? Number(formData.get("salaireBrutAnnuel"))
-            : null,
-          tjmAchat: formData.get("tjmAchat") ? Number(formData.get("tjmAchat")) : null,
-          fraisAnnuels: formData.get("fraisAnnuels")
-            ? Number(formData.get("fraisAnnuels"))
-            : null,
-        }
-      : {}),
+    // Coût/marge : modifiable par tout le staff (BM, direction, admin) —
+    // ce sont eux qui staffent et doivent pouvoir corriger ces données pour
+    // que la marge de leur centre de profit reste juste.
+    natureContrat: String(formData.get("natureContrat") ?? "") || null,
+    salaireBrutAnnuel: formData.get("salaireBrutAnnuel")
+      ? Number(formData.get("salaireBrutAnnuel"))
+      : null,
+    tjmAchat: formData.get("tjmAchat") ? Number(formData.get("tjmAchat")) : null,
+    fraisAnnuels: formData.get("fraisAnnuels") ? Number(formData.get("fraisAnnuels")) : null,
 
     consentementRgpd: formData.get("consentementRgpd") === "on",
     consentementDate: formData.get("consentementRgpd") === "on"

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { canAccessEntreprise } from "@/lib/crm-access";
-import { ROLES, STATUT_BESOIN, STATUT_BESOIN_CANDIDAT, STATUT_MISSION } from "@/lib/constants";
+import { NATURE_CONTRAT, STATUT_BESOIN, STATUT_BESOIN_CANDIDAT, STATUT_MISSION } from "@/lib/constants";
 import type { Prisma } from "@prisma/client";
 
 async function assertEntrepriseAccess(entrepriseId: string) {
@@ -183,21 +183,26 @@ export async function marquerBesoinGagneAction(formData: FormData) {
   const dateFinPrevueRaw = String(formData.get("dateFinPrevue") ?? "");
   if (!dateDebutRaw) return;
 
-  // Coût/marge (sensible, admin uniquement) : saisi ici au moment du
-  // staffing plutôt qu'en obligeant un détour par la fiche consultant — un
-  // champ laissé vide n'écrase pas une valeur déjà enregistrée (on ne peut
-  // pas pré-remplir ce formulaire selon le candidat choisi sans JS).
-  const consultantData: Prisma.ConsultantUpdateInput = { statutCandidatInterne: "STAFFE" };
-  if (session.user.role === ROLES.ADMIN) {
-    const natureContratRaw = String(formData.get("natureContrat") ?? "");
-    const salaireBrutAnnuelRaw = String(formData.get("salaireBrutAnnuel") ?? "");
-    const tjmAchatRaw = String(formData.get("tjmAchat") ?? "");
-    const fraisAnnuelsRaw = String(formData.get("fraisAnnuels") ?? "");
-    if (natureContratRaw) consultantData.natureContrat = natureContratRaw;
-    if (salaireBrutAnnuelRaw) consultantData.salaireBrutAnnuel = Number(salaireBrutAnnuelRaw);
-    if (tjmAchatRaw) consultantData.tjmAchat = Number(tjmAchatRaw);
-    if (fraisAnnuelsRaw) consultantData.fraisAnnuels = Number(fraisAnnuelsRaw);
-  }
+  // Coût/marge : saisi ici par quiconque staffe (BM, direction, admin) au
+  // moment même de la création de la mission, pour que la marge du centre
+  // de profit soit calculable en temps réel — jamais différé vers un
+  // détour par la fiche consultant. Obligatoire : nature du contrat, plus
+  // le salaire (CDI/CDIC) ou le TJM payé (indépendant) selon le cas.
+  const natureContratRaw = String(formData.get("natureContrat") ?? "");
+  const salaireBrutAnnuelRaw = String(formData.get("salaireBrutAnnuel") ?? "");
+  const tjmAchatRaw = String(formData.get("tjmAchat") ?? "");
+  const fraisAnnuelsRaw = String(formData.get("fraisAnnuels") ?? "");
+  const natureValide = (Object.values(NATURE_CONTRAT) as string[]).includes(natureContratRaw);
+  if (!natureValide) return;
+  if (natureContratRaw === NATURE_CONTRAT.INDEPENDANT ? !tjmAchatRaw : !salaireBrutAnnuelRaw) return;
+
+  const consultantData: Prisma.ConsultantUpdateInput = {
+    statutCandidatInterne: "STAFFE",
+    natureContrat: natureContratRaw,
+    salaireBrutAnnuel: salaireBrutAnnuelRaw ? Number(salaireBrutAnnuelRaw) : null,
+    tjmAchat: tjmAchatRaw ? Number(tjmAchatRaw) : null,
+    fraisAnnuels: fraisAnnuelsRaw ? Number(fraisAnnuelsRaw) : null,
+  };
 
   await prisma.$transaction([
     prisma.mission.create({
