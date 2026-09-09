@@ -39,11 +39,10 @@ async function ConnexionContent({
             </span>
           </>
         ),
-        pitch:
-          "Vivier de consultants, comptes clients et activité commerciale au même endroit — chaque connexion est journalisée et associée nominativement à votre compte.",
+        pitch: "Outil de pilotage interne.",
         mobileTitle: "KERVIO",
         mobileSubtitle: "Accès interne réservé et journalisé.",
-        footer: "Accès non ouvert ? Contactez votre administrateur.",
+        footer: null,
       }
     : {
         badge: "Accès réservé",
@@ -97,7 +96,9 @@ async function ConnexionContent({
               </p>
             </div>
             <LoginForm next={next} />
-            <p className="mt-6 text-center text-xs text-brand-gray">{copy.footer}</p>
+            {copy.footer && (
+              <p className="mt-6 text-center text-xs text-brand-gray">{copy.footer}</p>
+            )}
           </div>
         </div>
       </div>
