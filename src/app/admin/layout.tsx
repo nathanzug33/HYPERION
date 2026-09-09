@@ -4,6 +4,7 @@ import { ROLE_LABELS } from "@/lib/constants";
 import { getTaskCounts } from "@/lib/task-counts";
 import LogoutButton from "@/components/LogoutButton";
 import SidebarLink from "@/components/SidebarLink";
+import SidebarGroup from "@/components/SidebarGroup";
 import GlobalSearch from "@/components/GlobalSearch";
 
 export default async function AdminLayout({
@@ -50,9 +51,30 @@ export default async function AdminLayout({
           <SidebarLink href="/admin" exact badge={taskCounts.enRetard}>
             Tableau de bord
           </SidebarLink>
-          <SidebarLink href="/admin/consultants">ATS</SidebarLink>
-          <SidebarLink href="/admin/crm">CRM</SidebarLink>
-          <SidebarLink href="/admin/missions">Missions</SidebarLink>
+          <SidebarGroup
+            label="ATS"
+            href="/admin/consultants"
+            items={[
+              { href: "/admin/consultants", label: "Tous les candidats" },
+              { href: "/admin/consultants/recherche", label: "Recherche avancée" },
+            ]}
+          />
+          <SidebarGroup
+            label="CRM"
+            href="/admin/crm"
+            items={[
+              { href: "/admin/crm", label: "Entreprises" },
+              { href: "/admin/crm/besoins", label: "Besoins" },
+            ]}
+          />
+          <SidebarGroup
+            label="Centre de profit"
+            href="/admin/missions/marge"
+            items={[
+              { href: "/admin/missions/marge", label: "CA & Marge" },
+              { href: "/admin/missions", label: "Portefeuille missions" },
+            ]}
+          />
           <SidebarLink href="/admin/demandes">Demandes</SidebarLink>
           {isAdmin && (
             <>
