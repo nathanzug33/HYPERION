@@ -23,13 +23,12 @@ export default async function ConsultantEditPage({
     ia?: string;
     doublons?: string;
     propose?: string;
-    dcError?: string;
     dcRegenerated?: string;
   }>;
 }) {
   const session = await requireStaff();
   const { id } = await params;
-  const { error, ia, doublons, propose, dcError, dcRegenerated } = await searchParams;
+  const { error, ia, doublons, propose, dcRegenerated } = await searchParams;
 
   const doublonsCandidats = doublons
     ? await prisma.consultant.findMany({
@@ -202,12 +201,6 @@ export default async function ConsultantEditPage({
         <div className="rounded-xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-brand-green">
           ✅ Proposition envoyée — le DC a été transmis par email, avec une
           trace dans l&apos;historique du contact côté CRM.
-        </div>
-      )}
-
-      {dcError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {dcError}
         </div>
       )}
 

@@ -5,7 +5,12 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { canAccessConsultant } from "@/lib/consultant-access";
-import { SUIVI_TYPE_SAISISSABLES, SUIVI_TYPE } from "@/lib/constants";
+import {
+  SUIVI_TYPE_SAISISSABLES,
+  SUIVI_TYPE,
+  STATUT_CANDIDAT_INTERNE,
+  STATUT_CANDIDAT_INTERNE_LABELS,
+} from "@/lib/constants";
 import { getValidAccessToken } from "@/lib/google-oauth";
 import { createCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
 
@@ -21,7 +26,7 @@ async function assertConsultantAccess(consultantId: string) {
 
 export async function createSuiviAction(formData: FormData) {
   const consultantId = String(formData.get("consultantId") ?? "");
-  const { session } = await assertConsultantAccess(consultantId);
+  const { session, consultant } = await assertConsultantAccess(consultantId);
 
   const type = String(formData.get("type") ?? "");
   if (!SUIVI_TYPE_SAISISSABLES.includes(type as (typeof SUIVI_TYPE_SAISISSABLES)[number])) {
@@ -50,17 +55,49 @@ export async function createSuiviAction(formData: FormData) {
     }
   }
 
-  await prisma.suiviCandidat.create({
-    data: {
-      consultantId,
-      type,
-      titre,
-      notes,
-      dateProgrammee,
-      googleEventId,
-      createdById: session.user.id,
-    },
-  });
+  // Un candidat "plus disponible" ou en "refus" n'est plus à proposer :
+  // on repasse automatiquement son statut interne en Indisponible (sauf
+  // s'il est déjà staffé chez un client — ce suivi ATS n'a alors plus de
+  // sens pour son statut interne, on ne l'écrase pas).
+  const doitPasserIndisponible =
+    (type === SUIVI_TYPE.PLUS_DISPONIBLE || type === SUIVI_TYPE.REFUS) &&
+    consultant.statutCandidatInterne !== STATUT_CANDIDAT_INTERNE.STAFFE &&
+    consultant.statutCandidatInterne !== STATUT_CANDIDAT_INTERNE.INDISPONIBLE;
+
+  await prisma.$transaction([
+    prisma.suiviCandidat.create({
+      data: {
+        consultantId,
+        type,
+        titre,
+        notes,
+        dateProgrammee,
+        googleEventId,
+        createdById: session.user.id,
+      },
+    }),
+    ...(doitPasserIndisponible
+      ? [
+          prisma.consultant.update({
+            where: { id: consultantId },
+            data: { statutCandidatInterne: STATUT_CANDIDAT_INTERNE.INDISPONIBLE },
+          }),
+          prisma.suiviCandidat.create({
+            data: {
+              consultantId,
+              type: SUIVI_TYPE.STATUT,
+              titre: `Statut candidat : ${
+                STATUT_CANDIDAT_INTERNE_LABELS[
+                  consultant.statutCandidatInterne as keyof typeof STATUT_CANDIDAT_INTERNE_LABELS
+                ] ?? consultant.statutCandidatInterne
+              } → ${STATUT_CANDIDAT_INTERNE_LABELS.INDISPONIBLE}`,
+              fait: true,
+              createdById: session.user.id,
+            },
+          }),
+        ]
+      : []),
+  ]);
 
   revalidatePath(`/admin/consultants/${consultantId}`);
 }

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { canAccessConsultant } from "@/lib/consultant-access";
-import { generateDCFromCvAndTranscript, isAiGenerationConfigured } from "@/lib/ai-dc";
+import { generateDCFromCvAndTranscript, isAiGenerationConfigured, type GeneratedDC } from "@/lib/ai-dc";
 import { extractFileText } from "@/lib/cv-text";
 import { saveCvFile } from "@/lib/cv-storage";
 import { findVille } from "@/lib/villes-france";
@@ -19,31 +19,62 @@ function parseMonthDate(value: string | null): Date | null {
   return new Date(Number(match[1]), Number(match[2]) - 1, 1);
 }
 
-function dcError(id: string, message: string): never {
-  redirect(`/admin/consultants/${id}?dcError=${encodeURIComponent(message)}`);
-}
+export type DcPreviewState = {
+  error?: string;
+  preview?: {
+    before: {
+      nom: string;
+      prenom: string;
+      telephone: string | null;
+      email: string | null;
+      resumeContexte: string | null;
+    };
+    after: {
+      nom: string | null;
+      prenom: string | null;
+      telephone: string | null;
+      email: string | null;
+      resumeContexte: string | null;
+    };
+    // Sérialise tout ce qu'il faut pour appliquer sans rappeler l'IA :
+    // { id, generated, cvText, transcriptText, savedCv }.
+    payload: string;
+  };
+};
 
-/** "Tagging IA" — (ré)analyse le CV déjà en base (ou un nouveau CV/transcript
- * déposés ici) pour retagger le dossier : identité (nom/prénom/téléphone/
- * email), profil exposable, secteurs/expertises/compétences/langues,
- * mobilité, compétences détaillées, formations, expériences. Remplace
- * l'édition manuelle des blocs "gabarit HYPERION" : on régénère depuis la
- * source plutôt que de les ressaisir à la main. La saisie manuelle reste
- * possible à tout moment sur les mêmes champs, avant ou après un tagging IA.
- * Ne touche jamais : coût/marge, statut interne, notes, consentements RGPD.
+type Payload = {
+  id: string;
+  generated: GeneratedDC;
+  cvText: string;
+  transcriptText: string;
+  savedCv: { storedName: string; originalName: string } | null;
+};
+
+/** Étape 1 du "Tagging IA" — relit le CV (déjà en base ou déposé ici) et,
+ * si fournie, une transcription d'entretien, pour proposer un nouveau
+ * tagging (identité, profil, mobilité, compétences, secteurs, formations,
+ * expériences), SANS rien écrire en base : l'utilisateur voit d'abord un
+ * aperçu (avant/après) des champs identité avant de confirmer, car ce
+ * bouton écrase volontairement une éventuelle saisie manuelle précédente.
  */
-export async function regenerateDcFromIaAction(formData: FormData) {
+export async function previewDcFromIaAction(
+  _prevState: DcPreviewState,
+  formData: FormData
+): Promise<DcPreviewState> {
   const id = String(formData.get("id") ?? "");
   const session = await requireStaff();
 
   const consultant = await prisma.consultant.findUnique({ where: { id } });
-  if (!consultant) redirect("/admin/consultants");
+  if (!consultant) return { error: "Dossier introuvable." };
   if (!(await canAccessConsultant(session.user, consultant))) {
-    redirect("/admin/consultants");
+    return { error: "Accès refusé." };
   }
 
   if (!isAiGenerationConfigured()) {
-    dcError(id, "La génération assistée par IA n'est pas configurée sur ce déploiement (clé ANTHROPIC_API_KEY absente).");
+    return {
+      error:
+        "La génération assistée par IA n'est pas configurée sur ce déploiement (clé ANTHROPIC_API_KEY absente).",
+    };
   }
 
   const cvFileValue = formData.get("cvFile");
@@ -56,13 +87,16 @@ export async function regenerateDcFromIaAction(formData: FormData) {
       cvText = await extractFileText(cvFileValue);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      dcError(id, `CV : ${message}`);
+      return { error: `CV : ${message}` };
     }
     savedCv = await saveCvFile(cvFileValue as File);
   }
 
   if (!cvText) {
-    dcError(id, "Aucun CV exploitable : ce dossier n'a pas de texte de CV enregistré — déposez un CV ci-dessus avant de générer le DC.");
+    return {
+      error:
+        "Aucun CV exploitable : ce dossier n'a pas de texte de CV enregistré — déposez un CV ci-dessus avant de générer le DC.",
+    };
   }
 
   let transcriptText: string;
@@ -70,18 +104,17 @@ export async function regenerateDcFromIaAction(formData: FormData) {
     transcriptText = await extractFileText(formData.get("transcriptFile"));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    dcError(id, `Transcription d'entretien : ${message}`);
+    return { error: `Transcription d'entretien : ${message}` };
   }
 
-  const [secteurs, expertises, seniorites, typesMobilite, zones] = await Promise.all([
+  const [secteurs, expertises, typesMobilite, zones] = await Promise.all([
     prisma.secteur.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.expertise.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
-    prisma.seniorite.findMany({ where: { active: true } }),
     prisma.typeMobilite.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.zoneGeographique.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
   ]);
 
-  let generated;
+  let generated: GeneratedDC;
   try {
     generated = await generateDCFromCvAndTranscript({
       cvText,
@@ -96,8 +129,60 @@ export async function regenerateDcFromIaAction(formData: FormData) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    dcError(id, `La génération par IA a échoué : ${message}`);
+    return { error: `La génération par IA a échoué : ${message}` };
   }
+
+  const payload: Payload = { id, generated, cvText, transcriptText, savedCv };
+
+  return {
+    preview: {
+      before: {
+        nom: consultant.nom,
+        prenom: consultant.prenom,
+        telephone: consultant.telephone,
+        email: consultant.email,
+        resumeContexte: consultant.resumeContexte,
+      },
+      after: {
+        nom: generated.nom,
+        prenom: generated.prenom,
+        telephone: generated.telephone,
+        email: generated.email,
+        resumeContexte: generated.resumeContexte,
+      },
+      payload: JSON.stringify(payload),
+    },
+  };
+}
+
+/** Étape 2 du "Tagging IA" — applique le tagging prévisualisé à l'étape 1
+ * (aucun nouvel appel IA : tout est déjà dans le payload confirmé). */
+export async function applyDcFromIaAction(
+  _prev: DcPreviewState,
+  formData: FormData
+): Promise<DcPreviewState> {
+  let payload: Payload;
+  try {
+    payload = JSON.parse(String(formData.get("payload") ?? ""));
+  } catch {
+    return { error: "Aperçu invalide ou expiré — relancez le tagging IA." };
+  }
+  const { id, generated, cvText, transcriptText, savedCv } = payload;
+
+  const session = await requireStaff();
+  const consultant = await prisma.consultant.findUnique({ where: { id } });
+  if (!consultant) redirect("/admin/consultants");
+  if (!(await canAccessConsultant(session.user, consultant))) {
+    redirect("/admin/consultants");
+  }
+
+  const [secteurs, expertises, seniorites, typesMobilite, zones] = await Promise.all([
+    prisma.secteur.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+    prisma.expertise.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+    prisma.seniorite.findMany({ where: { active: true } }),
+    prisma.typeMobilite.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+    prisma.zoneGeographique.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+  ]);
 
   const seniorityId = deriveSeniorityId(generated.anneesExperience, seniorites);
   const secteurIds = matchIds(secteurs, generated.secteurs);

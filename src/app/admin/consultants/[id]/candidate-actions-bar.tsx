@@ -8,7 +8,7 @@ import MatchBadges from "@/components/MatchBadges";
 import ConsultantBrief from "@/components/consultant/ConsultantBrief";
 import SuiviSection from "./suivi-section";
 import PushCandidatForm from "./push-candidat-form";
-import { regenerateDcFromIaAction } from "./dc-actions";
+import TaggingIaForm from "./tagging-ia-form";
 import {
   publishConsultantAction,
   unpublishConsultantAction,
@@ -193,45 +193,7 @@ export default function CandidateActionsBar({
             </div>
           )}
 
-          {open === "tagging" && (
-            <div className="space-y-3">
-              <p className="text-xs text-brand-gray">
-                Relit le CV déjà enregistré (ou celui déposé ci-dessous) et, si
-                fournie, une transcription d&apos;entretien, pour retagger
-                automatiquement le dossier : identité, profil, mobilité,
-                compétences, secteurs, formations et expériences. La saisie
-                manuelle reste possible à tout moment, avant ou après.
-              </p>
-              <form action={regenerateDcFromIaAction} className="space-y-3">
-                <input type="hidden" name="id" value={consultantId} />
-                <div>
-                  <label className="block text-[11px] text-brand-gray">
-                    Remplacer le CV utilisé (optionnel)
-                  </label>
-                  <input
-                    type="file"
-                    name="cvFile"
-                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    className="mt-1 block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-2.5 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1 file:text-xs file:font-medium file:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-brand-gray">
-                    Transcription d&apos;entretien (optionnel)
-                  </label>
-                  <input
-                    type="file"
-                    name="transcriptFile"
-                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                    className="mt-1 block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-2.5 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1 file:text-xs file:font-medium file:text-white"
-                  />
-                </div>
-                <button type="submit" className="btn btn-secondary w-full">
-                  Lancer le tagging IA
-                </button>
-              </form>
-            </div>
-          )}
+          {open === "tagging" && <TaggingIaForm consultantId={consultantId} />}
         </div>
       )}
     </>

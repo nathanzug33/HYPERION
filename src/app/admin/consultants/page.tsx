@@ -43,7 +43,10 @@ export default async function ConsultantsListPage({
       ],
     },
     orderBy: { updatedAt: "desc" },
-    include: { businessManager: true },
+    include: {
+      businessManager: true,
+      _count: { select: { secteurs: true, expertises: true, langues: true } },
+    },
   });
 
   return (
@@ -107,6 +110,7 @@ export default async function ConsultantsListPage({
               <th className="px-4 py-3">Poste</th>
               <th className="px-4 py-3">BM référent</th>
               <th className="px-4 py-3">Bibliothèque</th>
+              <th className="px-4 py-3">Complétude</th>
               <th className="px-4 py-3">Dernière maj</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -135,6 +139,9 @@ export default async function ConsultantsListPage({
                   <td className="px-4 py-3">
                     <StatusBadge statut={c.statutPublication} />
                   </td>
+                  <td className="px-4 py-3">
+                    <CompletudeBadge pct={computeCompletude(c)} />
+                  </td>
                   <td className="px-4 py-3 text-brand-gray">
                     <span className={isStale ? "font-medium text-amber-700" : ""}>
                       {new Date(c.updatedAt).toLocaleDateString("fr-FR")}
@@ -161,7 +168,7 @@ export default async function ConsultantsListPage({
             })}
             {consultants.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-brand-gray">
+                <td colSpan={8} className="px-4 py-10 text-center text-brand-gray">
                   Aucun dossier trouvé.
                 </td>
               </tr>
@@ -169,6 +176,44 @@ export default async function ConsultantsListPage({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// Complétude du dossier : aide à prioriser l'enrichissement des dossiers
+// brouillon (§ CVthèque qu'on enrichit en continu) — pas un critère de
+// publication, juste un indicateur visuel sur la liste.
+function computeCompletude(c: {
+  cvFileUrl: string | null;
+  anneesExperience: number | null;
+  disponibilite: string | null;
+  resumeContexte: string | null;
+  natureContrat: string | null;
+  salaireBrutAnnuel: number | null;
+  tjmAchat: number | null;
+  _count: { secteurs: number; expertises: number; langues: number };
+}): number {
+  const criteres = [
+    Boolean(c.cvFileUrl),
+    c._count.secteurs > 0,
+    c._count.expertises > 0,
+    c.anneesExperience != null,
+    Boolean(c.disponibilite),
+    Boolean(c.resumeContexte),
+    c._count.langues > 0,
+    Boolean(c.natureContrat && (c.salaireBrutAnnuel != null || c.tjmAchat != null)),
+  ];
+  return Math.round((criteres.filter(Boolean).length / criteres.length) * 100);
+}
+
+function CompletudeBadge({ pct }: { pct: number }) {
+  const color = pct >= 80 ? "bg-brand-green" : pct >= 50 ? "bg-amber-500" : "bg-red-400";
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs text-brand-gray">{pct}%</span>
     </div>
   );
 }
