@@ -52,6 +52,7 @@ export default async function AdminLayout({
           </SidebarLink>
           <SidebarLink href="/admin/consultants">ATS</SidebarLink>
           <SidebarLink href="/admin/crm">CRM</SidebarLink>
+          <SidebarLink href="/admin/missions">Missions</SidebarLink>
           <SidebarLink href="/admin/demandes">Demandes</SidebarLink>
           {isAdmin && (
             <>

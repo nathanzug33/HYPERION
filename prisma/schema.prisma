@@ -67,6 +67,9 @@ model User {
   suivisCrees              SuiviCandidat[]
   entreprisesSuivies       Entreprise[]         @relation("BusinessManagerReferentEntreprise")
   suivisCommerciauxCrees   SuiviCommercial[]    @relation("SuivisCommerciauxCrees")
+  besoinsSuivis            Besoin[]             @relation("BusinessManagerReferentBesoin")
+  besoinCandidatsCrees     BesoinCandidat[]     @relation("BesoinCandidatCreePar")
+  missionsSuivies          Mission[]            @relation("BusinessManagerReferentMission")
   loginLogs                LoginLog[]
   consultationLogs         ConsultationLog[]
   resetTokens              PasswordResetToken[]
@@ -251,6 +254,8 @@ model Consultant {
   experiences          Experience[]
   suivis               SuiviCandidat[]
   propositionsCrm      SuiviCommercial[]
+  besoinCandidats      BesoinCandidat[]
+  missions             Mission[]
 
   @@index([statutPublication])
   @@index([businessManagerId])
@@ -319,6 +324,8 @@ model Entreprise {
 
   contacts Contact[]
   suivis   SuiviCommercial[]
+  besoins  Besoin[]
+  missions Mission[]
 
   // Profils habituellement recherchés par ce client — alimente les
   // suggestions de candidats correspondants (§ matching simple).
@@ -366,7 +373,8 @@ model Contact {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  suivis SuiviCommercial[]
+  suivis  SuiviCommercial[]
+  besoins Besoin[]
 
   @@index([entrepriseId])
 }
@@ -418,6 +426,106 @@ model SuiviCommercial {
   @@index([contactId])
   @@index([consultantId])
   @@index([dateProgrammee])
+}
+
+// Besoin exprimé par un client lors d'un RDV de prospection, saisi par le
+// BM directement depuis la fiche entreprise (distinct de DemandeBesoin, qui
+// est le formulaire self-service du portail client — deux origines, deux
+// flux, voir audit produit). Point de départ du staffing : le BM associe
+// des candidats du vivier ATS (BesoinCandidat), les fait qualifier en RDV,
+// puis retient un candidat au moment de gagner le besoin — ce qui crée la
+// Mission correspondante.
+model Besoin {
+  id String @id @default(cuid())
+
+  entrepriseId String
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  contactId    String?
+  contact      Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  businessManagerId String
+  businessManager   User   @relation("BusinessManagerReferentBesoin", fields: [businessManagerId], references: [id])
+
+  intitulePoste          String
+  descriptifMissions     String?
+  seniorite              String?
+  tjmCibleMin            Int?
+  tjmCibleMax            Int?
+  localisation           String?
+  dateDemarrageSouhaitee DateTime?
+  dureeEstimee           String? // ex. "3 mois", "6-12 mois", "long terme"
+
+  statut String @default("OUVERT") // OUVERT | GAGNE | PERDU | ABANDONNE
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  candidats BesoinCandidat[]
+  missions  Mission[]
+
+  @@index([entrepriseId])
+  @@index([businessManagerId])
+  @@index([statut])
+}
+
+// Candidat du vivier ATS associé à un besoin — un par ligne, avec son propre
+// avancement (proposé, RDV de qualification, retenu ou écarté). Le candidat
+// "retenu" au moment où le besoin passe à GAGNE devient la Mission.
+model BesoinCandidat {
+  id String @id @default(cuid())
+
+  besoinId     String
+  besoin       Besoin     @relation(fields: [besoinId], references: [id], onDelete: Cascade)
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+
+  statut               String    @default("PROPOSE") // PROPOSE | RDV_QUALIFICATION | RETENU | ECARTE
+  dateRdvQualification DateTime?
+  notes                String?
+
+  createdById String
+  createdBy   User   @relation("BesoinCandidatCreePar", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([besoinId, consultantId])
+  @@index([besoinId])
+  @@index([consultantId])
+}
+
+// Mission en cours (ou terminée) d'un consultant chez un client — créée
+// automatiquement quand un Besoin est gagné avec un candidat retenu. Base du
+// "portefeuille de missions" par BM (§ audit produit, suite logique du
+// pipeline commercial au-delà de CONTRAT_SIGNE).
+model Mission {
+  id String @id @default(cuid())
+
+  besoinId String?
+  besoin   Besoin? @relation(fields: [besoinId], references: [id], onDelete: SetNull)
+
+  entrepriseId String
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id])
+  consultantId String
+  consultant   Consultant @relation(fields: [consultantId], references: [id])
+
+  businessManagerId String
+  businessManager   User   @relation("BusinessManagerReferentMission", fields: [businessManagerId], references: [id])
+
+  intitulePoste String
+  tjm           Int?
+  dateDebut     DateTime
+  dateFinPrevue DateTime?
+  dateFinReelle DateTime?
+  statut        String    @default("EN_COURS") // EN_COURS | TERMINEE | ROMPUE
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entrepriseId])
+  @@index([consultantId])
+  @@index([businessManagerId])
+  @@index([statut])
 }
 
 // Tables de jointure explicites (relations n-n paramétrables) --------------

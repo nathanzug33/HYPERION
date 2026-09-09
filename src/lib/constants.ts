@@ -205,6 +205,58 @@ export const STATUT_ENTREPRISE_LABELS: Record<StatutEntreprise, string> = {
   PERDU: "Perdu / inactif",
 };
 
+// Statut d'un besoin saisi par un BM après un RDV client (§ pipeline
+// staffing) — distinct des statuts de DemandeBesoin (portail client).
+export const STATUT_BESOIN = {
+  OUVERT: "OUVERT",
+  GAGNE: "GAGNE",
+  PERDU: "PERDU",
+  ABANDONNE: "ABANDONNE",
+} as const;
+export type StatutBesoin = (typeof STATUT_BESOIN)[keyof typeof STATUT_BESOIN];
+
+export const STATUT_BESOIN_LABELS: Record<StatutBesoin, string> = {
+  OUVERT: "Ouvert",
+  GAGNE: "Gagné",
+  PERDU: "Perdu",
+  ABANDONNE: "Abandonné",
+};
+
+// Avancement d'un candidat associé à un besoin.
+export const STATUT_BESOIN_CANDIDAT = {
+  PROPOSE: "PROPOSE",
+  RDV_QUALIFICATION: "RDV_QUALIFICATION",
+  RETENU: "RETENU",
+  ECARTE: "ECARTE",
+} as const;
+export type StatutBesoinCandidat =
+  (typeof STATUT_BESOIN_CANDIDAT)[keyof typeof STATUT_BESOIN_CANDIDAT];
+
+export const STATUT_BESOIN_CANDIDAT_LABELS: Record<StatutBesoinCandidat, string> = {
+  PROPOSE: "Proposé",
+  RDV_QUALIFICATION: "RDV de qualification",
+  RETENU: "Retenu",
+  ECARTE: "Écarté",
+};
+
+// Statut d'une mission (consultant staffé chez un client) — créée
+// automatiquement quand un besoin passe à GAGNE avec un candidat retenu.
+export const STATUT_MISSION = {
+  EN_COURS: "EN_COURS",
+  TERMINEE: "TERMINEE",
+  ROMPUE: "ROMPUE",
+} as const;
+export type StatutMission = (typeof STATUT_MISSION)[keyof typeof STATUT_MISSION];
+
+export const STATUT_MISSION_LABELS: Record<StatutMission, string> = {
+  EN_COURS: "En cours",
+  TERMINEE: "Terminée",
+  ROMPUE: "Rompue",
+};
+
+// Missions dont la fin prévue approche (alerte "portefeuille de missions").
+export const MISSION_ALERTE_FIN_JOURS = 30;
+
 // Durées estimées proposées pour une demande de besoin (§ espace client).
 export const DUREE_ESTIMEE_OPTIONS = [
   "Moins d'1 mois",

@@ -64,6 +64,9 @@ export default async function CrmListPage({
           </p>
         </div>
         <div className="flex gap-2">
+          <Link href="/admin/crm/besoins" className="btn btn-secondary">
+            📋 Bibliothèque des besoins
+          </Link>
           {/* Route Handler (téléchargement CSV), pas une page : <a> volontaire pour forcer une navigation complète. */}
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/admin/crm/export/pipeline" className="btn btn-secondary">

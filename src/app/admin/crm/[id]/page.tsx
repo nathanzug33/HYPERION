@@ -8,6 +8,7 @@ import { computeMatchScore } from "@/lib/matching";
 import EntrepriseEditForm from "./entreprise-edit-form";
 import EntrepriseInfoModal from "./entreprise-info-modal";
 import ContactsSection from "./contacts-section";
+import BesoinsSection from "./besoins/besoins-section";
 import MatchBadges from "@/components/MatchBadges";
 import { deleteEntrepriseAction, transferEntrepriseAction } from "../actions";
 
@@ -45,7 +46,7 @@ export default async function EntrepriseDetailPage({
       })
     : [];
 
-  const [contacts, bms, secteurs, expertises] = await Promise.all([
+  const [contacts, bms, secteurs, expertises, besoins] = await Promise.all([
     prisma.contact.findMany({
       where: { entrepriseId: id },
       orderBy: [{ principal: "desc" }, { createdAt: "asc" }],
@@ -55,6 +56,11 @@ export default async function EntrepriseDetailPage({
       : Promise.resolve([]),
     prisma.secteur.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.expertise.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+    prisma.besoin.findMany({
+      where: { entrepriseId: id },
+      orderBy: { createdAt: "desc" },
+      include: { contact: true, missions: { select: { id: true } } },
+    }),
   ]);
 
   const secteurRechercheIds = entreprise.secteursRecherches.map((s) => s.secteurId);
@@ -227,6 +233,8 @@ export default async function EntrepriseDetailPage({
           </ul>
         </div>
       )}
+
+      <BesoinsSection entrepriseId={id} contacts={contacts} besoins={besoins} />
 
       <ContactsSection entrepriseId={id} contacts={contacts} />
     </div>
