@@ -1,18 +1,10 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES, canReassignReferent } from "@/lib/constants";
 import { isAiGenerationConfigured } from "@/lib/ai-dc";
 import GenerateIaForm from "./generate-ia-form";
 
 export default async function GenererIaPage() {
-  const session = await requireStaff();
-  const bms = canReassignReferent(session.user)
-    ? await prisma.user.findMany({
-        where: { role: ROLES.BM, active: true },
-        orderBy: { name: "asc" },
-      })
-    : [];
+  await requireStaff();
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -43,7 +35,7 @@ export default async function GenererIaPage() {
         </div>
       )}
 
-      <GenerateIaForm bms={bms} isAdmin={canReassignReferent(session.user)} />
+      <GenerateIaForm />
     </div>
   );
 }

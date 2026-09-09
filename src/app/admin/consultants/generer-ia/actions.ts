@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { STATUT_PUBLICATION, canReassignReferent } from "@/lib/constants";
+import { STATUT_PUBLICATION } from "@/lib/constants";
 import { generateDCFromCvAndTranscript, isAiGenerationConfigured } from "@/lib/ai-dc";
 import { generateNextReference } from "@/lib/reference-generator";
 import { findVille } from "@/lib/villes-france";
@@ -66,9 +66,8 @@ export async function generateConsultantFromAI(
     };
   }
 
-  const businessManagerId = canReassignReferent(session.user)
-    ? String(formData.get("businessManagerId") ?? session.user.id)
-    : session.user.id;
+  // Qui génère le dossier en devient le référent — quel que soit son rôle.
+  const businessManagerId = session.user.id;
 
   const cvFileValue = formData.get("cvFile");
 

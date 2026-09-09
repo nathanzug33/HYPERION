@@ -8,13 +8,7 @@ const initialState: GenerateIaState = {};
 const ACCEPT =
   ".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
 
-export default function GenerateIaForm({
-  bms,
-  isAdmin,
-}: {
-  bms: { id: string; name: string }[];
-  isAdmin: boolean;
-}) {
+export default function GenerateIaForm() {
   const [state, formAction, pending] = useActionState(
     generateConsultantFromAI,
     initialState
@@ -22,25 +16,6 @@ export default function GenerateIaForm({
 
   return (
     <form action={formAction} className="card space-y-5 p-5">
-      {isAdmin && (
-        <div>
-          <label className="block text-xs font-medium text-brand-body">
-            Business manager référent
-          </label>
-          <select
-            name="businessManagerId"
-            required
-            className="input mt-1"
-          >
-            {bms.map((bm) => (
-              <option key={bm.id} value={bm.id}>
-                {bm.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
       <div>
         <label className="block text-xs font-medium text-brand-body mb-1">
           CV ou dossier existant (obligatoire)

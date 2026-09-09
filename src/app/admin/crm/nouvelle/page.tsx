@@ -1,16 +1,8 @@
-import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES, canReassignReferent } from "@/lib/constants";
 import { createEntrepriseAction } from "../actions";
 
 export default async function NouvelleEntreprisePage() {
-  const session = await requireStaff();
-  const bms = canReassignReferent(session.user)
-    ? await prisma.user.findMany({
-        where: { role: ROLES.BM, active: true },
-        orderBy: { name: "asc" },
-      })
-    : [];
+  await requireStaff();
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -59,20 +51,6 @@ export default async function NouvelleEntreprisePage() {
           <label className="block text-xs font-medium text-brand-body">Notes</label>
           <textarea name="notes" rows={3} className="input mt-1.5" />
         </div>
-        {canReassignReferent(session.user) && (
-          <div>
-            <label className="block text-xs font-medium text-brand-body">
-              Business manager référent
-            </label>
-            <select name="businessManagerId" required className="input mt-1.5">
-              {bms.map((bm) => (
-                <option key={bm.id} value={bm.id}>
-                  {bm.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
         <button type="submit" className="btn btn-primary w-full py-2.5">
           Créer l&apos;entreprise
         </button>

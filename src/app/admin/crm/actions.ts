@@ -34,9 +34,10 @@ export async function createEntrepriseAction(formData: FormData) {
   const nom = String(formData.get("nom") ?? "").trim();
   if (!nom) return;
 
-  const businessManagerId = canReassignReferent(session.user)
-    ? String(formData.get("businessManagerId") ?? session.user.id)
-    : session.user.id;
+  // Qui crée la fiche en devient le référent — quel que soit son rôle.
+  // Seul un transfert explicite (réservé à ADMIN/DIRECTEUR_BU, voir
+  // transferEntrepriseAction) change le référent par la suite.
+  const businessManagerId = session.user.id;
 
   const entreprise = await prisma.entreprise.create({
     data: {

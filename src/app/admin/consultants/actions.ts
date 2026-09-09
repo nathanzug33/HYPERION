@@ -64,10 +64,11 @@ export async function createConsultantAction(formData: FormData) {
 
   const nom = String(formData.get("nom") ?? "").trim();
   const prenom = String(formData.get("prenom") ?? "").trim();
-  const businessManagerId =
-    canReassignReferent(session.user)
-      ? String(formData.get("businessManagerId") ?? session.user.id)
-      : session.user.id;
+  // Qui crée le dossier en devient le référent — quel que soit son rôle
+  // (ADMIN/DIRECTEUR_BU compris). Seul un transfert explicite (réservé à
+  // ADMIN/DIRECTEUR_BU, voir transferConsultantAction) change le référent
+  // par la suite.
+  const businessManagerId = session.user.id;
 
   if (!nom || !prenom) return;
 

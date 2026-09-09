@@ -1,16 +1,8 @@
-import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES, canReassignReferent } from "@/lib/constants";
 import { createConsultantAction } from "../actions";
 
 export default async function NouveauConsultantPage() {
-  const session = await requireStaff();
-  const bms = canReassignReferent(session.user)
-    ? await prisma.user.findMany({
-        where: { role: ROLES.BM, active: true },
-        orderBy: { name: "asc" },
-      })
-    : [];
+  await requireStaff();
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -60,20 +52,6 @@ export default async function NouveauConsultantPage() {
             Peut aussi être ajouté ou remplacé plus tard depuis la fiche.
           </p>
         </div>
-        {canReassignReferent(session.user) && (
-          <div>
-            <label className="block text-xs font-medium text-brand-body">
-              Business manager référent
-            </label>
-            <select name="businessManagerId" required className="input mt-1.5">
-              {bms.map((bm) => (
-                <option key={bm.id} value={bm.id}>
-                  {bm.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
         <button type="submit" className="btn btn-primary w-full py-2.5">
           Créer le dossier
         </button>
