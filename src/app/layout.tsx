@@ -3,9 +3,9 @@ import "./globals.css";
 import CookieBanner from "@/components/CookieBanner";
 
 export const metadata: Metadata = {
-  title: "Bibliothèque de dossiers de compétences",
+  title: "HYPERION",
   description:
-    "Portail client réservé — bibliothèque de profils de consultants anonymisés.",
+    "Hyperion Group — pilotage ATS/CRM (interne) et bibliothèque de profils de consultants anonymisés (clients).",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
