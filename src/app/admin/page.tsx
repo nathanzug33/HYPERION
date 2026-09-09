@@ -235,9 +235,9 @@ export default async function AdminDashboardPage({
       </div>
 
       {(taskCounts.enRetard > 0 || taskCounts.aVenir > 0) && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex flex-wrap gap-3">
           {taskCounts.enRetard > 0 && (
-            <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800 shadow-sm">
+            <div className="flex min-w-[280px] flex-1 items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800 shadow-sm">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700 text-base font-semibold">
                 !
               </span>
@@ -251,7 +251,7 @@ export default async function AdminDashboardPage({
             </div>
           )}
           {taskCounts.aVenir > 0 && (
-            <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-800 shadow-sm">
+            <div className="flex min-w-[280px] flex-1 items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-800 shadow-sm">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 7v5l3.5 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -492,33 +492,35 @@ export default async function AdminDashboardPage({
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {pipelineParStatut.length > 0 && (
-            <div className="card p-5">
-              <h3 className="mb-3 text-sm font-semibold text-brand-ink">
-                Pipeline commercial — répartition par statut
-              </h3>
-              <PipelineBreakdown data={pipelineParStatut} total={entreprisesTotal} />
-            </div>
-          )}
-          {totalConsultantsInternes > 0 && (
-            <div className="card p-5">
-              <h3 className="mb-3 text-sm font-semibold text-brand-ink">
-                Répartition des contrats
-                <span className="ml-1.5 font-normal text-brand-gray">
-                  (consultants staffés / intercontrat)
-                </span>
-              </h3>
-              <ContratsBreakdown data={contratsParNature} total={totalConsultantsInternes} />
-            </div>
-          )}
-        </div>
+        {(pipelineParStatut.length > 0 || totalConsultantsInternes > 0) && (
+          <div className="flex flex-wrap gap-6">
+            {pipelineParStatut.length > 0 && (
+              <div className="card min-w-[320px] flex-1 p-5">
+                <h3 className="mb-3 text-sm font-semibold text-brand-ink">
+                  Pipeline commercial — répartition par statut
+                </h3>
+                <PipelineBreakdown data={pipelineParStatut} total={entreprisesTotal} />
+              </div>
+            )}
+            {totalConsultantsInternes > 0 && (
+              <div className="card min-w-[320px] flex-1 p-5">
+                <h3 className="mb-3 text-sm font-semibold text-brand-ink">
+                  Répartition des contrats
+                  <span className="ml-1.5 font-normal text-brand-gray">
+                    (consultants staffés / intercontrat)
+                  </span>
+                </h3>
+                <ContratsBreakdown data={contratsParNature} total={totalConsultantsInternes} />
+              </div>
+            )}
+          </div>
+        )}
 
         <div>
           <p className="mb-2 text-xs font-medium text-brand-gray">
             Activité — {periode.label}
           </p>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             <StatCard
               label="Entreprises créées"
               value={entreprisesCreesPeriode}

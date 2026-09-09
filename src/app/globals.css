@@ -38,147 +38,161 @@
     Helvetica, Arial, sans-serif;
 }
 
-body {
-  background:
-    radial-gradient(1200px 480px at 12% -10%, rgba(99, 135, 173, 0.10), transparent 60%),
-    radial-gradient(900px 420px at 100% 0%, rgba(31, 95, 74, 0.06), transparent 55%),
-    var(--background);
-  color: var(--foreground);
-}
+/* Tout le CSS custom ci-dessous vit dans les layers Tailwind (base/components)
+   plutôt qu'en dehors : une règle hors-layer bat TOUJOURS une règle de
+   n'importe quel @layer, quel que soit l'ordre des classes dans le JSX — donc
+   sans ça, un `<select className="input w-40">` gardait `.input { width:
+   100% }` et ignorait purablement `w-40` (constaté : le sélecteur de mois de
+   CA & Marge s'étirait sur toute la largeur de l'écran au lieu de 10rem).
+   `@layer components` passe après `base` mais reste sous `utilities`, donc
+   les classes Tailwind ajoutées à côté (w-40, py-1.5, text-xs…) reprennent
+   la main comme prévu. */
 
-.input {
-  width: 100%;
-  border-radius: 0.5rem;
-  border: 1px solid #d6dee9;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  background: #fff;
-  color: var(--brand-body);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-.input:hover {
-  border-color: #b9c6d8;
-}
-.input:focus {
-  outline: none;
-  border-color: var(--brand-blue);
-  box-shadow: 0 0 0 3px rgba(99, 135, 173, 0.18);
-}
-
-/* Titres de section numérotés façon gabarit HYPERION ("01 — ..."). */
-.section-title {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--brand-ink);
-  text-transform: uppercase;
-}
-.section-title .n {
-  color: var(--brand-blue);
-}
-
-/* --- Système visuel partagé (cartes, boutons, animations) --------------- */
-
-.card {
-  background: #fff;
-  border: 1px solid rgba(99, 135, 173, 0.14);
-  border-radius: 0.875rem;
-  box-shadow: var(--shadow-card);
-}
-
-.card-hover {
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-}
-.card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card-hover);
-  border-color: rgba(99, 135, 173, 0.32);
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  border-radius: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease,
-    transform 150ms ease, box-shadow 150ms ease;
-  white-space: nowrap;
-}
-.btn:active {
-  transform: scale(0.97);
-}
-.btn-primary {
-  background: linear-gradient(135deg, var(--brand-ink), var(--brand-blue-dark));
-  color: #fff;
-  box-shadow: 0 6px 16px -6px rgba(34, 45, 60, 0.45);
-}
-.btn-primary:hover {
-  box-shadow: 0 10px 20px -6px rgba(34, 45, 60, 0.5);
-  filter: brightness(1.06);
-}
-.btn-secondary {
-  background: #fff;
-  border: 1px solid #d6dee9;
-  color: var(--brand-body);
-}
-.btn-secondary:hover {
-  background: var(--brand-blue-bg);
-  border-color: var(--brand-blue-light);
-}
-.btn-accent {
-  background: var(--brand-blue);
-  color: #fff;
-}
-.btn-accent:hover {
-  background: var(--brand-blue-dark);
-}
-
-.link-underline {
-  position: relative;
-}
-.link-underline::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 100%;
-  bottom: -2px;
-  height: 2px;
-  border-radius: 1px;
-  background: currentColor;
-  transition: right 200ms ease;
-}
-.link-underline:hover::after {
-  right: 0;
-}
-
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+@layer base {
+  body {
+    background:
+      radial-gradient(1200px 480px at 12% -10%, rgba(99, 135, 173, 0.10), transparent 60%),
+      radial-gradient(900px 420px at 100% 0%, rgba(31, 95, 74, 0.06), transparent 55%),
+      var(--background);
+    color: var(--foreground);
   }
 }
-.animate-fade-in {
-  animation: fade-in-up 380ms ease both;
-}
 
-.topbar-gradient {
-  background: linear-gradient(100deg, var(--brand-ink) 0%, #2d3f57 32%, var(--brand-blue-dark) 68%, var(--brand-blue) 100%);
-}
+@layer components {
+  .input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid #d6dee9;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    background: #fff;
+    color: var(--brand-body);
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .input:hover {
+    border-color: #b9c6d8;
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--brand-blue);
+    box-shadow: 0 0 0 3px rgba(99, 135, 173, 0.18);
+  }
 
-/* Même famille de couleurs que .topbar-gradient (connexion), réorientée
-   pour une forme haute et étroite (sidebar interne) plutôt qu'un bandeau
-   large. */
-.sidebar-gradient {
-  background: linear-gradient(165deg, var(--brand-ink) 0%, #2d3f57 45%, var(--brand-blue-dark) 100%);
+  /* Titres de section numérotés façon gabarit HYPERION ("01 — ..."). */
+  .section-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--brand-ink);
+    text-transform: uppercase;
+  }
+  .section-title .n {
+    color: var(--brand-blue);
+  }
+
+  /* --- Système visuel partagé (cartes, boutons, animations) ------------- */
+
+  .card {
+    background: #fff;
+    border: 1px solid rgba(99, 135, 173, 0.14);
+    border-radius: 0.875rem;
+    box-shadow: var(--shadow-card);
+  }
+
+  .card-hover {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+    border-color: rgba(99, 135, 173, 0.32);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease,
+      transform 150ms ease, box-shadow 150ms ease;
+    white-space: nowrap;
+  }
+  .btn:active {
+    transform: scale(0.97);
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--brand-ink), var(--brand-blue-dark));
+    color: #fff;
+    box-shadow: 0 6px 16px -6px rgba(34, 45, 60, 0.45);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 10px 20px -6px rgba(34, 45, 60, 0.5);
+    filter: brightness(1.06);
+  }
+  .btn-secondary {
+    background: #fff;
+    border: 1px solid #d6dee9;
+    color: var(--brand-body);
+  }
+  .btn-secondary:hover {
+    background: var(--brand-blue-bg);
+    border-color: var(--brand-blue-light);
+  }
+  .btn-accent {
+    background: var(--brand-blue);
+    color: #fff;
+  }
+  .btn-accent:hover {
+    background: var(--brand-blue-dark);
+  }
+
+  .link-underline {
+    position: relative;
+  }
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 100%;
+    bottom: -2px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    transition: right 200ms ease;
+  }
+  .link-underline:hover::after {
+    right: 0;
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fade-in {
+    animation: fade-in-up 380ms ease both;
+  }
+
+  .topbar-gradient {
+    background: linear-gradient(100deg, var(--brand-ink) 0%, #2d3f57 32%, var(--brand-blue-dark) 68%, var(--brand-blue) 100%);
+  }
+
+  /* Même famille de couleurs que .topbar-gradient (connexion), réorientée
+     pour une forme haute et étroite (sidebar interne) plutôt qu'un bandeau
+     large. */
+  .sidebar-gradient {
+    background: linear-gradient(165deg, var(--brand-ink) 0%, #2d3f57 45%, var(--brand-blue-dark) 100%);
+  }
 }
