@@ -23,7 +23,7 @@ export default async function NouvelleOffrePage({
   if (besoin && !canAccessEntreprise(session.user, besoin.entreprise)) redirect("/admin/crm");
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-brand-ink">
           {besoin ? `Nouvelle offre — à partir du besoin` : "Nouvelle offre"}

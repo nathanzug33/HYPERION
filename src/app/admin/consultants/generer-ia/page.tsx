@@ -15,7 +15,7 @@ export default async function GenererIaPage() {
     : [];
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-brand-ink">
           ✨ Générer un dossier avec l&apos;IA
