@@ -4,7 +4,7 @@ import { requireStaff } from "@/lib/guards";
 import { ROLES, canReassignReferent } from "@/lib/constants";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { coutJournalier, margeJournaliere, margeMensuelle } from "@/lib/marge";
-import { setJoursTravaillesAction } from "../actions";
+import { setJoursTravaillesAction, setJoursTravaillesLotAction } from "../actions";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,14 @@ export const dynamic = "force-dynamic";
 const MOIS_LABELS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+];
+
+// Slice(0, 3) donnerait "Jui" à la fois pour Juin et Juillet — abréviations
+// explicites pour lever l'ambiguïté dans le graphique et le tableau de
+// rattrapage.
+const MOIS_LABELS_COURT = [
+  "Janv", "Févr", "Mars", "Avr", "Mai", "Juin",
+  "Juil", "Août", "Sept", "Oct", "Nov", "Déc",
 ];
 
 const HISTORIQUE_MOIS = 6;
@@ -180,7 +188,7 @@ export default async function MargePage({
             return (
               <div key={`${t.annee}-${t.mois}`} className="flex items-center gap-3 text-sm">
                 <span className="w-28 shrink-0 text-brand-body">
-                  {MOIS_LABELS[t.mois - 1].slice(0, 3)} {t.annee}
+                  {MOIS_LABELS_COURT[t.mois - 1]} {t.annee}
                 </span>
                 <div className="relative h-5 flex-1 overflow-hidden rounded-full bg-slate-100">
                   <div
@@ -269,6 +277,78 @@ export default async function MargePage({
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="card overflow-x-auto p-0">
+        <div className="p-5 pb-2">
+          <h2 className="text-sm font-semibold text-brand-ink">
+            Rattraper des prestations antérieures
+          </h2>
+          <p className="mt-1 text-xs text-brand-gray">
+            Renseignez ici les jours travaillés de n&apos;importe quel mois des{" "}
+            {HISTORIQUE_MOIS} derniers mois (ex. juin, juillet…) sans changer le filtre
+            ci-dessus. Un champ laissé vide ne modifie pas une valeur déjà enregistrée.
+          </p>
+        </div>
+        {missions.length === 0 ? (
+          <p className="p-5 text-sm text-brand-gray">Aucune mission dans ce périmètre.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
+              <tr>
+                <th className="px-4 py-3">Consultant</th>
+                <th className="px-4 py-3">Client</th>
+                {moisWindow.map((m) => (
+                  <th key={`${m.annee}-${m.mois}`} className="px-1 py-3 text-center">
+                    {MOIS_LABELS_COURT[m.mois - 1]} {String(m.annee).slice(2)}
+                  </th>
+                ))}
+                <th className="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {missions.map((mission) => {
+                const formId = `jours-lot-${mission.id}`;
+                const moisCles = moisWindow.map((m) => `${m.annee}-${m.mois}`).join(",");
+                return (
+                  <tr key={mission.id} className="hover:bg-brand-blue-bg-soft">
+                    <td className="px-4 py-2.5 font-medium text-brand-ink">
+                      {mission.consultant.prenom} {mission.consultant.nom}
+                    </td>
+                    <td className="px-4 py-2.5 text-brand-body">{mission.entreprise.nom}</td>
+                    {moisWindow.map((m) => {
+                      const jt = mission.joursTravailles.find(
+                        (j) => j.annee === m.annee && j.mois === m.mois
+                      );
+                      return (
+                        <td key={`${m.annee}-${m.mois}`} className="px-1 py-1.5 text-center">
+                          <input
+                            type="number"
+                            form={formId}
+                            name={`jours_${m.annee}_${m.mois}`}
+                            min={0}
+                            max={31}
+                            defaultValue={jt?.joursTravailles ?? ""}
+                            className="input w-14 py-1 text-center text-xs"
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="px-4 py-2.5 text-right">
+                      <form id={formId} action={setJoursTravaillesLotAction} className="inline">
+                        <input type="hidden" name="missionId" value={mission.id} />
+                        <input type="hidden" name="moisCles" value={moisCles} />
+                        <button type="submit" className="link-underline text-xs text-brand-blue-dark">
+                          Enregistrer
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
