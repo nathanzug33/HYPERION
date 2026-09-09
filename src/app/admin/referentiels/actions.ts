@@ -21,6 +21,8 @@ function delegateFor(type: ReferentialType) {
       return prisma.competence;
     case "langue":
       return prisma.langue;
+    case "industrie":
+      return prisma.industrie;
   }
 }
 

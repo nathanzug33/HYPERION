@@ -7,6 +7,7 @@ import type {
 import CheckboxGroup from "@/components/form/CheckboxGroup";
 import { STATUT_ENTREPRISE_LABELS } from "@/lib/constants";
 import { updateEntrepriseAction } from "../actions";
+import SecteurActiviteFields from "../secteur-activite-fields";
 
 type Referential = { id: string; label: string };
 
@@ -21,12 +22,14 @@ export default function EntrepriseEditForm({
   canReassignReferent,
   secteurs,
   expertises,
+  industries,
 }: {
   entreprise: EntrepriseWithRecherches;
   bms: User[];
   canReassignReferent: boolean;
   secteurs: Referential[];
   expertises: Referential[];
+  industries: Referential[];
 }) {
   return (
     <form action={updateEntrepriseAction} className="card space-y-4 p-5">
@@ -37,24 +40,20 @@ export default function EntrepriseEditForm({
         <input name="nom" defaultValue={entreprise.nom} required className="input mt-1.5" />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-brand-body">Secteur d&apos;activité</label>
-          <input
-            name="secteurActivite"
-            defaultValue={entreprise.secteurActivite ?? ""}
-            className="input mt-1.5"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-brand-body">Taille (effectif)</label>
-          <input
-            name="tailleEffectif"
-            defaultValue={entreprise.tailleEffectif ?? ""}
-            placeholder="Ex. 50-200"
-            className="input mt-1.5"
-          />
-        </div>
+      <SecteurActiviteFields
+        industries={industries}
+        defaultCategorie={entreprise.secteurCategorie}
+        defaultIndustrieId={entreprise.industrieId}
+      />
+
+      <div>
+        <label className="block text-xs font-medium text-brand-body">Taille (effectif)</label>
+        <input
+          name="tailleEffectif"
+          defaultValue={entreprise.tailleEffectif ?? ""}
+          placeholder="Ex. 50-200"
+          className="input mt-1.5"
+        />
       </div>
 
       <div>

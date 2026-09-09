@@ -228,6 +228,31 @@ export const STATUT_ENTREPRISE_LABELS: Record<StatutEntreprise, string> = {
   PERDU: "Perdu / inactif",
 };
 
+// Les 2 grands secteurs prédominants de l'ESN — écho aux spécialisations
+// des BM (plutôt Industrie, plutôt Digital). Si "INDUSTRIE" : le sous-secteur
+// précis est choisi via le référentiel Industrie (admin-éditable).
+export const SECTEUR_CATEGORIE = {
+  INDUSTRIE: "INDUSTRIE",
+  DIGITAL: "DIGITAL",
+} as const;
+export type SecteurCategorie =
+  (typeof SECTEUR_CATEGORIE)[keyof typeof SECTEUR_CATEGORIE];
+
+export const SECTEUR_CATEGORIE_LABELS: Record<SecteurCategorie, string> = {
+  INDUSTRIE: "Industrie",
+  DIGITAL: "Digital",
+};
+
+export function formatSecteurActivite(
+  secteurCategorie: string | null,
+  industrieLabel?: string | null
+): string {
+  if (!secteurCategorie) return "";
+  const label =
+    SECTEUR_CATEGORIE_LABELS[secteurCategorie as SecteurCategorie] ?? secteurCategorie;
+  return industrieLabel ? `${label} — ${industrieLabel}` : label;
+}
+
 // Statut d'un besoin saisi par un BM après un RDV client (§ pipeline
 // staffing) — distinct des statuts de DemandeBesoin (portail client).
 export const STATUT_BESOIN = {

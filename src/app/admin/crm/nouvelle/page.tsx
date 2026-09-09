@@ -1,8 +1,14 @@
+import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { createEntrepriseAction } from "../actions";
+import SecteurActiviteFields from "../secteur-activite-fields";
 
 export default async function NouvelleEntreprisePage() {
   await requireStaff();
+  const industries = await prisma.industrie.findMany({
+    where: { active: true },
+    orderBy: { ordre: "asc" },
+  });
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -19,15 +25,10 @@ export default async function NouvelleEntreprisePage() {
           <label className="block text-xs font-medium text-brand-body">Nom de l&apos;entreprise</label>
           <input name="nom" required className="input mt-1.5" />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-brand-body">Secteur d&apos;activité</label>
-            <input name="secteurActivite" className="input mt-1.5" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-brand-body">Taille (effectif)</label>
-            <input name="tailleEffectif" placeholder="Ex. 50-200" className="input mt-1.5" />
-          </div>
+        <SecteurActiviteFields industries={industries} />
+        <div>
+          <label className="block text-xs font-medium text-brand-body">Taille (effectif)</label>
+          <input name="tailleEffectif" placeholder="Ex. 50-200" className="input mt-1.5" />
         </div>
         <div>
           <label className="block text-xs font-medium text-brand-body">Site web</label>

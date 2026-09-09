@@ -9,6 +9,7 @@ import EntrepriseEditForm from "./entreprise-edit-form";
 import EntrepriseInfoModal from "./entreprise-info-modal";
 import ContactsSection from "./contacts-section";
 import BesoinsSection from "./besoins/besoins-section";
+import AjouterPopover from "./ajouter-popover";
 import MatchBadges from "@/components/MatchBadges";
 import { deleteEntrepriseAction, transferEntrepriseAction } from "../actions";
 
@@ -31,6 +32,7 @@ export default async function EntrepriseDetailPage({
       businessManager: true,
       secteursRecherches: true,
       expertisesRecherchees: true,
+      industrie: true,
     },
   });
 
@@ -46,7 +48,7 @@ export default async function EntrepriseDetailPage({
       })
     : [];
 
-  const [contacts, bms, secteurs, expertises, besoins] = await Promise.all([
+  const [contacts, bms, secteurs, expertises, industries, besoins] = await Promise.all([
     prisma.contact.findMany({
       where: { entrepriseId: id },
       orderBy: [{ principal: "desc" }, { createdAt: "asc" }],
@@ -56,6 +58,7 @@ export default async function EntrepriseDetailPage({
       : Promise.resolve([]),
     prisma.secteur.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.expertise.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+    prisma.industrie.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.besoin.findMany({
       where: { entrepriseId: id },
       orderBy: { createdAt: "desc" },
@@ -163,8 +166,10 @@ export default async function EntrepriseDetailPage({
             canReassignReferent={canReassignReferent(session.user)}
             secteurs={secteurs}
             expertises={expertises}
+            industries={industries}
           />
         </EntrepriseInfoModal>
+        <AjouterPopover entrepriseId={id} contacts={contacts} />
         {canReassignReferent(session.user) && (
           <form
             action={transferEntrepriseAction}
@@ -234,9 +239,9 @@ export default async function EntrepriseDetailPage({
         </div>
       )}
 
-      <BesoinsSection entrepriseId={id} contacts={contacts} besoins={besoins} />
-
       <ContactsSection entrepriseId={id} contacts={contacts} />
+
+      <BesoinsSection entrepriseId={id} besoins={besoins} />
     </div>
   );
 }

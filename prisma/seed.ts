@@ -44,6 +44,42 @@ async function main() {
     "Retail / e-commerce",
   ]);
 
+  // Sous-secteurs de la catégorie "Industrie" (§ Entreprise.industrieId) —
+  // liste volontairement exhaustive, éditable ensuite depuis /admin/referentiels.
+  await upsertReferential(prisma.industrie, [
+    "Énergie",
+    "Énergies renouvelables",
+    "Nucléaire",
+    "Pétrole & gaz",
+    "Environnement",
+    "Eau / traitement des eaux",
+    "Recyclage / économie circulaire",
+    "Agroalimentaire",
+    "Agriculture / agroéquipement",
+    "Pharmaceutique",
+    "Dispositifs médicaux",
+    "Biotechnologies",
+    "Chimie",
+    "Cosmétique",
+    "Aéronautique, spatial, défense (ASD)",
+    "Automobile",
+    "Ferroviaire",
+    "Naval / maritime",
+    "Industrie lourde (sidérurgie, métallurgie)",
+    "Mines / matières premières",
+    "Bureau d'études / ingénierie",
+    "BTP / construction",
+    "Matériaux (verre, plastique, composites)",
+    "Électronique / semi-conducteurs",
+    "Équipements industriels / machines-outils",
+    "Robotique / automatisation industrielle",
+    "Textile",
+    "Luxe",
+    "Papier / carton / emballage",
+    "Logistique industrielle",
+    "Utilities (énergie, eau, déchets)",
+  ]);
+
   const expertises = await upsertReferential(prisma.expertise, [
     "DevOps / Cloud",
     "Data / IA",

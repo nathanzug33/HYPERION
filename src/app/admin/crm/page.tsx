@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES, STATUT_ENTREPRISE_LABELS, canReassignReferent } from "@/lib/constants";
+import {
+  ROLES,
+  STATUT_ENTREPRISE_LABELS,
+  canReassignReferent,
+  formatSecteurActivite,
+} from "@/lib/constants";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import type { Prisma } from "@prisma/client";
 
@@ -26,7 +31,7 @@ export default async function CrmListPage({
         ? {
             OR: [
               { nom: { contains: q } },
-              { secteurActivite: { contains: q } },
+              { industrie: { label: { contains: q } } },
               { ville: { contains: q } },
               { notes: { contains: q } },
               { contacts: { some: { nom: { contains: q } } } },
@@ -44,6 +49,7 @@ export default async function CrmListPage({
       orderBy: { updatedAt: "desc" },
       include: {
         businessManager: true,
+        industrie: true,
         _count: { select: { contacts: true } },
       },
     }),
@@ -136,7 +142,9 @@ export default async function CrmListPage({
                     {e.nom}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-brand-body">{e.secteurActivite ?? "—"}</td>
+                <td className="px-4 py-3 text-brand-body">
+                  {formatSecteurActivite(e.secteurCategorie, e.industrie?.label) || "—"}
+                </td>
                 <td className="px-4 py-3 text-brand-body">{e.ville ?? "—"}</td>
                 <td className="px-4 py-3 text-brand-body">{e._count.contacts}</td>
                 <td className="px-4 py-3 text-brand-body">{e.businessManager.name}</td>

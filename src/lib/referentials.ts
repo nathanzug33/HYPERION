@@ -6,6 +6,7 @@ export const REFERENTIAL_TYPES = [
   "zoneGeographique",
   "competence",
   "langue",
+  "industrie",
 ] as const;
 export type ReferentialType = (typeof REFERENTIAL_TYPES)[number];
 

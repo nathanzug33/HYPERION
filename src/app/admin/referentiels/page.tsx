@@ -18,6 +18,7 @@ async function getSections(): Promise<
     zones,
     competences,
     langues,
+    industries,
   ] = await Promise.all([
     prisma.secteur.findMany({ orderBy: { ordre: "asc" } }),
     prisma.expertise.findMany({ orderBy: { ordre: "asc" } }),
@@ -26,6 +27,7 @@ async function getSections(): Promise<
     prisma.zoneGeographique.findMany({ orderBy: { ordre: "asc" } }),
     prisma.competence.findMany({ orderBy: { label: "asc" } }),
     prisma.langue.findMany({ orderBy: { label: "asc" } }),
+    prisma.industrie.findMany({ orderBy: { ordre: "asc" } }),
   ]);
 
   return [
@@ -36,6 +38,7 @@ async function getSections(): Promise<
     { type: "zoneGeographique", title: "Zones géographiques", items: zones },
     { type: "competence", title: "Compétences / technologies", items: competences },
     { type: "langue", title: "Langues", items: langues },
+    { type: "industrie", title: "Industries (sous-secteurs)", items: industries },
   ];
 }
 

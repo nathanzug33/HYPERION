@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { toCsv, csvResponse } from "@/lib/csv";
-import { STATUT_ENTREPRISE_LABELS } from "@/lib/constants";
+import { STATUT_ENTREPRISE_LABELS, formatSecteurActivite } from "@/lib/constants";
 
 export async function GET() {
   const session = await requireStaff();
@@ -10,7 +10,11 @@ export async function GET() {
   const entreprises = await prisma.entreprise.findMany({
     where: entrepriseVisibilityWhere(session.user),
     orderBy: { updatedAt: "desc" },
-    include: { businessManager: true, _count: { select: { contacts: true } } },
+    include: {
+      businessManager: true,
+      industrie: true,
+      _count: { select: { contacts: true } },
+    },
   });
 
   const csv = toCsv(
@@ -26,7 +30,7 @@ export async function GET() {
     ],
     entreprises.map((e) => [
       e.nom,
-      e.secteurActivite ?? "",
+      formatSecteurActivite(e.secteurCategorie, e.industrie?.label),
       e.ville ?? "",
       e._count.contacts,
       e.businessManager.name,

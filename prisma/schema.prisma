@@ -114,6 +114,18 @@ model Secteur {
   entreprisesCherchent EntrepriseSecteurRecherche[]
 }
 
+// Sous-secteur d'activité "Industrie" — référentiel admin-éditable, distinct
+// des secteurs de recherche candidats (EntrepriseSecteurRecherche) qui
+// décrivent un besoin de recrutement et non l'activité propre du client.
+model Industrie {
+  id     String  @id @default(cuid())
+  label  String  @unique
+  ordre  Int     @default(0)
+  active Boolean @default(true)
+
+  entreprises Entreprise[]
+}
+
 model Expertise {
   id     String  @id @default(cuid())
   label  String  @unique
@@ -321,7 +333,12 @@ model Entreprise {
   id String @id @default(cuid())
 
   nom              String
-  secteurActivite  String?
+  // Les 2 grands secteurs prédominants de l'ESN — Industrie ou Digital,
+  // en écho aux spécialisations des BM. Si "INDUSTRIE" : sous-secteur
+  // précisé via industrieId (référentiel admin-éditable).
+  secteurCategorie String? // "INDUSTRIE" | "DIGITAL"
+  industrieId      String?
+  industrie        Industrie? @relation(fields: [industrieId], references: [id])
   siteWeb          String?
   adresse          String?
   ville            String?

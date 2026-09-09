@@ -7,6 +7,7 @@ import { requireStaff, requireAdmin, requireAdminOrDirecteur } from "@/lib/guard
 import {
   STATUT_ENTREPRISE_LABELS,
   SUIVI_COMMERCIAL_TYPE,
+  SECTEUR_CATEGORIE,
   canReassignReferent,
 } from "@/lib/constants";
 import { canAccessEntreprise } from "@/lib/crm-access";
@@ -14,6 +15,19 @@ import { findContactDuplicates } from "@/lib/duplicate-detection";
 
 function getMulti(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
+}
+
+/** Le sous-secteur (industrieId) n'a de sens que si la catégorie est "Industrie". */
+function getSecteurActivite(formData: FormData): {
+  secteurCategorie: string | null;
+  industrieId: string | null;
+} {
+  const secteurCategorie = String(formData.get("secteurCategorie") ?? "") || null;
+  const industrieId =
+    secteurCategorie === SECTEUR_CATEGORIE.INDUSTRIE
+      ? String(formData.get("industrieId") ?? "") || null
+      : null;
+  return { secteurCategorie, industrieId };
 }
 
 async function assertOwnership(entrepriseId: string) {
@@ -42,7 +56,7 @@ export async function createEntrepriseAction(formData: FormData) {
   const entreprise = await prisma.entreprise.create({
     data: {
       nom,
-      secteurActivite: String(formData.get("secteurActivite") ?? "") || null,
+      ...getSecteurActivite(formData),
       siteWeb: String(formData.get("siteWeb") ?? "") || null,
       adresse: String(formData.get("adresse") ?? "") || null,
       ville: String(formData.get("ville") ?? "") || null,
@@ -67,7 +81,7 @@ export async function updateEntrepriseAction(formData: FormData) {
 
   const data = {
     nom: String(formData.get("nom") ?? "").trim() || entreprise.nom,
-    secteurActivite: String(formData.get("secteurActivite") ?? "") || null,
+    ...getSecteurActivite(formData),
     siteWeb: String(formData.get("siteWeb") ?? "") || null,
     adresse: String(formData.get("adresse") ?? "") || null,
     ville: String(formData.get("ville") ?? "") || null,
