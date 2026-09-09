@@ -44,6 +44,16 @@ export const STATUT_PUBLICATION_LABELS: Record<StatutPublication, string> = {
   ARCHIVEE: "Archivée",
 };
 
+// Affichage "Bibliothèque" (côté fiche/liste candidat) : un dossier non
+// publié est déjà pleinement dans le vivier ATS (une CVthèque qu'on
+// enrichit) — "Brouillon" y est trompeur, laissé vide plutôt qu'affiché.
+export function formatStatutBibliotheque(statut: string): string {
+  if (statut === STATUT_PUBLICATION.PUBLIEE) return "Publié";
+  if (statut === STATUT_PUBLICATION.DEPUBLIEE) return "Dépublié";
+  if (statut === STATUT_PUBLICATION.ARCHIVEE) return "Archivé";
+  return "";
+}
+
 export const STATUT_CANDIDAT_INTERNE = {
   EN_COURS: "EN_COURS",
   STAFFE: "STAFFE",

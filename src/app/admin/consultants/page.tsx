@@ -4,6 +4,7 @@ import { requireStaff } from "@/lib/guards";
 import {
   STATUT_PUBLICATION_LABELS,
   FICHE_FRAICHEUR_SEUIL_JOURS,
+  formatStatutBibliotheque,
 } from "@/lib/constants";
 import { consultantVisibilityWhere } from "@/lib/consultant-access";
 
@@ -105,7 +106,7 @@ export default async function ConsultantsListPage({
               <th className="px-4 py-3">Nom</th>
               <th className="px-4 py-3">Poste</th>
               <th className="px-4 py-3">BM référent</th>
-              <th className="px-4 py-3">Statut</th>
+              <th className="px-4 py-3">Bibliothèque</th>
               <th className="px-4 py-3">Dernière maj</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -173,8 +174,13 @@ export default async function ConsultantsListPage({
 }
 
 function StatusBadge({ statut }: { statut: string }) {
+  const label = formatStatutBibliotheque(statut);
+  // Non publié (brouillon) : le dossier est déjà pleinement dans le vivier
+  // ATS, rien à signaler ici — le badge n'a de sens que pour distinguer
+  // Publié / Dépublié / Archivé.
+  if (!label) return <span className="text-brand-gray">—</span>;
+
   const styles: Record<string, string> = {
-    BROUILLON: "bg-slate-100 text-brand-body",
     PUBLIEE: "bg-brand-green/10 text-brand-green",
     DEPUBLIEE: "bg-amber-50 text-amber-700",
     ARCHIVEE: "bg-slate-100 text-brand-gray",
@@ -182,7 +188,7 @@ function StatusBadge({ statut }: { statut: string }) {
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${styles[statut] ?? ""}`}>
       <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-      {STATUT_PUBLICATION_LABELS[statut as keyof typeof STATUT_PUBLICATION_LABELS] ?? statut}
+      {label}
     </span>
   );
 }

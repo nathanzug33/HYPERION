@@ -24,6 +24,7 @@ import {
   marquerBesoinGagneAction,
 } from "../actions";
 import NatureContratFields from "@/components/NatureContratFields";
+import { computeMatchScore } from "@/lib/matching";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,12 @@ export default async function BesoinDetailPage({
   const besoin = await prisma.besoin.findUnique({
     where: { id: besoinId },
     include: {
-      entreprise: true,
+      entreprise: {
+        include: {
+          secteursRecherches: { select: { secteurId: true } },
+          expertisesRecherchees: { select: { expertiseId: true } },
+        },
+      },
       contact: true,
       candidats: {
         include: { consultant: true, createdBy: true },
@@ -64,13 +70,53 @@ export default async function BesoinDetailPage({
     prisma.consultant.findMany({
       where: { id: { notIn: besoin.candidats.map((c) => c.consultantId) } },
       orderBy: { nom: "asc" },
-      select: { id: true, nom: true, prenom: true, referenceAnonyme: true },
+      select: {
+        id: true,
+        nom: true,
+        prenom: true,
+        referenceAnonyme: true,
+        villeLat: true,
+        villeLng: true,
+        rayonKm: true,
+        disponibilite: true,
+        secteurs: { select: { secteurId: true } },
+        expertises: { select: { expertiseId: true } },
+      },
     }),
   ]);
 
   const candidatsEligiblesGain = besoin.candidats.filter(
     (c) => c.statut !== STATUT_BESOIN_CANDIDAT.ECARTE
   );
+
+  // Suggestions vivier <-> besoin : on matche sur les secteurs/expertises
+  // recherchés par l'entreprise cliente (le besoin lui-même n'a pas de
+  // référentiel structuré, seulement du texte libre) — sur tout le vivier,
+  // pas seulement les fiches publiées (c'est un outil interne de CVthèque).
+  const entrepriseSecteurIds = besoin.entreprise.secteursRecherches.map((s) => s.secteurId);
+  const entrepriseExpertiseIds = besoin.entreprise.expertisesRecherchees.map((x) => x.expertiseId);
+
+  const candidatsCorrespondants = candidatsDisponibles
+    .map((c) => ({
+      id: c.id,
+      nom: c.nom,
+      prenom: c.prenom,
+      referenceAnonyme: c.referenceAnonyme,
+      match: computeMatchScore({
+        candidatSecteurIds: c.secteurs.map((s) => s.secteurId),
+        candidatExpertiseIds: c.expertises.map((e) => e.expertiseId),
+        candidatVilleLat: c.villeLat,
+        candidatVilleLng: c.villeLng,
+        candidatRayonKm: c.rayonKm,
+        candidatDisponibilite: c.disponibilite,
+        entrepriseSecteurIds,
+        entrepriseExpertiseIds,
+        entrepriseVille: besoin.entreprise.ville,
+      }),
+    }))
+    .filter((c) => c.match.score > 0)
+    .sort((a, b) => b.match.score - a.match.score)
+    .slice(0, 10);
 
   return (
     <div className="space-y-6">
@@ -299,6 +345,71 @@ export default async function BesoinDetailPage({
                   + Associer
                 </button>
               </form>
+            )}
+          </div>
+
+          <div className="card space-y-4 p-5">
+            <h2 className="text-sm font-semibold text-brand-ink">
+              Candidats du vivier correspondants{" "}
+              <span className="font-normal text-brand-gray">
+                — basé sur les secteurs/expertises recherchés par {besoin.entreprise.nom}
+              </span>
+            </h2>
+
+            {candidatsCorrespondants.length === 0 ? (
+              <p className="text-xs text-brand-gray">
+                Aucune correspondance trouvée dans le vivier pour l&apos;instant.
+              </p>
+            ) : (
+              <ul className="-mx-2 divide-y divide-slate-100">
+                {candidatsCorrespondants.map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex flex-wrap items-center justify-between gap-2 px-2 py-2.5"
+                  >
+                    <div className="text-sm">
+                      <Link
+                        href={`/admin/consultants/${c.id}`}
+                        className="font-medium text-brand-ink hover:text-brand-blue-dark"
+                      >
+                        {c.prenom} {c.nom}
+                      </Link>{" "}
+                      <span className="text-xs text-brand-gray">{c.referenceAnonyme}</span>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {c.match.secteursCommuns > 0 && (
+                          <span className="rounded-full bg-brand-blue/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-blue-dark">
+                            {c.match.secteursCommuns} secteur(s) commun(s)
+                          </span>
+                        )}
+                        {c.match.expertisesCommunes > 0 && (
+                          <span className="rounded-full bg-brand-blue/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-blue-dark">
+                            {c.match.expertisesCommunes} expertise(s) commune(s)
+                          </span>
+                        )}
+                        {c.match.proximite && (
+                          <span className="rounded-full bg-brand-green/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-green">
+                            À proximité
+                          </span>
+                        )}
+                        {c.match.disponibleImmediat && (
+                          <span className="rounded-full bg-brand-green/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-green">
+                            Disponible immédiatement
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {besoin.statut === STATUT_BESOIN.OUVERT && (
+                      <form action={addBesoinCandidatAction}>
+                        <input type="hidden" name="besoinId" value={besoin.id} />
+                        <input type="hidden" name="consultantId" value={c.id} />
+                        <button type="submit" className="btn btn-secondary py-1 text-xs">
+                          + Associer
+                        </button>
+                      </form>
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>

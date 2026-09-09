@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import {
+  SUIVI_TYPE,
   SUIVI_TYPE_LABELS,
   SUIVI_TYPE_SAISISSABLES,
   type SuiviType,
@@ -27,33 +31,50 @@ const TYPE_STYLES: Record<string, string> = {
   STATUT: "bg-brand-green/10 text-brand-green",
 };
 
+// Seuls ces types correspondent à une action future planifiée (RDV/rappel) —
+// pour les autres (appel, plus disponible, refus…), la date de création du
+// suivi suffit comme traçabilité, pas de champ date à renseigner.
+const TYPES_AVEC_ECHEANCE = [SUIVI_TYPE.RDV, SUIVI_TYPE.RAPPEL] as const;
+
 export default function SuiviSection({
   consultantId,
   suivis,
+  compact = true,
 }: {
   consultantId: string;
   suivis: Suivi[];
+  compact?: boolean;
 }) {
   const now = new Date();
+  const [type, setType] = useState<string>(SUIVI_TYPE.NOTE);
+  const avecEcheance = TYPES_AVEC_ECHEANCE.includes(type as (typeof TYPES_AVEC_ECHEANCE)[number]);
 
   return (
     <div>
       <form action={createSuiviAction} className="space-y-2 border-b border-slate-100 pb-4">
         <input type="hidden" name="consultantId" value={consultantId} />
-        <div className="grid grid-cols-2 gap-2">
-          <select name="type" defaultValue="NOTE" className="input text-xs">
+        <div className={avecEcheance ? "grid grid-cols-2 gap-2" : ""}>
+          <select
+            name="type"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="input text-xs"
+          >
             {SUIVI_TYPE_SAISISSABLES.map((t) => (
               <option key={t} value={t}>
                 {SUIVI_TYPE_LABELS[t as SuiviType]}
               </option>
             ))}
           </select>
-          <input
-            type="datetime-local"
-            name="dateProgrammee"
-            className="input text-xs"
-            title="Échéance (RDV / rappel)"
-          />
+          {avecEcheance && (
+            <input
+              type="datetime-local"
+              name="dateProgrammee"
+              required
+              className="input text-xs"
+              title="Échéance (RDV / rappel)"
+            />
+          )}
         </div>
         <input
           type="text"
@@ -76,7 +97,9 @@ export default function SuiviSection({
       {suivis.length === 0 ? (
         <p className="mt-3 text-xs text-brand-gray">Aucun suivi pour le moment.</p>
       ) : (
-        <ul className="mt-3 max-h-96 space-y-2 overflow-y-auto pr-1">
+        <ul
+          className={`mt-3 space-y-2 overflow-y-auto pr-1 ${compact ? "max-h-96" : "max-h-[70vh]"}`}
+        >
           {suivis.map((s) => {
             const overdue = s.dateProgrammee != null && !s.fait && s.dateProgrammee < now;
             const actionable = s.dateProgrammee != null && s.type !== "STATUT";

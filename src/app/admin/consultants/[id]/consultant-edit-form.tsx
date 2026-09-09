@@ -25,6 +25,7 @@ import {
 } from "@/lib/constants";
 import { updateConsultantAction } from "../actions";
 import { VILLES_FRANCE } from "@/lib/villes-france";
+import SuiviSection from "./suivi-section";
 
 type ConsultantWithRelations = Consultant & {
   secteurs: ConsultantSecteur[];
@@ -47,8 +48,20 @@ const TABS = [
   { key: "competences", label: "Compétences" },
   { key: "secteurs", label: "Secteurs" },
   { key: "pieces", label: "Pièces jointes" },
+  { key: "suivi", label: "Suivi" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
+
+type Suivi = {
+  id: string;
+  type: string;
+  titre: string;
+  notes: string | null;
+  dateProgrammee: Date | null;
+  fait: boolean;
+  createdAt: Date;
+  createdBy: { name: string };
+};
 
 function splitByCategorie(items: CategorizedReferential[]) {
   return {
@@ -62,6 +75,7 @@ export default function ConsultantEditForm({
   consultant,
   referentials,
   canReassignReferent,
+  suivis,
 }: {
   consultant: ConsultantWithRelations;
   referentials: {
@@ -74,6 +88,7 @@ export default function ConsultantEditForm({
     bms: User[];
   };
   canReassignReferent: boolean;
+  suivis: Suivi[];
 }) {
   const [tab, setTab] = useState<TabKey>("info");
 
@@ -429,6 +444,12 @@ export default function ConsultantEditForm({
           Enregistrer les modifications
         </button>
       </form>
+
+      {/* Hors du <form> principal : SuiviSection a son propre <form>
+          (action différente), imbriquer des <form> n'est pas valide en HTML. */}
+      <div hidden={tab !== "suivi"} className="card p-5">
+        <SuiviSection consultantId={consultant.id} suivis={suivis} compact={false} />
+      </div>
     </div>
   );
 }

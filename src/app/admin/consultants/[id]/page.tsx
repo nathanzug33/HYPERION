@@ -5,7 +5,7 @@ import { requireStaff } from "@/lib/guards";
 import { ROLES } from "@/lib/constants";
 import { consultantPublicSelect } from "@/lib/consultant-view";
 import ConsultantEditForm from "./consultant-edit-form";
-import { STATUT_PUBLICATION_LABELS, canReassignReferent } from "@/lib/constants";
+import { formatStatutBibliotheque, canReassignReferent } from "@/lib/constants";
 import { canAccessConsultant } from "@/lib/consultant-access";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { computeMatchScore } from "@/lib/matching";
@@ -165,13 +165,16 @@ export default async function ConsultantEditPage({
             </span>
           </h1>
           <p className="mt-1 text-sm text-brand-gray">
-            Statut :{" "}
-            <span className="font-medium text-brand-body">
-              {STATUT_PUBLICATION_LABELS[
-                consultant.statutPublication as keyof typeof STATUT_PUBLICATION_LABELS
-              ] ?? consultant.statutPublication}
-            </span>
-            {" · "}BM référent : {consultant.businessManager.name}
+            {formatStatutBibliotheque(consultant.statutPublication) && (
+              <>
+                Bibliothèque :{" "}
+                <span className="font-medium text-brand-body">
+                  {formatStatutBibliotheque(consultant.statutPublication)}
+                </span>
+                {" · "}
+              </>
+            )}
+            BM référent : {consultant.businessManager.name}
           </p>
         </div>
         <Link href="/admin/consultants" className="link-underline text-sm text-brand-gray hover:text-brand-ink">
@@ -246,6 +249,7 @@ export default async function ConsultantEditPage({
         consultant={consultant}
         referentials={{ secteurs, expertises, typesMobilite, zones, competences, langues, bms }}
         canReassignReferent={canReassignReferent(session.user)}
+        suivis={suivis}
       />
     </div>
   );
