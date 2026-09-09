@@ -18,6 +18,7 @@ import {
   COMPETENCE_CATEGORIE_LABELS,
   DISPONIBILITE_LABELS,
   FORMATION_TYPE,
+  NATURE_CONTRAT_LABELS,
   NIVEAU_LABELS,
   STATUT_CANDIDAT_INTERNE_LABELS,
   TYPE_CONTRAT_LABELS,
@@ -125,21 +126,41 @@ export default function ConsultantEditForm({
 
         {isAdmin && (
           <div className="grid gap-4 border-t border-slate-100 pt-3 sm:grid-cols-2">
-            <Field label="Salaire brut mensuel (€) — coût/marge, sensible">
+            <Field label="Nature du contrat — coût/marge, sensible">
+              <select name="natureContrat" defaultValue={consultant.natureContrat ?? ""} className="input">
+                <option value="">—</option>
+                {Object.entries(NATURE_CONTRAT_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div />
+            <Field label="Salaire brut annuel (€) — si CDI / CDIC">
               <input
                 type="number"
-                name="salaireBrutMensuel"
+                name="salaireBrutAnnuel"
                 min={0}
-                defaultValue={consultant.salaireBrutMensuel ?? ""}
+                defaultValue={consultant.salaireBrutAnnuel ?? ""}
                 className="input"
               />
             </Field>
-            <Field label="Frais mensuels (€) — IGD, IK…">
+            <Field label="TJM payé (€/j) — si indépendant, sans coefficient">
               <input
                 type="number"
-                name="fraisMensuels"
+                name="tjmAchat"
                 min={0}
-                defaultValue={consultant.fraisMensuels ?? ""}
+                defaultValue={consultant.tjmAchat ?? ""}
+                className="input"
+              />
+            </Field>
+            <Field label="Frais annuels (€) — IGD, IK…">
+              <input
+                type="number"
+                name="fraisAnnuels"
+                min={0}
+                defaultValue={consultant.fraisAnnuels ?? ""}
                 className="input"
               />
             </Field>

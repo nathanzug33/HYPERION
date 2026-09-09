@@ -174,6 +174,24 @@ export const TYPE_CONTRAT_LABELS: Record<TypeContrat, string> = {
   TEMPS_PARTAGE: "Temps partagé",
 };
 
+// Nature du contrat de travail du consultant (§ pilotage financier) —
+// distinct de TYPE_CONTRAT (régie/forfait/temps partagé : modalité de la
+// mission côté client). Conditionne le calcul du coût journalier dans
+// src/lib/marge.ts : un salarié (CDI/CDIC) coûte son salaire annualisé avec
+// charges patronales, un indépendant coûte exactement le TJM qu'on lui paie.
+export const NATURE_CONTRAT = {
+  CDI: "CDI",
+  CDIC: "CDIC",
+  INDEPENDANT: "INDEPENDANT",
+} as const;
+export type NatureContrat = (typeof NATURE_CONTRAT)[keyof typeof NATURE_CONTRAT];
+
+export const NATURE_CONTRAT_LABELS: Record<NatureContrat, string> = {
+  CDI: "CDI",
+  CDIC: "CDI de chantier (CDIC)",
+  INDEPENDANT: "Indépendant",
+};
+
 export const CONTACT_REQUEST_STATUS = {
   NOUVELLE: "NOUVELLE",
   EN_COURS: "EN_COURS",

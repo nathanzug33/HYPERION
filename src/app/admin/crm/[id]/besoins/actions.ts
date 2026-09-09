@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { canAccessEntreprise } from "@/lib/crm-access";
-import { STATUT_BESOIN, STATUT_BESOIN_CANDIDAT, STATUT_MISSION } from "@/lib/constants";
+import { ROLES, STATUT_BESOIN, STATUT_BESOIN_CANDIDAT, STATUT_MISSION } from "@/lib/constants";
+import type { Prisma } from "@prisma/client";
 
 async function assertEntrepriseAccess(entrepriseId: string) {
   const session = await requireStaff();
@@ -182,6 +183,22 @@ export async function marquerBesoinGagneAction(formData: FormData) {
   const dateFinPrevueRaw = String(formData.get("dateFinPrevue") ?? "");
   if (!dateDebutRaw) return;
 
+  // Coût/marge (sensible, admin uniquement) : saisi ici au moment du
+  // staffing plutôt qu'en obligeant un détour par la fiche consultant — un
+  // champ laissé vide n'écrase pas une valeur déjà enregistrée (on ne peut
+  // pas pré-remplir ce formulaire selon le candidat choisi sans JS).
+  const consultantData: Prisma.ConsultantUpdateInput = { statutCandidatInterne: "STAFFE" };
+  if (session.user.role === ROLES.ADMIN) {
+    const natureContratRaw = String(formData.get("natureContrat") ?? "");
+    const salaireBrutAnnuelRaw = String(formData.get("salaireBrutAnnuel") ?? "");
+    const tjmAchatRaw = String(formData.get("tjmAchat") ?? "");
+    const fraisAnnuelsRaw = String(formData.get("fraisAnnuels") ?? "");
+    if (natureContratRaw) consultantData.natureContrat = natureContratRaw;
+    if (salaireBrutAnnuelRaw) consultantData.salaireBrutAnnuel = Number(salaireBrutAnnuelRaw);
+    if (tjmAchatRaw) consultantData.tjmAchat = Number(tjmAchatRaw);
+    if (fraisAnnuelsRaw) consultantData.fraisAnnuels = Number(fraisAnnuelsRaw);
+  }
+
   await prisma.$transaction([
     prisma.mission.create({
       data: {
@@ -210,7 +227,7 @@ export async function marquerBesoinGagneAction(formData: FormData) {
     }),
     prisma.consultant.update({
       where: { id: retenu.consultantId },
-      data: { statutCandidatInterne: "STAFFE" },
+      data: consultantData,
     }),
   ]);
 

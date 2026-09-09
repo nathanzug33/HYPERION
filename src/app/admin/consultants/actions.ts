@@ -146,11 +146,13 @@ export async function updateConsultantAction(formData: FormData) {
     // rôles, mais on ne fait jamais confiance au seul masquage front).
     ...(session.user.role === ROLES.ADMIN
       ? {
-          salaireBrutMensuel: formData.get("salaireBrutMensuel")
-            ? Number(formData.get("salaireBrutMensuel"))
+          natureContrat: String(formData.get("natureContrat") ?? "") || null,
+          salaireBrutAnnuel: formData.get("salaireBrutAnnuel")
+            ? Number(formData.get("salaireBrutAnnuel"))
             : null,
-          fraisMensuels: formData.get("fraisMensuels")
-            ? Number(formData.get("fraisMensuels"))
+          tjmAchat: formData.get("tjmAchat") ? Number(formData.get("tjmAchat")) : null,
+          fraisAnnuels: formData.get("fraisAnnuels")
+            ? Number(formData.get("fraisAnnuels"))
             : null,
         }
       : {}),

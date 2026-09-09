@@ -1,21 +1,30 @@
-import { COEFFICIENT_CHARGES_PATRONALES, JOURS_FACTURABLES_PAR_AN } from "@/lib/constants";
+import { COEFFICIENT_CHARGES_PATRONALES, JOURS_FACTURABLES_PAR_AN, NATURE_CONTRAT } from "@/lib/constants";
 
-// Calcul de coût/marge consultant (§ pilotage financier). Le salaire et les
-// frais sont saisis mensuellement (plus naturel pour un BM/admin) puis
-// annualisés ici avant d'appliquer le forfait de 218 jours/an — mélanger un
-// coût mensuel et un diviseur annuel donnerait un résultat faux d'un facteur
-// ~12, donc TOUTE la logique d'annualisation reste centralisée ici plutôt
-// que dupliquée à chaque appelant.
+// Calcul de coût/marge consultant (§ pilotage financier). Le coût journalier
+// diffère selon la nature du contrat : un salarié (CDI/CDIC) coûte son
+// salaire brut annuel × le coefficient de charges patronales, un indépendant
+// coûte exactement le TJM qu'on lui paie (aucun coefficient employeur à
+// appliquer sur un TJM d'achat). Toute cette logique reste centralisée ici
+// plutôt que dupliquée à chaque appelant.
 
-/** Coût employeur journalier moyen, ou `null` si le salaire n'est pas
- * renseigné (fiche consultant incomplète — cas normal avant saisie admin). */
+/** Coût employeur/achat journalier moyen, ou `null` si les données de coût
+ * ne sont pas renseignées (fiche consultant incomplète — cas normal avant
+ * saisie admin, typiquement avant le staffing sur une mission). */
 export function coutJournalier(consultant: {
-  salaireBrutMensuel: number | null;
-  fraisMensuels: number | null;
+  natureContrat: string | null;
+  salaireBrutAnnuel: number | null;
+  fraisAnnuels: number | null;
+  tjmAchat: number | null;
 }): number | null {
-  if (!consultant.salaireBrutMensuel) return null;
-  const coutAnnuelCharge = consultant.salaireBrutMensuel * 12 * COEFFICIENT_CHARGES_PATRONALES;
-  const fraisAnnuels = (consultant.fraisMensuels ?? 0) * 12;
+  const fraisAnnuels = consultant.fraisAnnuels ?? 0;
+
+  if (consultant.natureContrat === NATURE_CONTRAT.INDEPENDANT) {
+    if (!consultant.tjmAchat) return null;
+    return consultant.tjmAchat + fraisAnnuels / JOURS_FACTURABLES_PAR_AN;
+  }
+
+  if (!consultant.salaireBrutAnnuel) return null;
+  const coutAnnuelCharge = consultant.salaireBrutAnnuel * COEFFICIENT_CHARGES_PATRONALES;
   return (coutAnnuelCharge + fraisAnnuels) / JOURS_FACTURABLES_PAR_AN;
 }
 

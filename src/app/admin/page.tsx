@@ -6,6 +6,8 @@ import {
   CONTACT_REQUEST_STATUS,
   STATUT_PUBLICATION,
   STATUT_ENTREPRISE_LABELS,
+  STATUT_CANDIDAT_INTERNE,
+  NATURE_CONTRAT_LABELS,
   ROLES,
   canReassignReferent,
 } from "@/lib/constants";
@@ -162,6 +164,23 @@ export default async function AdminDashboardPage({
     where: entrepriseFilter,
     _count: { _all: true },
   });
+
+  // Répartition par nature de contrat — parmi les consultants réellement
+  // internes (staffés ou intercontrat), pas le vivier ATS au sens large.
+  const contratsParNature = await prisma.consultant.groupBy({
+    by: ["natureContrat"],
+    where: {
+      ...bmFilter,
+      statutCandidatInterne: {
+        in: [STATUT_CANDIDAT_INTERNE.STAFFE, STATUT_CANDIDAT_INTERNE.INTERCONTRAT],
+      },
+    },
+    _count: { _all: true },
+  });
+  const totalConsultantsInternes = contratsParNature.reduce(
+    (sum, row) => sum + row._count._all,
+    0
+  );
 
   const peutVoirActivteParBm = canReassignReferent(session.user);
   const activiteParBm = peutVoirActivteParBm
@@ -473,14 +492,27 @@ export default async function AdminDashboardPage({
           </div>
         </div>
 
-        {pipelineParStatut.length > 0 && (
-          <div className="card p-5">
-            <h3 className="mb-3 text-sm font-semibold text-brand-ink">
-              Pipeline commercial — répartition par statut
-            </h3>
-            <PipelineBreakdown data={pipelineParStatut} total={entreprisesTotal} />
-          </div>
-        )}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {pipelineParStatut.length > 0 && (
+            <div className="card p-5">
+              <h3 className="mb-3 text-sm font-semibold text-brand-ink">
+                Pipeline commercial — répartition par statut
+              </h3>
+              <PipelineBreakdown data={pipelineParStatut} total={entreprisesTotal} />
+            </div>
+          )}
+          {totalConsultantsInternes > 0 && (
+            <div className="card p-5">
+              <h3 className="mb-3 text-sm font-semibold text-brand-ink">
+                Répartition des contrats
+                <span className="ml-1.5 font-normal text-brand-gray">
+                  (consultants staffés / intercontrat)
+                </span>
+              </h3>
+              <ContratsBreakdown data={contratsParNature} total={totalConsultantsInternes} />
+            </div>
+          )}
+        </div>
 
         <div>
           <p className="mb-2 text-xs font-medium text-brand-gray">
@@ -650,6 +682,48 @@ function PipelineBreakdown({
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
               <div
                 className={`h-full rounded-full ${styles[row.statutCommercial] ?? "bg-slate-300"}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="w-16 shrink-0 text-right text-xs text-brand-gray">
+              {row._count._all} ({pct}%)
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ContratsBreakdown({
+  data,
+  total,
+}: {
+  data: { natureContrat: string | null; _count: { _all: number } }[];
+  total: number;
+}) {
+  const styles: Record<string, string> = {
+    CDI: "bg-brand-blue",
+    CDIC: "bg-brand-blue-light",
+    INDEPENDANT: "bg-brand-green",
+  };
+  const sorted = [...data].sort((a, b) => b._count._all - a._count._all);
+  return (
+    <div className="space-y-2">
+      {sorted.map((row) => {
+        const label = row.natureContrat
+          ? NATURE_CONTRAT_LABELS[row.natureContrat as keyof typeof NATURE_CONTRAT_LABELS] ??
+            row.natureContrat
+          : "Non renseigné";
+        const pct = total > 0 ? Math.round((row._count._all / total) * 100) : 0;
+        return (
+          <div key={row.natureContrat ?? "null"} className="flex items-center gap-3 text-sm">
+            <span className="w-32 shrink-0 text-brand-body">{label}</span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className={`h-full rounded-full ${
+                  row.natureContrat ? styles[row.natureContrat] ?? "bg-slate-300" : "bg-slate-300"
+                }`}
                 style={{ width: `${pct}%` }}
               />
             </div>

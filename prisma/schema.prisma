@@ -198,9 +198,15 @@ model Consultant {
 
   // Coût / marge (§ pilotage financier) — jamais exposés au client, visibles
   // et modifiables par l'admin uniquement (données salariales sensibles).
-  // Coût journalier = (salaireBrutMensuel × 12 × 1,75 + fraisMensuels × 12) / 218.
-  salaireBrutMensuel Int?
-  fraisMensuels      Int?
+  // natureContrat conditionne le calcul (voir src/lib/marge.ts) : un salarié
+  // (CDI/CDIC) coûte son salaire brut annuel × 1,75 (charges patronales) ;
+  // un indépendant coûte exactement le TJM qu'on lui paie, sans coefficient.
+  // Coût journalier salarié = (salaireBrutAnnuel × 1,75 + fraisAnnuels) / 218.
+  // Coût journalier indépendant = tjmAchat + fraisAnnuels / 218.
+  natureContrat      String? // CDI | CDIC | INDEPENDANT
+  salaireBrutAnnuel  Int? // salarié (CDI/CDIC) uniquement
+  tjmAchat           Int? // indépendant uniquement — TJM payé, sans coefficient
+  fraisAnnuels       Int?
 
   // RGPD (§8)
   consentementRgpd        Boolean   @default(false)
