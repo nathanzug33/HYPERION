@@ -233,6 +233,19 @@ export async function terminerMissionAction(formData: FormData) {
     data: { statut: STATUT_MISSION.TERMINEE, dateFinReelle: new Date() },
   });
 
+  // Bascule automatique en Intercontrat si ce consultant n'a plus aucune
+  // autre mission active — sans ça il resterait "Staffé" à tort (coût sans
+  // TJM en face, § pilotage financier).
+  const autreMissionActive = await prisma.mission.findFirst({
+    where: { consultantId: mission.consultantId, statut: STATUT_MISSION.EN_COURS, id: { not: id } },
+  });
+  if (!autreMissionActive) {
+    await prisma.consultant.update({
+      where: { id: mission.consultantId },
+      data: { statutCandidatInterne: "INTERCONTRAT" },
+    });
+  }
+
   revalidatePath("/admin/missions");
   revalidatePath(`/admin/consultants/${mission.consultantId}`);
 }

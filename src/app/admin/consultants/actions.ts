@@ -10,6 +10,7 @@ import {
   STATUT_PUBLICATION,
   STATUT_CANDIDAT_INTERNE_LABELS,
   SUIVI_TYPE,
+  ROLES,
   canReassignReferent,
 } from "@/lib/constants";
 import { findVille } from "@/lib/villes-france";
@@ -139,6 +140,20 @@ export async function updateConsultantAction(formData: FormData) {
       canReassignReferent(session.user) && formData.get("businessManagerId")
         ? String(formData.get("businessManagerId"))
         : consultant.businessManagerId,
+
+    // Données salariales sensibles : uniquement modifiables par un admin
+    // (le champ est de toute façon masqué côté formulaire pour les autres
+    // rôles, mais on ne fait jamais confiance au seul masquage front).
+    ...(session.user.role === ROLES.ADMIN
+      ? {
+          salaireBrutMensuel: formData.get("salaireBrutMensuel")
+            ? Number(formData.get("salaireBrutMensuel"))
+            : null,
+          fraisMensuels: formData.get("fraisMensuels")
+            ? Number(formData.get("fraisMensuels"))
+            : null,
+        }
+      : {}),
 
     consentementRgpd: formData.get("consentementRgpd") === "on",
     consentementDate: formData.get("consentementRgpd") === "on"

@@ -47,6 +47,10 @@ export const STATUT_PUBLICATION_LABELS: Record<StatutPublication, string> = {
 export const STATUT_CANDIDAT_INTERNE = {
   EN_COURS: "EN_COURS",
   STAFFE: "STAFFE",
+  // Staffé auparavant, sans mission active actuellement : coûte sans
+  // facturer en face. Basculé automatiquement à la fin d'une mission si
+  // aucune autre mission active n'existe pour ce consultant (§ marge).
+  INTERCONTRAT: "INTERCONTRAT",
   INDISPONIBLE: "INDISPONIBLE",
   A_RECONTACTER: "A_RECONTACTER",
 } as const;
@@ -59,6 +63,7 @@ export const STATUT_CANDIDAT_INTERNE_LABELS: Record<
 > = {
   EN_COURS: "En cours",
   STAFFE: "Staffé",
+  INTERCONTRAT: "Intercontrat",
   INDISPONIBLE: "Indisponible",
   A_RECONTACTER: "À recontacter",
 };
@@ -256,6 +261,13 @@ export const STATUT_MISSION_LABELS: Record<StatutMission, string> = {
 
 // Missions dont la fin prévue approche (alerte "portefeuille de missions").
 export const MISSION_ALERTE_FIN_JOURS = 30;
+
+// Coefficient de charges patronales appliqué au salaire brut pour obtenir le
+// coût employeur, et nombre de jours facturables par an (forfait jours
+// France) — base du calcul de coût/marge journalière (§ pilotage financier,
+// voir src/lib/marge.ts).
+export const COEFFICIENT_CHARGES_PATRONALES = 1.75;
+export const JOURS_FACTURABLES_PAR_AN = 218;
 
 // Durées estimées proposées pour une demande de besoin (§ espace client).
 export const DUREE_ESTIMEE_OPTIONS = [

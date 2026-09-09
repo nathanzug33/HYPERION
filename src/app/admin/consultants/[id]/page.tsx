@@ -292,6 +292,7 @@ export default async function ConsultantEditPage({
           consultant={consultant}
           referentials={{ secteurs, expertises, seniorites, typesMobilite, zones, competences, langues, bms }}
           canReassignReferent={canReassignReferent(session.user)}
+          isAdmin={session.user.role === ROLES.ADMIN}
         />
 
         <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">

@@ -46,6 +46,7 @@ export default function ConsultantEditForm({
   consultant,
   referentials,
   canReassignReferent,
+  isAdmin,
 }: {
   consultant: ConsultantWithRelations;
   referentials: {
@@ -59,6 +60,7 @@ export default function ConsultantEditForm({
     bms: User[];
   };
   canReassignReferent: boolean;
+  isAdmin: boolean;
 }) {
   const fmtDate = (d: Date | null) =>
     d ? new Date(d).toISOString().slice(0, 10) : "";
@@ -120,6 +122,29 @@ export default function ConsultantEditForm({
             </Field>
           )}
         </div>
+
+        {isAdmin && (
+          <div className="grid gap-4 border-t border-slate-100 pt-3 sm:grid-cols-2">
+            <Field label="Salaire brut mensuel (€) — coût/marge, sensible">
+              <input
+                type="number"
+                name="salaireBrutMensuel"
+                min={0}
+                defaultValue={consultant.salaireBrutMensuel ?? ""}
+                className="input"
+              />
+            </Field>
+            <Field label="Frais mensuels (€) — IGD, IK…">
+              <input
+                type="number"
+                name="fraisMensuels"
+                min={0}
+                defaultValue={consultant.fraisMensuels ?? ""}
+                className="input"
+              />
+            </Field>
+          </div>
+        )}
 
         <div className="border-t border-slate-100 pt-3">
           <Field label={consultant.cvFileUrl ? "Remplacer le CV" : "CV"}>

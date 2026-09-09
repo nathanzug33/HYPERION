@@ -194,7 +194,13 @@ model Consultant {
   businessManagerId     String
   businessManager       User      @relation("BusinessManagerReferent", fields: [businessManagerId], references: [id])
   dateRencontre         DateTime?
-  statutCandidatInterne String    @default("EN_COURS") // EN_COURS | STAFFE | INDISPONIBLE | A_RECONTACTER
+  statutCandidatInterne String    @default("EN_COURS") // EN_COURS | STAFFE | INTERCONTRAT | INDISPONIBLE | A_RECONTACTER
+
+  // Coût / marge (§ pilotage financier) — jamais exposés au client, visibles
+  // et modifiables par l'admin uniquement (données salariales sensibles).
+  // Coût journalier = (salaireBrutMensuel × 12 × 1,75 + fraisMensuels × 12) / 218.
+  salaireBrutMensuel Int?
+  fraisMensuels      Int?
 
   // RGPD (§8)
   consentementRgpd        Boolean   @default(false)
@@ -522,10 +528,33 @@ model Mission {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  joursTravailles MissionJoursTravailles[]
+
   @@index([entrepriseId])
   @@index([consultantId])
   @@index([businessManagerId])
   @@index([statut])
+}
+
+// Jours travaillés déclarés en début de mois pour une mission — base de la
+// marge mensuelle (marge journalière × jours travaillés). Saisi mois par
+// mois plutôt que déduit des dates, pour coller aux jours réellement
+// facturés (absences, jours fériés, etc.).
+model MissionJoursTravailles {
+  id String @id @default(cuid())
+
+  missionId String
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  annee           Int
+  mois            Int // 1-12
+  joursTravailles Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([missionId, annee, mois])
+  @@index([missionId])
 }
 
 // Tables de jointure explicites (relations n-n paramétrables) --------------
