@@ -12,6 +12,7 @@ import type {
   ConsultantZoneGeographique,
   Experience,
   Formation,
+  Seniorite,
   User,
 } from "@prisma/client";
 import CheckboxGroup from "@/components/form/CheckboxGroup";
@@ -36,6 +37,7 @@ type ConsultantWithRelations = Consultant & {
   competenceCategories: CompetenceCategorie[];
   formations: Formation[];
   experiences: Experience[];
+  seniority: Seniorite | null;
 };
 
 type Referential = { id: string; label: string };
@@ -66,7 +68,6 @@ export default function ConsultantEditForm({
   referentials: {
     secteurs: CategorizedReferential[];
     expertises: CategorizedReferential[];
-    seniorites: Referential[];
     typesMobilite: Referential[];
     zones: Referential[];
     competences: CategorizedReferential[];
@@ -154,7 +155,7 @@ export default function ConsultantEditForm({
 
           <fieldset className="card p-5 space-y-3">
             <legend className="px-1 text-sm font-semibold uppercase tracking-wide text-brand-blue-dark">
-              Mobilité (critère éliminatoire — à renseigner avec soin)
+              Mobilité
             </legend>
             <Field label="Type(s) de mobilité">
               <CheckboxGroup
@@ -197,7 +198,7 @@ export default function ConsultantEditForm({
 
           <fieldset className="card p-5 space-y-4">
             <legend className="px-1 text-sm font-semibold uppercase tracking-wide text-brand-blue-dark">
-              Profil (projection anonymisée)
+              Profil
             </legend>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Référence anonyme">
@@ -208,36 +209,23 @@ export default function ConsultantEditForm({
                   className="input font-mono"
                 />
               </Field>
-              <Field label="Intitulé de poste">
+              <Field label="Intitulé de poste / mots-clés">
                 <input name="intitulePoste" defaultValue={consultant.intitulePoste ?? ""} className="input" />
               </Field>
-              <Field label="Séniorité">
-                <select name="seniorityId" defaultValue={consultant.seniorityId ?? ""} className="input">
-                  <option value="">—</option>
-                  {referentials.seniorites.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Expérience min (ans)">
+              <div>
+                <Field label="Années d'expérience">
                   <input
-                    name="anneesExperienceMin"
+                    name="anneesExperience"
                     type="number"
-                    defaultValue={consultant.anneesExperienceMin ?? ""}
+                    min={0}
+                    defaultValue={consultant.anneesExperience ?? ""}
                     className="input"
                   />
                 </Field>
-                <Field label="Expérience max (ans)">
-                  <input
-                    name="anneesExperienceMax"
-                    type="number"
-                    defaultValue={consultant.anneesExperienceMax ?? ""}
-                    className="input"
-                  />
-                </Field>
+                <p className="mt-1 text-xs text-brand-gray">
+                  Séniorité déduite automatiquement
+                  {consultant.seniority ? ` : ${consultant.seniority.label}` : " — à renseigner."}
+                </p>
               </div>
             </div>
             <Field label="Résumé de contexte (sans info identifiante — utilisé dans le DC)">
@@ -262,15 +250,9 @@ export default function ConsultantEditForm({
 
           <fieldset className="card p-5 space-y-4">
             <legend className="px-1 text-sm font-semibold uppercase tracking-wide text-brand-blue-dark">
-              Suivi interne (jamais exposé)
+              Suivi interne
             </legend>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="TJM min (€)">
-                <input name="tjmMin" type="number" defaultValue={consultant.tjmMin ?? ""} className="input" />
-              </Field>
-              <Field label="TJM max (€)">
-                <input name="tjmMax" type="number" defaultValue={consultant.tjmMax ?? ""} className="input" />
-              </Field>
               <Field label="Statut candidat interne">
                 <select
                   name="statutCandidatInterne"
@@ -306,6 +288,7 @@ export default function ConsultantEditForm({
                 defaultSalaireBrutAnnuel={consultant.salaireBrutAnnuel ?? ""}
                 defaultTjmAchat={consultant.tjmAchat ?? ""}
                 defaultFraisAnnuels={consultant.fraisAnnuels ?? ""}
+                hideFraisAnnuels
               />
             </div>
 
@@ -448,19 +431,20 @@ export default function ConsultantEditForm({
         </button>
       </form>
 
-      {/* Formulaire séparé (action différente) : régénère le contenu du DC
-          depuis le CV + un transcript optionnel, via IA — remplace la saisie
-          manuelle des blocs "gabarit" (compétences détaillées / formations /
-          expériences), désormais générés plutôt que ressaisis à la main. */}
+      {/* Formulaire séparé (action différente) : "Tagging IA" — (ré)analyse
+          le CV + un transcript optionnel pour retagger tout le dossier
+          (identité, profil, mobilité, compétences, secteurs, formations,
+          expériences). La saisie manuelle des mêmes champs reste toujours
+          possible, avant ou après un tagging IA. */}
       <div hidden={tab !== "pieces"} className="card p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-brand-ink">
-          Générer / régénérer le DC depuis le CV (IA)
-        </h3>
+        <h3 className="text-sm font-semibold text-brand-ink">Tagging IA (depuis le CV)</h3>
         <p className="text-xs text-brand-gray">
           Relit le CV déjà enregistré (ou celui déposé ci-dessous) et, si
-          fournie, une transcription d&apos;entretien, pour reconstruire le
-          profil, les compétences, formations et expériences détaillées.
-          Écrase le contenu précédemment généré/saisi pour ces sections.
+          fournie, une transcription d&apos;entretien, pour retagger
+          automatiquement le dossier : identité, profil, mobilité,
+          compétences, secteurs, formations et expériences. Écrase les
+          valeurs déjà en place sur ces champs — la saisie manuelle reste
+          possible à tout moment, avant ou après.
         </p>
         <form action={regenerateDcFromIaAction} className="space-y-3">
           <input type="hidden" name="id" value={consultant.id} />
@@ -483,7 +467,7 @@ export default function ConsultantEditForm({
             </Field>
           </div>
           <button type="submit" className="btn btn-secondary">
-            Générer le DC
+            Lancer le tagging IA
           </button>
         </form>
       </div>

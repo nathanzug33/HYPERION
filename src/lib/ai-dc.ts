@@ -8,7 +8,6 @@ export function isAiGenerationConfigured(): boolean {
 export type ReferentialVocab = {
   secteurs: string[];
   expertises: string[];
-  seniorites: string[];
   typesMobilite: string[];
   zones: string[];
   langues: string[];
@@ -31,9 +30,11 @@ const schema = z.object({
 
   // --- Champs exposables (projection anonymisée) --------------------------
   intitulePoste: z.string().describe("Intitulé de poste / spécialité, ex. 'Ingénieur DevOps'"),
-  seniorite: z.string().describe("Une valeur EXACTE parmi le référentiel « Séniorités » fourni"),
-  anneesExperienceMin: z.number().int().min(0),
-  anneesExperienceMax: z.number().int().min(0),
+  anneesExperience: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Nombre d'années d'expérience professionnelle, déduit du parcours (la séniorité en est dérivée automatiquement, pas besoin de la deviner)"),
   secteurs: z.array(z.string()).describe("Valeurs EXACTES parmi le référentiel « Secteurs » fourni"),
   expertises: z.array(z.string()).describe("Valeurs EXACTES parmi le référentiel « Expertises » fourni"),
   competencesTechnologies: z
@@ -141,8 +142,8 @@ Règles impératives :
 - N'invente aucune information. Si une donnée n'est pas déductible des documents fournis, laisse le champ vide (null ou tableau vide) plutôt que d'halluciner.
 - Aucune transcription d'entretien n'est fournie ? Base-toi uniquement sur le CV/dossier existant ; c'est une situation normale (candidat déjà rencontré, dossier reçu tel quel).
 - Le résumé de contexte, la présentation courte et les expériences détaillées ne doivent contenir AUCUNE information identifiante (pas de nom de personne, pas de nom d'entreprise cliente réel si un NDA est mentionné — utilise alors une formulation générique comme "Entreprise cliente du secteur X").
-- Pour les champs contraints par un référentiel (secteurs, expertises, séniorité, mobilité, zones), choisis EXCLUSIVEMENT parmi les valeurs listées dans les référentiels fournis dans le message utilisateur — n'en invente pas de nouvelles, respecte l'orthographe exacte.
-- La séniorité et le niveau des compétences/langues doivent être cohérents avec les années d'expérience et les informations disponibles.
+- Pour les champs contraints par un référentiel (secteurs, expertises, mobilité, zones), choisis EXCLUSIVEMENT parmi les valeurs listées dans les référentiels fournis dans le message utilisateur — n'en invente pas de nouvelles, respecte l'orthographe exacte.
+- Le niveau des compétences/langues doit être cohérent avec les années d'expérience et les informations disponibles.
 - Sois factuel et concis, dans un français professionnel.
 - Le gabarit HYPERION s'adapte automatiquement au nombre réel d'entrées : ne complète JAMAIS les listes (langues, formations, expériences) pour atteindre un nombre "rond", et ne tronque JAMAIS une liste pour rester sous une limite — restitue exactement ce qui est présent dans les documents fournis, qu'il y en ait 1 ou 10. Un candidat junior avec une seule expérience et une seule langue est un cas normal et attendu ; ne pas inventer d'entrées supplémentaires pour "remplir" le dossier.
 
@@ -206,7 +207,6 @@ export async function generateDCFromCvAndTranscript(params: {
   const vocabBlock = `Référentiels disponibles (n'utilise que ces valeurs pour les champs concernés) :
 - Secteurs : ${params.vocab.secteurs.join(", ") || "(aucun configuré)"}
 - Expertises : ${params.vocab.expertises.join(", ") || "(aucun configuré)"}
-- Séniorités : ${params.vocab.seniorites.join(", ") || "(aucun configuré)"}
 - Types de mobilité : ${params.vocab.typesMobilite.join(", ") || "(aucun configuré)"}
 - Zones géographiques : ${params.vocab.zones.join(", ") || "(aucun configuré)"}`;
 

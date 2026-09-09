@@ -16,6 +16,7 @@ import { canAccessConsultant } from "@/lib/consultant-access";
 import { saveCvFile, deleteCvFile } from "@/lib/cv-storage";
 import { extractFileText } from "@/lib/cv-text";
 import { findConsultantDuplicates } from "@/lib/duplicate-detection";
+import { deriveSeniorityId } from "@/lib/ai-dc-match";
 
 function getMulti(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
@@ -118,13 +119,17 @@ export async function updateConsultantAction(formData: FormData) {
   }
   const cvText = savedCv ? await extractFileText(cvFile).catch(() => "") : "";
 
+  const anneesExperience = formData.get("anneesExperience")
+    ? Number(formData.get("anneesExperience"))
+    : null;
+  const seniorites = await prisma.seniorite.findMany({ where: { active: true } });
+  const seniorityId = deriveSeniorityId(anneesExperience, seniorites);
+
   const data = {
     nom: String(formData.get("nom") ?? "").trim(),
     prenom: String(formData.get("prenom") ?? "").trim(),
     email: String(formData.get("email") ?? "") || null,
     telephone: String(formData.get("telephone") ?? "") || null,
-    tjmMin: formData.get("tjmMin") ? Number(formData.get("tjmMin")) : null,
-    tjmMax: formData.get("tjmMax") ? Number(formData.get("tjmMax")) : null,
     notesEntretien: String(formData.get("notesEntretien") ?? "") || null,
     statutCandidatInterne: String(
       formData.get("statutCandidatInterne") ?? "EN_COURS"
@@ -159,13 +164,8 @@ export async function updateConsultantAction(formData: FormData) {
       String(formData.get("referenceAnonyme") ?? "").trim() ||
       consultant.referenceAnonyme,
     intitulePoste: String(formData.get("intitulePoste") ?? "") || null,
-    seniorityId: String(formData.get("seniorityId") ?? "") || null,
-    anneesExperienceMin: formData.get("anneesExperienceMin")
-      ? Number(formData.get("anneesExperienceMin"))
-      : null,
-    anneesExperienceMax: formData.get("anneesExperienceMax")
-      ? Number(formData.get("anneesExperienceMax"))
-      : null,
+    seniorityId,
+    anneesExperience,
     resumeContexte: String(formData.get("resumeContexte") ?? "") || null,
     disponibilite: String(formData.get("disponibilite") ?? "") || null,
     disponibiliteConfirmeeLe: new Date(),

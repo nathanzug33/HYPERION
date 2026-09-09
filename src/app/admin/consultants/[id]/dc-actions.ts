@@ -9,7 +9,7 @@ import { generateDCFromCvAndTranscript, isAiGenerationConfigured } from "@/lib/a
 import { extractFileText } from "@/lib/cv-text";
 import { saveCvFile } from "@/lib/cv-storage";
 import { findVille } from "@/lib/villes-france";
-import { findOrCreateByLabel, matchIds, normLabel } from "@/lib/ai-dc-match";
+import { findOrCreateByLabel, matchIds, deriveSeniorityId } from "@/lib/ai-dc-match";
 import { COMPETENCE_CATEGORIES } from "@/lib/constants";
 
 function parseMonthDate(value: string | null): Date | null {
@@ -23,13 +23,14 @@ function dcError(id: string, message: string): never {
   redirect(`/admin/consultants/${id}?dcError=${encodeURIComponent(message)}`);
 }
 
-/** Régénère le contenu du DC (champs exposables, secteurs/expertises/
- * compétences/langues, compétences détaillées, formations, expériences)
- * d'un dossier EXISTANT à partir de son CV déjà en base — ou d'un nouveau
- * CV/transcript déposés ici — via l'IA. Remplace l'édition manuelle des
- * blocs "gabarit HYPERION" : on régénère depuis la source plutôt que de les
- * ressaisir à la main. Les champs internes (nom, prénom, email, téléphone,
- * TJM, statut, coût/marge…) ne sont jamais touchés par cette action.
+/** "Tagging IA" — (ré)analyse le CV déjà en base (ou un nouveau CV/transcript
+ * déposés ici) pour retagger le dossier : identité (nom/prénom/téléphone/
+ * email), profil exposable, secteurs/expertises/compétences/langues,
+ * mobilité, compétences détaillées, formations, expériences. Remplace
+ * l'édition manuelle des blocs "gabarit HYPERION" : on régénère depuis la
+ * source plutôt que de les ressaisir à la main. La saisie manuelle reste
+ * possible à tout moment sur les mêmes champs, avant ou après un tagging IA.
+ * Ne touche jamais : coût/marge, statut interne, notes, consentements RGPD.
  */
 export async function regenerateDcFromIaAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
@@ -75,7 +76,7 @@ export async function regenerateDcFromIaAction(formData: FormData) {
   const [secteurs, expertises, seniorites, typesMobilite, zones] = await Promise.all([
     prisma.secteur.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.expertise.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
-    prisma.seniorite.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+    prisma.seniorite.findMany({ where: { active: true } }),
     prisma.typeMobilite.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.zoneGeographique.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
   ]);
@@ -88,7 +89,6 @@ export async function regenerateDcFromIaAction(formData: FormData) {
       vocab: {
         secteurs: secteurs.map((s) => s.label),
         expertises: expertises.map((e) => e.label),
-        seniorites: seniorites.map((s) => s.label),
         typesMobilite: typesMobilite.map((m) => m.label),
         zones: zones.map((z) => z.label),
         langues: [],
@@ -99,8 +99,7 @@ export async function regenerateDcFromIaAction(formData: FormData) {
     dcError(id, `La génération par IA a échoué : ${message}`);
   }
 
-  const seniorityId =
-    seniorites.find((s) => normLabel(s.label) === normLabel(generated.seniorite))?.id ?? null;
+  const seniorityId = deriveSeniorityId(generated.anneesExperience, seniorites);
   const secteurIds = matchIds(secteurs, generated.secteurs);
   const expertiseIds = matchIds(expertises, generated.expertises);
   const typeMobiliteIds = matchIds(typesMobilite, generated.typesMobilite);
@@ -122,10 +121,16 @@ export async function regenerateDcFromIaAction(formData: FormData) {
     prisma.consultant.update({
       where: { id },
       data: {
+        // Tagging IA : renseigne aussi l'identité si elle est trouvée dans
+        // le CV — écrase volontairement une saisie manuelle précédente,
+        // ce bouton étant une action explicite et non automatique.
+        ...(generated.nom ? { nom: generated.nom } : {}),
+        ...(generated.prenom ? { prenom: generated.prenom } : {}),
+        ...(generated.telephone ? { telephone: generated.telephone } : {}),
+        ...(generated.email ? { email: generated.email } : {}),
         intitulePoste: generated.intitulePoste,
         seniorityId,
-        anneesExperienceMin: generated.anneesExperienceMin,
-        anneesExperienceMax: generated.anneesExperienceMax,
+        anneesExperience: generated.anneesExperience,
         resumeContexte: generated.resumeContexte,
         presentationCourte: generated.presentationCourte,
         disponibilite: generated.disponibilite,

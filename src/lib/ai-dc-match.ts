@@ -14,6 +14,23 @@ export function matchIds<T extends { id: string; label: string }>(
   return items.filter((i) => wanted.has(normLabel(i.label))).map((i) => i.id);
 }
 
+/** Déduit la séniorité à partir du nombre d'années d'expérience et des
+ * bornes du référentiel Seniorite (ex. Junior 0-2, Confirmé 3-6, Senior
+ * 7-10, Expert 11+ — anneesMax nul = pas de borne haute). Remplace la
+ * sélection manuelle d'une séniorité : un seul champ à saisir. */
+export function deriveSeniorityId(
+  anneesExperience: number | null,
+  seniorites: { id: string; anneesMin: number | null; anneesMax: number | null }[]
+): string | null {
+  if (anneesExperience == null) return null;
+  const match = seniorites.find(
+    (s) =>
+      (s.anneesMin == null || anneesExperience >= s.anneesMin) &&
+      (s.anneesMax == null || anneesExperience <= s.anneesMax)
+  );
+  return match?.id ?? null;
+}
+
 export async function findOrCreateByLabel(
   delegate: {
     findMany: (args: {

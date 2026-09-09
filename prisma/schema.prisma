@@ -203,8 +203,6 @@ model Consultant {
   prenom                String
   email                 String?
   telephone             String?
-  tjmMin                Int?
-  tjmMax                Int?
   // Nom du fichier stocké sur disque (storage/cv/, jamais servi directement
   // — voir src/lib/cv-storage.ts et la route de téléchargement protégée),
   // pas une URL publique malgré le nom historique du champ.
@@ -239,10 +237,11 @@ model Consultant {
   // --- Champs exposables (projection anonymisée) --------------------------
   referenceAnonyme         String     @unique // ex. IND-017, ne doit pas trahir l'identité
   intitulePoste            String?
+  // Séniorité déduite automatiquement de anneesExperience via les bornes du
+  // référentiel Seniorite (plus de sélection manuelle) — voir deriveSeniorityId.
   seniorityId              String?
   seniority                Seniorite? @relation(fields: [seniorityId], references: [id])
-  anneesExperienceMin      Int?
-  anneesExperienceMax      Int?
+  anneesExperience         Int?
   resumeContexte           String?
   // Résumé très court (2-3 lignes) généré par IA, pensé pour la carte/aperçu
   // bibliothèque — distinct de resumeContexte (paragraphe plus long, intégré

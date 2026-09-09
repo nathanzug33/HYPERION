@@ -56,6 +56,7 @@ export default async function ConsultantEditPage({
       zonesGeographiques: true,
       langues: true,
       businessManager: true,
+      seniority: true,
       competenceCategories: { orderBy: { ordre: "asc" } },
       formations: { orderBy: { ordre: "asc" } },
       experiences: { orderBy: { ordre: "asc" } },
@@ -70,7 +71,6 @@ export default async function ConsultantEditPage({
   const [
     secteurs,
     expertises,
-    seniorites,
     typesMobilite,
     zones,
     competences,
@@ -80,7 +80,6 @@ export default async function ConsultantEditPage({
   ] = await Promise.all([
     prisma.secteur.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.expertise.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
-    prisma.seniorite.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.typeMobilite.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.zoneGeographique.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.competence.findMany({ where: { active: true }, orderBy: { label: "asc" } }),
@@ -270,7 +269,7 @@ export default async function ConsultantEditPage({
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <ConsultantEditForm
           consultant={consultant}
-          referentials={{ secteurs, expertises, seniorites, typesMobilite, zones, competences, langues, bms }}
+          referentials={{ secteurs, expertises, typesMobilite, zones, competences, langues, bms }}
           canReassignReferent={canReassignReferent(session.user)}
         />
 

@@ -10,7 +10,7 @@ import { findVille } from "@/lib/villes-france";
 import { saveCvFile } from "@/lib/cv-storage";
 import { extractFileText } from "@/lib/cv-text";
 import { findConsultantDuplicates } from "@/lib/duplicate-detection";
-import { findOrCreateByLabel, matchIds, normLabel } from "@/lib/ai-dc-match";
+import { findOrCreateByLabel, matchIds, deriveSeniorityId } from "@/lib/ai-dc-match";
 
 export type GenerateIaState = { error?: string };
 
@@ -72,7 +72,7 @@ export async function generateConsultantFromAI(
   const [secteurs, expertises, seniorites, typesMobilite, zones] = await Promise.all([
     prisma.secteur.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.expertise.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
-    prisma.seniorite.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+    prisma.seniorite.findMany({ where: { active: true } }),
     prisma.typeMobilite.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.zoneGeographique.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
   ]);
@@ -85,7 +85,6 @@ export async function generateConsultantFromAI(
       vocab: {
         secteurs: secteurs.map((s) => s.label),
         expertises: expertises.map((e) => e.label),
-        seniorites: seniorites.map((s) => s.label),
         typesMobilite: typesMobilite.map((m) => m.label),
         zones: zones.map((z) => z.label),
         langues: [],
@@ -97,12 +96,9 @@ export async function generateConsultantFromAI(
     return { error: `La génération par IA a échoué : ${message}` };
   }
 
-  // Rapprochement insensible à la casse/aux espaces : le champ n'est plus
-  // forcé par un enum côté modèle (voir ai-dc.ts), juste fortement suggéré
-  // par le prompt — les valeurs non reconnues sont simplement ignorées
-  // (référentiels non modifiés automatiquement).
-  const seniorityId =
-    seniorites.find((s) => normLabel(s.label) === normLabel(generated.seniorite))?.id ?? null;
+  // Séniorité déduite des années d'expérience via les bornes du référentiel
+  // (plus de champ "seniorite" à faire deviner par l'IA, voir ai-dc.ts).
+  const seniorityId = deriveSeniorityId(generated.anneesExperience, seniorites);
   const secteurIds = matchIds(secteurs, generated.secteurs);
   const expertiseIds = matchIds(expertises, generated.expertises);
   const typeMobiliteIds = matchIds(typesMobilite, generated.typesMobilite);
@@ -142,8 +138,7 @@ export async function generateConsultantFromAI(
       referenceAnonyme: reference,
       intitulePoste: generated.intitulePoste,
       seniorityId,
-      anneesExperienceMin: generated.anneesExperienceMin,
-      anneesExperienceMax: generated.anneesExperienceMax,
+      anneesExperience: generated.anneesExperience,
       resumeContexte: generated.resumeContexte,
       presentationCourte: generated.presentationCourte,
       disponibilite: generated.disponibilite,

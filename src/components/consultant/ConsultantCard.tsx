@@ -17,13 +17,7 @@ export default function ConsultantCard({
   const competencesTriees = [...consultant.competences].sort(
     (a, b) => Number(b.estCle) - Number(a.estCle)
   );
-  const anneesLabel =
-    consultant.anneesExperienceMin != null
-      ? consultant.anneesExperienceMax != null &&
-        consultant.anneesExperienceMax !== consultant.anneesExperienceMin
-        ? `${consultant.anneesExperienceMin}–${consultant.anneesExperienceMax} ans`
-        : `${consultant.anneesExperienceMin}+ ans`
-      : null;
+  const anneesLabel = consultant.anneesExperience != null ? `${consultant.anneesExperience} ans` : null;
 
   return (
     <div className="card card-hover relative overflow-hidden p-4">

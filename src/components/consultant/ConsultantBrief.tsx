@@ -11,12 +11,7 @@ export default function ConsultantBrief({
   const zones = consultant.zonesGeographiques.map((z) => z.zoneGeographique.label);
   const competencesCles = consultant.competences.filter((c) => c.estCle);
   const anneesLabel =
-    consultant.anneesExperienceMin != null
-      ? consultant.anneesExperienceMax != null &&
-        consultant.anneesExperienceMax !== consultant.anneesExperienceMin
-        ? `${consultant.anneesExperienceMin}–${consultant.anneesExperienceMax} ans d'expérience`
-        : `${consultant.anneesExperienceMin}+ ans d'expérience`
-      : null;
+    consultant.anneesExperience != null ? `${consultant.anneesExperience} ans d'expérience` : null;
   const presentation = consultant.presentationCourte || consultant.resumeContexte;
 
   return (

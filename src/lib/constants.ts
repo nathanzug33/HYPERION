@@ -368,6 +368,9 @@ export const STATUT_CANDIDATURE_LABELS: Record<StatutCandidature, string> = {
 // voir src/lib/marge.ts).
 export const COEFFICIENT_CHARGES_PATRONALES = 1.75;
 export const JOURS_FACTURABLES_PAR_AN = 218;
+// Cible de marge brute journalière (€/j) utilisée pour suggérer un TJM mini
+// à proposer à partir du coût journalier salarié (§ fiche candidat).
+export const OBJECTIF_MARGE_BRUTE_JOURNALIERE = 135;
 
 // Durées estimées proposées pour une demande de besoin (§ espace client).
 export const DUREE_ESTIMEE_OPTIONS = [
