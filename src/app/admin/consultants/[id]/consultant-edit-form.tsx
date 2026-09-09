@@ -24,7 +24,6 @@ import {
   TYPE_CONTRAT_LABELS,
 } from "@/lib/constants";
 import { updateConsultantAction } from "../actions";
-import { regenerateDcFromIaAction } from "./dc-actions";
 import { VILLES_FRANCE } from "@/lib/villes-france";
 
 type ConsultantWithRelations = Consultant & {
@@ -430,47 +429,6 @@ export default function ConsultantEditForm({
           Enregistrer les modifications
         </button>
       </form>
-
-      {/* Formulaire séparé (action différente) : "Tagging IA" — (ré)analyse
-          le CV + un transcript optionnel pour retagger tout le dossier
-          (identité, profil, mobilité, compétences, secteurs, formations,
-          expériences). La saisie manuelle des mêmes champs reste toujours
-          possible, avant ou après un tagging IA. */}
-      <div hidden={tab !== "pieces"} className="card p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-brand-ink">Tagging IA (depuis le CV)</h3>
-        <p className="text-xs text-brand-gray">
-          Relit le CV déjà enregistré (ou celui déposé ci-dessous) et, si
-          fournie, une transcription d&apos;entretien, pour retagger
-          automatiquement le dossier : identité, profil, mobilité,
-          compétences, secteurs, formations et expériences. Écrase les
-          valeurs déjà en place sur ces champs — la saisie manuelle reste
-          possible à tout moment, avant ou après.
-        </p>
-        <form action={regenerateDcFromIaAction} className="space-y-3">
-          <input type="hidden" name="id" value={consultant.id} />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Remplacer le CV utilisé (optionnel)">
-              <input
-                type="file"
-                name="cvFile"
-                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                className="block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-2.5 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1 file:text-xs file:font-medium file:text-white"
-              />
-            </Field>
-            <Field label="Transcription d'entretien (optionnel)">
-              <input
-                type="file"
-                name="transcriptFile"
-                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                className="block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-2.5 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1 file:text-xs file:font-medium file:text-white"
-              />
-            </Field>
-          </div>
-          <button type="submit" className="btn btn-secondary">
-            Lancer le tagging IA
-          </button>
-        </form>
-      </div>
     </div>
   );
 }

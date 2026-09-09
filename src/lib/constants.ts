@@ -72,8 +72,11 @@ export const STATUT_CANDIDAT_INTERNE_LABELS: Record<
 export const SUIVI_TYPE = {
   NOTE: "NOTE",
   APPEL: "APPEL",
-  RDV: "RDV",
+  APPEL_SANS_REPONSE: "APPEL_SANS_REPONSE",
+  RDV: "RDV", // libellé "Entretien" — clé conservée pour la sync Google Agenda existante
   RAPPEL: "RAPPEL",
+  PLUS_DISPONIBLE: "PLUS_DISPONIBLE",
+  REFUS: "REFUS",
   STATUT: "STATUT", // généré automatiquement, jamais saisi manuellement
 } as const;
 export type SuiviType = (typeof SUIVI_TYPE)[keyof typeof SUIVI_TYPE];
@@ -81,8 +84,11 @@ export type SuiviType = (typeof SUIVI_TYPE)[keyof typeof SUIVI_TYPE];
 export const SUIVI_TYPE_LABELS: Record<SuiviType, string> = {
   NOTE: "Note",
   APPEL: "Appel",
-  RDV: "Rendez-vous",
+  APPEL_SANS_REPONSE: "Appel sans réponse",
+  RDV: "Entretien",
   RAPPEL: "Rappel",
+  PLUS_DISPONIBLE: "Plus disponible",
+  REFUS: "Refus / pas intéressé",
   STATUT: "Changement de statut",
 };
 
@@ -90,8 +96,11 @@ export const SUIVI_TYPE_LABELS: Record<SuiviType, string> = {
 export const SUIVI_TYPE_SAISISSABLES = [
   SUIVI_TYPE.NOTE,
   SUIVI_TYPE.APPEL,
+  SUIVI_TYPE.APPEL_SANS_REPONSE,
   SUIVI_TYPE.RDV,
   SUIVI_TYPE.RAPPEL,
+  SUIVI_TYPE.PLUS_DISPONIBLE,
+  SUIVI_TYPE.REFUS,
 ] as const;
 
 // Suivi CRM (§ CRM complet) : éventail plus large que l'ATS, avec les

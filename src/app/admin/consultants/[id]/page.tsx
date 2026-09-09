@@ -4,20 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { ROLES } from "@/lib/constants";
 import { consultantPublicSelect } from "@/lib/consultant-view";
-import ConsultantBrief from "@/components/consultant/ConsultantBrief";
 import ConsultantEditForm from "./consultant-edit-form";
-import {
-  publishConsultantAction,
-  purgeConsultantAction,
-  unpublishConsultantAction,
-} from "../actions";
 import { STATUT_PUBLICATION_LABELS, canReassignReferent } from "@/lib/constants";
 import { canAccessConsultant } from "@/lib/consultant-access";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { computeMatchScore } from "@/lib/matching";
-import MatchBadges from "@/components/MatchBadges";
-import SuiviSection from "./suivi-section";
-import PushCandidatForm from "./push-candidat-form";
+import CandidateActionsBar from "./candidate-actions-bar";
 
 export const dynamic = "force-dynamic";
 
@@ -240,114 +232,21 @@ export default async function ConsultantEditPage({
         </div>
       )}
 
-      <div className="card flex flex-wrap items-center gap-2 p-3">
-        <form action={publishConsultantAction}>
-          <input type="hidden" name="id" value={id} />
-          <button type="submit" className="btn bg-brand-green text-white hover:brightness-110">
-            Publier
-          </button>
-        </form>
-        <form action={unpublishConsultantAction}>
-          <input type="hidden" name="id" value={id} />
-          <button type="submit" className="btn btn-secondary">
-            Dépublier
-          </button>
-        </form>
-        {session.user.role === ROLES.ADMIN && (
-          <form action={purgeConsultantAction} className="ml-auto">
-            <input type="hidden" name="id" value={id} />
-            <button
-              type="submit"
-              className="btn border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-            >
-              Supprimer définitivement (RGPD)
-            </button>
-          </form>
-        )}
-      </div>
+      <CandidateActionsBar
+        consultantId={id}
+        canDelete={session.user.role === ROLES.ADMIN}
+        suivis={suivis}
+        entreprisesPourPush={entreprisesPourPush}
+        propositions={propositions}
+        suggestions={suggestionsClientsAvecScore}
+        publicView={publicView}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <ConsultantEditForm
-          consultant={consultant}
-          referentials={{ secteurs, expertises, typesMobilite, zones, competences, langues, bms }}
-          canReassignReferent={canReassignReferent(session.user)}
-        />
-
-        <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">
-          <SuiviSection consultantId={id} suivis={suivis} />
-
-          <div className="card p-4">
-            <h2 className="mb-3 text-sm font-semibold text-brand-ink">
-              Proposer à un client (CRM)
-            </h2>
-            {entreprisesPourPush.length === 0 ? (
-              <p className="text-xs text-brand-gray">
-                Aucune entreprise CRM accessible pour l&apos;instant.
-              </p>
-            ) : (
-              <PushCandidatForm consultantId={id} entreprises={entreprisesPourPush} />
-            )}
-            {propositions.length > 0 && (
-              <ul className="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-xs">
-                {propositions.map((p) => (
-                  <li key={p.id} className="text-brand-body">
-                    <span className="font-medium text-brand-ink">{p.entreprise.nom}</span>
-                    {p.contact && ` — ${p.contact.prenom} ${p.contact.nom}`}
-                    <span className="text-brand-gray">
-                      {" "}
-                      · {new Date(p.createdAt).toLocaleDateString("fr-FR")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {suggestionsClientsAvecScore.length > 0 && (
-            <div className="card p-4">
-              <h2 className="mb-1 text-sm font-semibold text-brand-ink">
-                Clients potentiellement intéressés
-              </h2>
-              <p className="mb-3 text-xs text-brand-gray">
-                Entreprises dont les secteurs / expertises recherchés correspondent à ce profil.
-              </p>
-              <ul className="space-y-1.5">
-                {suggestionsClientsAvecScore.map((e) => (
-                  <li key={e.id}>
-                    <Link
-                      href={`/admin/crm/${e.id}`}
-                      className="flex flex-col gap-1.5 rounded-lg border border-slate-100 px-3 py-2 text-sm hover:border-brand-blue-light hover:bg-brand-blue-bg-soft"
-                    >
-                      <span className="font-medium text-brand-ink">{e.nom}</span>
-                      <MatchBadges match={e.match} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="card p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-brand-ink">
-                Aperçu — ce que voit le client
-              </h2>
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-brand-blue-bg px-2 py-0.5 text-xs font-medium text-brand-blue-dark">
-                  anonymisé
-                </span>
-                <Link
-                  href={`/admin/consultants/${id}/apercu`}
-                  className="link-underline text-xs text-brand-blue-dark"
-                >
-                  Plein écran
-                </Link>
-              </div>
-            </div>
-            {publicView && <ConsultantBrief consultant={publicView} />}
-          </div>
-        </div>
-      </div>
+      <ConsultantEditForm
+        consultant={consultant}
+        referentials={{ secteurs, expertises, typesMobilite, zones, competences, langues, bms }}
+        canReassignReferent={canReassignReferent(session.user)}
+      />
     </div>
   );
 }

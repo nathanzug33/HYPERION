@@ -181,8 +181,19 @@
       transform: translateY(0);
     }
   }
+  /* Pas de fill-mode "both"/"forwards" ici : Chromium calcule le transform
+     animé comme une matrice résolue (jamais le mot-clé "none") tant que
+     l'état de fin de l'animation persiste sur l'élément, et tout transform
+     ≠ none — même une matrice identité — crée un containing block pour les
+     descendants en position: fixed. Comme .animate-fade-in est posé sur
+     <main> sur tout l'admin, ça cassait silencieusement les popups
+     position:fixed ancrés à l'écran (ex. bandeau d'actions candidat/CRM) :
+     ils se positionnaient relativement à <main> et finissaient hors-écran
+     sur une page longue plutôt qu'ancrés au viewport. Sans fill-mode,
+     transform/opacity retombent sur leur valeur en cascade (none / 1) une
+     fois les 380ms écoulées — rendu identique, plus de containing block. */
   .animate-fade-in {
-    animation: fade-in-up 380ms ease both;
+    animation: fade-in-up 380ms ease;
   }
 
   .topbar-gradient {

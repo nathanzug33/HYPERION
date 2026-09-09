@@ -19,8 +19,11 @@ type Suivi = {
 const TYPE_STYLES: Record<string, string> = {
   NOTE: "bg-slate-100 text-brand-body",
   APPEL: "bg-brand-blue-bg text-brand-blue-dark",
+  APPEL_SANS_REPONSE: "bg-orange-50 text-orange-700",
   RDV: "bg-brand-blue/15 text-brand-blue-dark",
   RAPPEL: "bg-amber-50 text-amber-700",
+  PLUS_DISPONIBLE: "bg-red-50 text-red-700",
+  REFUS: "bg-slate-200 text-brand-body",
   STATUT: "bg-brand-green/10 text-brand-green",
 };
 
@@ -34,9 +37,7 @@ export default function SuiviSection({
   const now = new Date();
 
   return (
-    <div className="card p-4">
-      <h2 className="mb-3 text-sm font-semibold text-brand-ink">Suivi &amp; rappels</h2>
-
+    <div>
       <form action={createSuiviAction} className="space-y-2 border-b border-slate-100 pb-4">
         <input type="hidden" name="consultantId" value={consultantId} />
         <div className="grid grid-cols-2 gap-2">
