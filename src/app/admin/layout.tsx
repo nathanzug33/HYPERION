@@ -38,10 +38,8 @@ export default async function AdminLayout({
           </div>
         </div>
         <div className="px-5 pb-4">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-green-light">
-            Pilot
-          </span>
-          <span className="ml-1.5 text-[11px] text-white/60">· ATS · CRM · Pilotage</span>
+          <span className="text-sm font-bold tracking-wide text-white">KERVIO</span>
+          <div className="text-[11px] text-brand-green-light">by Hyperion Group</div>
         </div>
 
         <div className="px-4 pb-4">

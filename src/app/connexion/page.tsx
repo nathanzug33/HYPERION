@@ -2,10 +2,10 @@ import { Suspense } from "react";
 import LoginForm from "./login-form";
 
 // Une seule page de connexion (mêmes identifiants, même flux NextAuth) mais
-// deux discours selon la destination visée : l'espace interne (Hyperion
-// Pilot — ATS/CRM/pilotage, pour BM/Directeur BU/Admin) et l'espace client
-// (Bibliothèque de compétences). Lien à partager en interne :
-// /connexion?next=/admin — lien client : /connexion (par défaut).
+// deux discours selon la destination visée : l'espace interne (KERVIO, pour
+// BM/Directeur BU/Admin) et l'espace client (Bibliothèque de compétences).
+// Lien à partager en interne : /connexion?next=/admin — lien client :
+// /connexion (par défaut).
 export default function ConnexionPage({
   searchParams,
 }: {
@@ -32,14 +32,16 @@ async function ConnexionContent({
         badge: "Accès interne",
         title: (
           <>
-            Hyperion Pilot
+            KERVIO
             <br />
-            ATS · CRM · Pilotage
+            <span className="text-xl font-medium text-white/70 xl:text-2xl">
+              by Hyperion Group
+            </span>
           </>
         ),
         pitch:
           "Vivier de consultants, comptes clients et activité commerciale au même endroit — chaque connexion est journalisée et associée nominativement à votre compte.",
-        mobileTitle: "Hyperion Pilot",
+        mobileTitle: "KERVIO",
         mobileSubtitle: "Accès interne réservé et journalisé.",
         footer: "Accès non ouvert ? Contactez votre administrateur.",
       }
