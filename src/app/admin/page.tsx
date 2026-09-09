@@ -53,6 +53,9 @@ export default async function AdminDashboardPage({
     propositionsPeriode,
     contratsSignesPeriode,
     entreprisesCreesPeriode,
+    missionsActivesTotal,
+    besoinsGagnesPeriode,
+    besoinsPerdusPeriode,
   ] = await Promise.all([
     prisma.consultant.count({ where: bmFilter }),
     prisma.consultant.count({
@@ -134,6 +137,23 @@ export default async function AdminDashboardPage({
     }),
     prisma.entreprise.count({
       where: { ...entrepriseFilter, createdAt: { gte: periode.debut, lte: periode.fin } },
+    }),
+    prisma.mission.count({
+      where: { statut: "EN_COURS", entreprise: entrepriseFilter },
+    }),
+    prisma.besoin.count({
+      where: {
+        statut: "GAGNE",
+        entreprise: entrepriseFilter,
+        updatedAt: { gte: periode.debut, lte: periode.fin },
+      },
+    }),
+    prisma.besoin.count({
+      where: {
+        statut: "PERDU",
+        entreprise: entrepriseFilter,
+        updatedAt: { gte: periode.debut, lte: periode.fin },
+      },
     }),
   ]);
 
@@ -422,13 +442,20 @@ export default async function AdminDashboardPage({
 
         <div>
           <p className="mb-2 text-xs font-medium text-brand-gray">Vivier (à date)</p>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <StatCard
               label="Entreprises (total)"
               value={entreprisesTotal}
               accent="blue"
               href="/admin/crm"
               icon={<path d="M4 20.5V6.5A1.5 1.5 0 0 1 5.5 5H12v3M12 20.5H4M12 8V5l7.5 3v12.5M12 20.5h9M8 9h.01M8 12.5h.01M8 16h.01M15.5 11h.01M15.5 14.5h.01M15.5 18h.01" />}
+            />
+            <StatCard
+              label="Missions actives"
+              value={missionsActivesTotal}
+              accent="green"
+              href="/admin/missions"
+              icon={<path d="M9 12.5 11 14.5 15.5 9.5M12 3l7 3.5v5c0 4.5-3 8.5-7 9.5-4-1-7-5-7-9.5v-5L12 3Z" />}
             />
             <StatCard
               label="Rappels à faire"
@@ -486,6 +513,20 @@ export default async function AdminDashboardPage({
               accent="green"
               href={`/admin/crm/activites?type=CONTRAT_SIGNE&${periodeQuery}`}
               icon={<path d="M9 12.5 11 14.5 15.5 9.5M12 3l7 3.5v5c0 4.5-3 8.5-7 9.5-4-1-7-5-7-9.5v-5L12 3Z" />}
+            />
+            <StatCard
+              label="Besoins staffés (gagnés)"
+              value={besoinsGagnesPeriode}
+              accent="green"
+              href="/admin/crm/besoins?statut=GAGNE"
+              icon={<path d="M9 12.5 11 14.5 15.5 9.5M12 3l7 3.5v5c0 4.5-3 8.5-7 9.5-4-1-7-5-7-9.5v-5L12 3Z" />}
+            />
+            <StatCard
+              label="Besoins perdus"
+              value={besoinsPerdusPeriode}
+              accent={besoinsPerdusPeriode > 0 ? "amber" : "gray"}
+              href="/admin/crm/besoins?statut=PERDU"
+              icon={<path d="M18.364 5.636 5.636 18.364M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" />}
             />
           </div>
         </div>
