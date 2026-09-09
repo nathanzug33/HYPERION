@@ -70,6 +70,7 @@ model User {
   besoinsSuivis            Besoin[]             @relation("BusinessManagerReferentBesoin")
   besoinCandidatsCrees     BesoinCandidat[]     @relation("BesoinCandidatCreePar")
   missionsSuivies          Mission[]            @relation("BusinessManagerReferentMission")
+  offresSuivies            Offre[]              @relation("BusinessManagerReferentOffre")
   loginLogs                LoginLog[]
   consultationLogs         ConsultationLog[]
   resetTokens              PasswordResetToken[]
@@ -268,6 +269,7 @@ model Consultant {
   propositionsCrm      SuiviCommercial[]
   besoinCandidats      BesoinCandidat[]
   missions             Mission[]
+  candidatures         Candidature[]
 
   @@index([statutPublication])
   @@index([businessManagerId])
@@ -338,6 +340,7 @@ model Entreprise {
   suivis   SuiviCommercial[]
   besoins  Besoin[]
   missions Mission[]
+  offres   Offre[]
 
   // Profils habituellement recherchés par ce client — alimente les
   // suggestions de candidats correspondants (§ matching simple).
@@ -474,6 +477,7 @@ model Besoin {
 
   candidats BesoinCandidat[]
   missions  Mission[]
+  offres    Offre[]
 
   @@index([entrepriseId])
   @@index([businessManagerId])
@@ -561,6 +565,96 @@ model MissionJoursTravailles {
 
   @@unique([missionId, annee, mois])
   @@index([missionId])
+}
+
+// Offre d'emploi/mission publiable (§ brique ATS "Offres") — soit générée à
+// partir d'un Besoin CRM (staffing réactif), soit créée librement pour du
+// sourcing proactif (alimenter le vivier sans client identifié). Une fois
+// PUBLIEE, visible sans authentification sur /offres/[reference] avec un
+// formulaire de candidature public (§ Candidature).
+model Offre {
+  id String @id @default(cuid())
+
+  // Référence courte utilisée dans l'URL publique — ne trahit rien côté
+  // client puisque l'offre elle-même est publique, mais évite d'exposer
+  // l'id cuid interne.
+  reference String @unique // ex. OFF-001
+
+  titre            String
+  descriptif       String?
+  profilRecherche  String?
+  typeContratOffre String? // CDI | CDIC | INDEPENDANT | STAGE | ALTERNANCE
+  tjmMin           Int?
+  tjmMax           Int?
+  salaireMin       Int?
+  salaireMax       Int?
+  localisation     String?
+  dateDemarrage    DateTime?
+
+  statut            String    @default("BROUILLON") // BROUILLON | PUBLIEE | POURVUE | DEPUBLIEE | ARCHIVEE
+  datePublication   DateTime?
+  dateDepublication DateTime?
+
+  // Lien optionnel vers le besoin d'origine — une offre peut aussi être
+  // libre (sourcing proactif), et un besoin peut donner lieu à plusieurs
+  // offres (ex. une en régie, une en CDI).
+  besoinId String?
+  besoin   Besoin? @relation(fields: [besoinId], references: [id], onDelete: SetNull)
+
+  // Dénormalisé depuis le besoin à la création (si présent) pour filtrer
+  // les offres par client sans repasser par le besoin — même principe que
+  // Mission.entrepriseId.
+  entrepriseId String?
+  entreprise   Entreprise? @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
+
+  businessManagerId String
+  businessManager   User   @relation("BusinessManagerReferentOffre", fields: [businessManagerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  candidatures Candidature[]
+
+  @@index([besoinId])
+  @@index([entrepriseId])
+  @@index([businessManagerId])
+  @@index([statut])
+}
+
+// Candidature reçue sur une offre publique — formulaire sans authentification,
+// donc jamais de confiance a priori sur son contenu. Traitée ensuite par le
+// staff : ajoutée au vivier ATS (création d'un Consultant) ou rejetée.
+model Candidature {
+  id String @id @default(cuid())
+
+  offreId String
+  offre   Offre @relation(fields: [offreId], references: [id], onDelete: Cascade)
+
+  nom       String
+  prenom    String
+  email     String
+  telephone String?
+  message   String?
+
+  // Même principe de stockage que les CV candidats internes (voir
+  // src/lib/cv-storage.ts) : nom de fichier aléatoire, jamais servi
+  // directement, téléchargement via route protégée admin.
+  cvFileUrl         String?
+  cvFileNomOriginal String?
+
+  consentementRgpd Boolean @default(false)
+
+  statut String @default("NOUVELLE") // NOUVELLE | EN_COURS | AJOUTEE_VIVIER | REJETEE
+
+  // Renseigné une fois la candidature ajoutée au vivier ATS.
+  consultantId String?
+  consultant   Consultant? @relation(fields: [consultantId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([offreId])
+  @@index([statut])
 }
 
 // Tables de jointure explicites (relations n-n paramétrables) --------------

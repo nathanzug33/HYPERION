@@ -9,8 +9,10 @@ import {
   STATUT_BESOIN_LABELS,
   STATUT_BESOIN_CANDIDAT,
   STATUT_BESOIN_CANDIDAT_LABELS,
+  STATUT_OFFRE_LABELS,
   type StatutBesoin,
   type StatutBesoinCandidat,
+  type StatutOffre,
 } from "@/lib/constants";
 import {
   updateBesoinAction,
@@ -50,6 +52,7 @@ export default async function BesoinDetailPage({
         orderBy: { createdAt: "asc" },
       },
       missions: true,
+      offres: { orderBy: { createdAt: "desc" }, include: { candidatures: { select: { id: true } } } },
     },
   });
 
@@ -301,6 +304,36 @@ export default async function BesoinDetailPage({
         </div>
 
         <div className="space-y-6">
+          <div className="card space-y-3 p-5">
+            <h2 className="text-sm font-semibold text-brand-ink">Offres liées</h2>
+            {besoin.offres.length === 0 ? (
+              <p className="text-xs text-brand-gray">Aucune offre publiée pour ce besoin.</p>
+            ) : (
+              <ul className="-mx-2 divide-y divide-slate-100">
+                {besoin.offres.map((o) => (
+                  <li key={o.id} className="flex items-center justify-between gap-2 px-2 py-2">
+                    <Link
+                      href={`/admin/offres/${o.id}`}
+                      className="text-sm font-medium text-brand-ink hover:text-brand-blue-dark"
+                    >
+                      {o.titre}
+                    </Link>
+                    <span className="text-[10px] text-brand-gray">
+                      {STATUT_OFFRE_LABELS[o.statut as StatutOffre] ?? o.statut} ·{" "}
+                      {o.candidatures.length} candidature(s)
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link
+              href={`/admin/offres/nouvelle?besoinId=${besoin.id}`}
+              className="btn btn-secondary block w-full py-2 text-center text-xs"
+            >
+              + Créer une offre à partir de ce besoin
+            </Link>
+          </div>
+
           {besoin.statut === STATUT_BESOIN.OUVERT && (
             <div className="card space-y-3 p-5">
               <h2 className="text-sm font-semibold text-brand-ink">Gagner ce besoin</h2>

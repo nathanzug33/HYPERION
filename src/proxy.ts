@@ -13,7 +13,10 @@ export default auth((req) => {
     pathname.startsWith("/mot-de-passe-oublie") ||
     pathname.startsWith("/reinitialiser") ||
     pathname.startsWith("/legal") ||
-    pathname.startsWith("/api/auth");
+    pathname.startsWith("/api/auth") ||
+    // Offres publiées + formulaire de candidature (§ brique ATS "Offres") —
+    // seule zone du site accessible sans compte, à dessein.
+    pathname.startsWith("/offres");
 
   if (isPublic) return NextResponse.next();
 

@@ -57,6 +57,7 @@ export default async function AdminLayout({
             items={[
               { href: "/admin/consultants", label: "Tous les candidats" },
               { href: "/admin/consultants/recherche", label: "Recherche avancée" },
+              { href: "/admin/offres", label: "Offres" },
             ]}
           />
           <SidebarGroup

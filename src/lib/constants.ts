@@ -280,6 +280,63 @@ export const STATUT_MISSION_LABELS: Record<StatutMission, string> = {
 // Missions dont la fin prévue approche (alerte "portefeuille de missions").
 export const MISSION_ALERTE_FIN_JOURS = 30;
 
+// Statut de publication d'une offre (§ brique ATS "Offres") — même logique
+// que STATUT_PUBLICATION (Consultant) avec un état supplémentaire POURVUE
+// (poste comblé, distinct d'un simple archivage).
+export const STATUT_OFFRE = {
+  BROUILLON: "BROUILLON",
+  PUBLIEE: "PUBLIEE",
+  POURVUE: "POURVUE",
+  DEPUBLIEE: "DEPUBLIEE",
+  ARCHIVEE: "ARCHIVEE",
+} as const;
+export type StatutOffre = (typeof STATUT_OFFRE)[keyof typeof STATUT_OFFRE];
+
+export const STATUT_OFFRE_LABELS: Record<StatutOffre, string> = {
+  BROUILLON: "Brouillon",
+  PUBLIEE: "Publiée",
+  POURVUE: "Pourvue",
+  DEPUBLIEE: "Dépubliée",
+  ARCHIVEE: "Archivée",
+};
+
+// Nature du contrat proposé par une offre — distinct de NATURE_CONTRAT
+// (contrat réel du consultant une fois staffé) : une offre peut aussi
+// proposer un stage ou une alternance, non applicables à un consultant déjà
+// en poste.
+export const TYPE_CONTRAT_OFFRE = {
+  CDI: "CDI",
+  CDIC: "CDIC",
+  INDEPENDANT: "INDEPENDANT",
+  STAGE: "STAGE",
+  ALTERNANCE: "ALTERNANCE",
+} as const;
+export type TypeContratOffre = (typeof TYPE_CONTRAT_OFFRE)[keyof typeof TYPE_CONTRAT_OFFRE];
+
+export const TYPE_CONTRAT_OFFRE_LABELS: Record<TypeContratOffre, string> = {
+  CDI: "CDI",
+  CDIC: "CDI de chantier (CDIC)",
+  INDEPENDANT: "Indépendant / freelance",
+  STAGE: "Stage",
+  ALTERNANCE: "Alternance",
+};
+
+// Avancement d'une candidature reçue sur une offre publique.
+export const STATUT_CANDIDATURE = {
+  NOUVELLE: "NOUVELLE",
+  EN_COURS: "EN_COURS",
+  AJOUTEE_VIVIER: "AJOUTEE_VIVIER",
+  REJETEE: "REJETEE",
+} as const;
+export type StatutCandidature = (typeof STATUT_CANDIDATURE)[keyof typeof STATUT_CANDIDATURE];
+
+export const STATUT_CANDIDATURE_LABELS: Record<StatutCandidature, string> = {
+  NOUVELLE: "Nouvelle",
+  EN_COURS: "En cours d'étude",
+  AJOUTEE_VIVIER: "Ajoutée au vivier",
+  REJETEE: "Rejetée",
+};
+
 // Coefficient de charges patronales appliqué au salaire brut pour obtenir le
 // coût employeur, et nombre de jours facturables par an (forfait jours
 // France) — base du calcul de coût/marge journalière (§ pilotage financier,
