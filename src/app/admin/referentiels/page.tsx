@@ -1,11 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/guards";
 import { addReferentialItem, toggleReferentialActive } from "./actions";
-import type { ReferentialType } from "@/lib/referentials";
+import CategorieSelect from "./categorie-select";
+import { CATEGORIZABLE_REFERENTIAL_TYPES, type ReferentialType } from "@/lib/referentials";
 
 export const dynamic = "force-dynamic";
 
-type Item = { id: string; label: string; active: boolean };
+type Item = { id: string; label: string; active: boolean; categorie?: string | null };
 
 async function getSections(): Promise<
   Array<{ type: ReferentialType; title: string; items: Item[] }>
@@ -82,17 +83,22 @@ function ReferentialSection({
             <span className={item.active ? "text-brand-body" : "text-brand-gray line-through"}>
               {item.label}
             </span>
-            <form action={toggleReferentialActive}>
-              <input type="hidden" name="type" value={type} />
-              <input type="hidden" name="id" value={item.id} />
-              <input type="hidden" name="active" value={String(item.active)} />
-              <button
-                type="submit"
-                className="link-underline text-xs text-brand-gray hover:text-brand-ink"
-              >
-                {item.active ? "Désactiver" : "Réactiver"}
-              </button>
-            </form>
+            <div className="flex items-center gap-2">
+              {CATEGORIZABLE_REFERENTIAL_TYPES.includes(type) && (
+                <CategorieSelect type={type} id={item.id} categorie={item.categorie ?? null} />
+              )}
+              <form action={toggleReferentialActive}>
+                <input type="hidden" name="type" value={type} />
+                <input type="hidden" name="id" value={item.id} />
+                <input type="hidden" name="active" value={String(item.active)} />
+                <button
+                  type="submit"
+                  className="link-underline text-xs text-brand-gray hover:text-brand-ink"
+                >
+                  {item.active ? "Désactiver" : "Réactiver"}
+                </button>
+              </form>
+            </div>
           </li>
         ))}
         {items.length === 0 && (

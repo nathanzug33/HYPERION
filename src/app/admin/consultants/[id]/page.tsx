@@ -4,13 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { ROLES } from "@/lib/constants";
 import { consultantPublicSelect } from "@/lib/consultant-view";
-import ConsultantDetail from "@/components/consultant/ConsultantDetail";
+import ConsultantBrief from "@/components/consultant/ConsultantBrief";
 import ConsultantEditForm from "./consultant-edit-form";
 import {
-  archiveConsultantAction,
   publishConsultantAction,
   purgeConsultantAction,
-  transferConsultantAction,
   unpublishConsultantAction,
 } from "../actions";
 import { STATUT_PUBLICATION_LABELS, canReassignReferent } from "@/lib/constants";
@@ -28,11 +26,18 @@ export default async function ConsultantEditPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; ia?: string; doublons?: string; propose?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    ia?: string;
+    doublons?: string;
+    propose?: string;
+    dcError?: string;
+    dcRegenerated?: string;
+  }>;
 }) {
   const session = await requireStaff();
   const { id } = await params;
-  const { error, ia, doublons, propose } = await searchParams;
+  const { error, ia, doublons, propose, dcError, dcRegenerated } = await searchParams;
 
   const doublonsCandidats = doublons
     ? await prisma.consultant.findMany({
@@ -206,6 +211,19 @@ export default async function ConsultantEditPage({
         </div>
       )}
 
+      {dcError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {dcError}
+        </div>
+      )}
+
+      {dcRegenerated && (
+        <div className="rounded-xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-brand-green">
+          ✅ DC régénéré à partir du CV{consultant.sourceTranscriptTexte ? " et de la transcription" : ""}
+          — vérifiez le contenu (onglets Informations / Compétences / Secteurs) avant de publier.
+        </div>
+      )}
+
       {doublonsCandidats.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <p className="font-medium">
@@ -236,44 +254,6 @@ export default async function ConsultantEditPage({
             Dépublier
           </button>
         </form>
-        <form action={archiveConsultantAction}>
-          <input type="hidden" name="id" value={id} />
-          <button type="submit" className="btn btn-secondary">
-            Archiver
-          </button>
-        </form>
-        <a href={`/admin/consultants/${id}/export-word`} className="btn btn-accent">
-          Télécharger le DC (Word)
-        </a>
-        {canReassignReferent(session.user) && (
-          <form
-            action={transferConsultantAction}
-            className={`flex items-center gap-1.5 ${session.user.role === ROLES.ADMIN ? "" : "ml-auto"}`}
-          >
-            <input type="hidden" name="id" value={id} />
-            <select
-              name="targetId"
-              required
-              defaultValue=""
-              className="input py-1.5 text-xs"
-              title="Transférer ce dossier à un autre BM"
-            >
-              <option value="" disabled>
-                Transférer à…
-              </option>
-              {bms
-                .filter((bm) => bm.id !== consultant.businessManagerId)
-                .map((bm) => (
-                  <option key={bm.id} value={bm.id}>
-                    {bm.name}
-                  </option>
-                ))}
-            </select>
-            <button type="submit" className="btn btn-secondary py-1.5 text-xs">
-              Transférer
-            </button>
-          </form>
-        )}
         {session.user.role === ROLES.ADMIN && (
           <form action={purgeConsultantAction} className="ml-auto">
             <input type="hidden" name="id" value={id} />
@@ -365,7 +345,7 @@ export default async function ConsultantEditPage({
                 </Link>
               </div>
             </div>
-            {publicView && <ConsultantDetail consultant={publicView} />}
+            {publicView && <ConsultantBrief consultant={publicView} />}
           </div>
         </div>
       </div>

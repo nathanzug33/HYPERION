@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/guards";
-import { isReferentialType, type ReferentialType } from "@/lib/referentials";
+import {
+  isReferentialType,
+  CATEGORIZABLE_REFERENTIAL_TYPES,
+  type ReferentialType,
+} from "@/lib/referentials";
 
 function delegateFor(type: ReferentialType) {
   switch (type) {
@@ -52,5 +56,19 @@ export async function toggleReferentialActive(formData: FormData) {
   const delegate = delegateFor(type);
   // @ts-expect-error — delegates share a compatible update shape for this use.
   await delegate.update({ where: { id }, data: { active: !active } });
+  revalidatePath("/admin/referentiels");
+}
+
+export async function setReferentialCategorieAction(formData: FormData) {
+  await requireAdmin();
+  const type = String(formData.get("type") ?? "");
+  const id = String(formData.get("id") ?? "");
+  const categorie = String(formData.get("categorie") ?? "");
+  if (!isReferentialType(type) || !id) return;
+  if (!CATEGORIZABLE_REFERENTIAL_TYPES.includes(type)) return;
+
+  const delegate = delegateFor(type);
+  // @ts-expect-error — delegates share a compatible update shape for this use.
+  await delegate.update({ where: { id }, data: { categorie: categorie || null } });
   revalidatePath("/admin/referentiels");
 }

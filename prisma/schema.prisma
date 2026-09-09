@@ -105,10 +105,13 @@ model PasswordResetToken {
 // ---------------------------------------------------------------------------
 
 model Secteur {
-  id     String  @id @default(cuid())
-  label  String  @unique
-  ordre  Int     @default(0)
-  active Boolean @default(true)
+  id        String  @id @default(cuid())
+  label     String  @unique
+  ordre     Int     @default(0)
+  active    Boolean @default(true)
+  // Bloc d'affichage côté fiche candidat (onglet Secteurs) — "INDUSTRIE" |
+  // "DIGITAL" (mêmes valeurs que SECTEUR_CATEGORIE / Entreprise.secteurCategorie).
+  categorie String?
 
   consultants          ConsultantSecteur[]
   entreprisesCherchent EntrepriseSecteurRecherche[]
@@ -127,10 +130,12 @@ model Industrie {
 }
 
 model Expertise {
-  id     String  @id @default(cuid())
-  label  String  @unique
-  ordre  Int     @default(0)
-  active Boolean @default(true)
+  id        String  @id @default(cuid())
+  label     String  @unique
+  ordre     Int     @default(0)
+  active    Boolean @default(true)
+  // Bloc d'affichage côté fiche candidat (onglet Compétences) — "INDUSTRIE" | "DIGITAL".
+  categorie String?
 
   consultants          ConsultantExpertise[]
   entreprisesCherchent EntrepriseExpertiseRecherchee[]
@@ -167,9 +172,11 @@ model ZoneGeographique {
 }
 
 model Competence {
-  id     String  @id @default(cuid())
-  label  String  @unique // étiquette libre : techno, outil, certification
-  active Boolean @default(true)
+  id        String  @id @default(cuid())
+  label     String  @unique // étiquette libre : techno, outil, certification
+  active    Boolean @default(true)
+  // Bloc d'affichage côté fiche candidat (onglet Compétences) — "INDUSTRIE" | "DIGITAL".
+  categorie String?
 
   consultants ConsultantCompetence[]
 }
@@ -237,6 +244,11 @@ model Consultant {
   anneesExperienceMin      Int?
   anneesExperienceMax      Int?
   resumeContexte           String?
+  // Résumé très court (2-3 lignes) généré par IA, pensé pour la carte/aperçu
+  // bibliothèque — distinct de resumeContexte (paragraphe plus long, intégré
+  // au corps du DC). Alimenté par la génération IA (création ou régénération
+  // depuis CV + transcript sur un dossier existant).
+  presentationCourte       String?
   disponibilite            String? // IMMEDIATE | SOUS_1_MOIS | SOUS_2_MOIS | SUR_PREAVIS
   disponibiliteConfirmeeLe DateTime?
   typeContrat              String? // REGIE | FORFAIT | TEMPS_PARTAGE

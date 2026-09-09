@@ -10,6 +10,7 @@ export const consultantPublicSelect = {
   anneesExperienceMin: true,
   anneesExperienceMax: true,
   resumeContexte: true,
+  presentationCourte: true,
   disponibilite: true,
   typeContrat: true,
   ouvertGrandDeplacement: true,

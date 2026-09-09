@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { STATUT_PUBLICATION_LABELS } from "@/lib/constants";
 import { consultantPublicSelect } from "@/lib/consultant-view";
-import ConsultantDetail from "@/components/consultant/ConsultantDetail";
+import ConsultantBrief from "@/components/consultant/ConsultantBrief";
 import { canAccessConsultant } from "@/lib/consultant-access";
 
 export const dynamic = "force-dynamic";
@@ -61,7 +61,7 @@ export default async function ConsultantApercuPage({
       )}
 
       <div className="card animate-fade-in p-6 sm:p-7">
-        <ConsultantDetail consultant={consultant} />
+        <ConsultantBrief consultant={consultant} />
       </div>
     </div>
   );

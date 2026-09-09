@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { ROLES } from "@/lib/constants";
 import { consultantPublicSelect } from "@/lib/consultant-view";
-import ConsultantDetail from "@/components/consultant/ConsultantDetail";
+import ConsultantBrief from "@/components/consultant/ConsultantBrief";
 import ContactRequestButton from "@/components/consultant/ContactRequestButton";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +38,7 @@ export default async function ConsultantDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="card animate-fade-in p-6 sm:p-7">
-          <ConsultantDetail consultant={consultant} />
+          <ConsultantBrief consultant={consultant} />
         </div>
 
         <div className="lg:sticky lg:top-20 lg:self-start">

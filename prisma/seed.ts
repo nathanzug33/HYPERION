@@ -4,6 +4,8 @@ import { findVille } from "../src/lib/villes-france";
 
 const prisma = new PrismaClient();
 
+type RefItem = string | { label: string; categorie?: string };
+
 async function upsertReferential<T extends { label: string }>(
   model: {
     upsert: (args: {
@@ -12,18 +14,23 @@ async function upsertReferential<T extends { label: string }>(
       create: { label: string } & Record<string, unknown>;
     }) => Promise<T>;
   },
-  items: string[],
+  items: RefItem[],
   withOrdre = true
 ): Promise<T[]> {
   const created: T[] = [];
   for (let i = 0; i < items.length; i++) {
-    const label = items[i];
-    const ordreFields = withOrdre ? { ordre: i } : {};
+    const item = items[i];
+    const label = typeof item === "string" ? item : item.label;
+    const categorie = typeof item === "string" ? undefined : item.categorie;
+    const extraFields = {
+      ...(withOrdre ? { ordre: i } : {}),
+      ...(categorie ? { categorie } : {}),
+    };
     created.push(
       await model.upsert({
         where: { label },
-        update: ordreFields,
-        create: { label, ...ordreFields },
+        update: extraFields,
+        create: { label, ...extraFields },
       })
     );
   }
@@ -34,14 +41,14 @@ async function main() {
   console.log("Seed — référentiels…");
 
   const secteurs = await upsertReferential(prisma.secteur, [
-    "Industrie",
-    "Énergie",
-    "Automobile",
-    "Aéronautique",
-    "IT / Logiciel",
-    "Banque / Assurance",
-    "Santé",
-    "Retail / e-commerce",
+    { label: "Industrie", categorie: "INDUSTRIE" },
+    { label: "Énergie", categorie: "INDUSTRIE" },
+    { label: "Automobile", categorie: "INDUSTRIE" },
+    { label: "Aéronautique", categorie: "INDUSTRIE" },
+    { label: "IT / Logiciel", categorie: "DIGITAL" },
+    { label: "Banque / Assurance", categorie: "DIGITAL" },
+    { label: "Santé", categorie: "DIGITAL" },
+    { label: "Retail / e-commerce", categorie: "DIGITAL" },
   ]);
 
   // Sous-secteurs de la catégorie "Industrie" (§ Entreprise.industrieId) —
@@ -81,14 +88,20 @@ async function main() {
   ]);
 
   const expertises = await upsertReferential(prisma.expertise, [
-    "DevOps / Cloud",
-    "Data / IA",
-    "Automatisme / Robotique",
-    "Développement logiciel",
-    "Cybersécurité",
-    "Gestion de projet / PMO",
-    "Qualité / Test",
-    "Réseaux / Infrastructure",
+    { label: "DevOps / Cloud", categorie: "DIGITAL" },
+    { label: "Data / IA", categorie: "DIGITAL" },
+    { label: "Automatisme / Robotique", categorie: "INDUSTRIE" },
+    { label: "Développement logiciel", categorie: "DIGITAL" },
+    { label: "Cybersécurité", categorie: "DIGITAL" },
+    { label: "Gestion de projet / PMO", categorie: "DIGITAL" },
+    { label: "Qualité / Test", categorie: "DIGITAL" },
+    { label: "Réseaux / Infrastructure", categorie: "DIGITAL" },
+    { label: "Mécanique / Conception", categorie: "INDUSTRIE" },
+    { label: "Électronique / Électrotechnique", categorie: "INDUSTRIE" },
+    { label: "Méthodes / Qualité industrielle", categorie: "INDUSTRIE" },
+    { label: "Génie des procédés", categorie: "INDUSTRIE" },
+    { label: "Ingénierie systèmes", categorie: "INDUSTRIE" },
+    { label: "HSE (Hygiène Sécurité Environnement)", categorie: "INDUSTRIE" },
   ]);
 
   const seniorites: Awaited<ReturnType<typeof prisma.seniorite.upsert>>[] = [];
@@ -126,37 +139,55 @@ async function main() {
     "Mobilité régionale",
   ]);
 
+  // Toutes les régions de France (13 régions métropolitaines + 5 DROM).
   const zones = await upsertReferential(prisma.zoneGeographique, [
     "Île-de-France",
     "Auvergne-Rhône-Alpes",
-    "Occitanie",
-    "Nouvelle-Aquitaine",
-    "Hauts-de-France",
-    "Grand Est",
-    "Provence-Alpes-Côte d'Azur",
+    "Bourgogne-Franche-Comté",
     "Bretagne",
+    "Centre-Val de Loire",
+    "Corse",
+    "Grand Est",
+    "Hauts-de-France",
+    "Normandie",
+    "Nouvelle-Aquitaine",
+    "Occitanie",
     "Pays de la Loire",
+    "Provence-Alpes-Côte d'Azur",
+    "Guadeloupe",
+    "Martinique",
+    "Guyane",
+    "La Réunion",
+    "Mayotte",
   ]);
 
   const competences = await upsertReferential(
     prisma.competence,
     [
-    "AWS",
-    "Azure",
-    "Kubernetes",
-    "Docker",
-    "Terraform",
-    "Python",
-    "Java",
-    "TypeScript",
-    "React",
-    "Siemens TIA Portal",
-    "SCADA",
-    "SAP",
-    "ISTQB",
-    "PMP",
-    "Power BI",
-    "SQL",
+    { label: "AWS", categorie: "DIGITAL" },
+    { label: "Azure", categorie: "DIGITAL" },
+    { label: "Kubernetes", categorie: "DIGITAL" },
+    { label: "Docker", categorie: "DIGITAL" },
+    { label: "Terraform", categorie: "DIGITAL" },
+    { label: "Python", categorie: "DIGITAL" },
+    { label: "Java", categorie: "DIGITAL" },
+    { label: "TypeScript", categorie: "DIGITAL" },
+    { label: "React", categorie: "DIGITAL" },
+    { label: "SAP", categorie: "DIGITAL" },
+    { label: "ISTQB", categorie: "DIGITAL" },
+    { label: "PMP", categorie: "DIGITAL" },
+    { label: "Power BI", categorie: "DIGITAL" },
+    { label: "SQL", categorie: "DIGITAL" },
+    { label: "Siemens TIA Portal", categorie: "INDUSTRIE" },
+    { label: "SCADA", categorie: "INDUSTRIE" },
+    { label: "SolidWorks", categorie: "INDUSTRIE" },
+    { label: "CATIA", categorie: "INDUSTRIE" },
+    { label: "AutoCAD", categorie: "INDUSTRIE" },
+    { label: "Ansys", categorie: "INDUSTRIE" },
+    { label: "Automates programmables (API)", categorie: "INDUSTRIE" },
+    { label: "GMAO", categorie: "INDUSTRIE" },
+    { label: "Lean Manufacturing", categorie: "INDUSTRIE" },
+    { label: "Six Sigma", categorie: "INDUSTRIE" },
     ],
     false
   );

@@ -42,16 +42,3 @@ export function Tag({ children, light }: { children: React.ReactNode; light?: bo
     </span>
   );
 }
-
-// Niveau (1 à 5) affiché en points, comme le gabarit HYPERION (●●●●○).
-export function NiveauDots({ niveau, label }: { niveau: number; label?: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-brand-body">
-      <span className="tracking-tighter text-brand-blue" aria-hidden>
-        {"●".repeat(Math.max(0, Math.min(5, niveau)))}
-        {"○".repeat(5 - Math.max(0, Math.min(5, niveau)))}
-      </span>
-      {label && <span className="text-brand-gray">{label}</span>}
-    </span>
-  );
-}

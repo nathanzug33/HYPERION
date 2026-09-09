@@ -3,10 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireStaff, requireAdmin, requireAdminOrDirecteur } from "@/lib/guards";
+import { requireStaff, requireAdmin } from "@/lib/guards";
 import { generateNextReference } from "@/lib/reference-generator";
 import {
-  COMPETENCE_CATEGORIES,
   STATUT_PUBLICATION,
   STATUT_CANDIDAT_INTERNE_LABELS,
   SUIVI_TYPE,
@@ -20,12 +19,6 @@ import { findConsultantDuplicates } from "@/lib/duplicate-detection";
 
 function getMulti(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
-}
-
-function parseMonthInput(value: string): Date | null {
-  const match = /^(\d{4})-(\d{2})$/.exec(value.trim());
-  if (!match) return null;
-  return new Date(Number(match[1]), Number(match[2]) - 1, 1);
 }
 
 function computeRetentionDate(dateCollecte: Date, dureeMois: number): Date {
@@ -203,43 +196,10 @@ export async function updateConsultantAction(formData: FormData) {
     detail: String(formData.get(`langueDetail_${langueId}`) ?? "").trim() || null,
   }));
 
-  const competenceCategorieRows = Object.values(COMPETENCE_CATEGORIES)
-    .map((cat, ordre) => ({
-      consultantId: id,
-      categorie: cat,
-      contenu: String(formData.get(`compCat_${cat}_contenu`) ?? "").trim(),
-      niveau: Number(formData.get(`compCat_${cat}_niveau`)) || 3,
-      ordre,
-    }))
-    .filter((row) => row.contenu);
-
-  const formationRows = Array.from({ length: 6 })
-    .map((_, i) => ({
-      consultantId: id,
-      type: String(formData.get(`formationType_${i}`) ?? "FORMATION"),
-      annee: String(formData.get(`formationAnnee_${i}`) ?? "").trim(),
-      intitule: String(formData.get(`formationIntitule_${i}`) ?? "").trim(),
-      etablissement:
-        String(formData.get(`formationEtablissement_${i}`) ?? "").trim() || null,
-      ordre: i,
-    }))
-    .filter((row) => row.intitule);
-
-  const experienceRows = Array.from({ length: 4 })
-    .map((_, i) => ({
-      consultantId: id,
-      entreprise: String(formData.get(`expEntreprise_${i}`) ?? "").trim(),
-      secteurActivite: String(formData.get(`expSecteur_${i}`) ?? "").trim() || null,
-      missionTitre: String(formData.get(`expMission_${i}`) ?? "").trim(),
-      dateDebut: parseMonthInput(String(formData.get(`expDebut_${i}`) ?? "")),
-      dateFin: parseMonthInput(String(formData.get(`expFin_${i}`) ?? "")),
-      contexteObjectif: String(formData.get(`expContexte_${i}`) ?? "").trim() || null,
-      realisations: String(formData.get(`expRealisations_${i}`) ?? "").trim() || null,
-      environnementTechnique:
-        String(formData.get(`expEnvTech_${i}`) ?? "").trim() || null,
-      ordre: i,
-    }))
-    .filter((row) => row.entreprise && row.missionTitre);
+  // Compétences détaillées / formations / expériences détaillées ne sont
+  // plus saisies dans ce formulaire (onglet "Pièces jointes" → régénération
+  // via IA depuis le CV, voir dc-actions.ts) : on ne les touche pas ici,
+  // sous peine de les vider à chaque enregistrement des autres onglets.
 
   const statutChange =
     data.statutCandidatInterne !== consultant.statutCandidatInterne
@@ -308,15 +268,6 @@ export async function updateConsultantAction(formData: FormData) {
     }),
     prisma.consultantLangue.deleteMany({ where: { consultantId: id } }),
     prisma.consultantLangue.createMany({ data: langueRows }),
-
-    prisma.competenceCategorie.deleteMany({ where: { consultantId: id } }),
-    prisma.competenceCategorie.createMany({ data: competenceCategorieRows }),
-
-    prisma.formation.deleteMany({ where: { consultantId: id } }),
-    prisma.formation.createMany({ data: formationRows }),
-
-    prisma.experience.deleteMany({ where: { consultantId: id } }),
-    prisma.experience.createMany({ data: experienceRows }),
   ]);
 
   revalidatePath(`/admin/consultants/${id}`);
@@ -386,37 +337,6 @@ export async function unpublishConsultantAction(formData: FormData) {
   revalidatePath(`/admin/consultants/${id}`);
   revalidatePath("/admin/consultants");
   redirect(`/admin/consultants/${id}`);
-}
-
-export async function archiveConsultantAction(formData: FormData) {
-  const id = String(formData.get("id") ?? "");
-  await assertOwnership(id);
-
-  await prisma.consultant.update({
-    where: { id },
-    data: { statutPublication: STATUT_PUBLICATION.ARCHIVEE },
-  });
-
-  revalidatePath(`/admin/consultants/${id}`);
-  revalidatePath("/admin/consultants");
-  redirect(`/admin/consultants/${id}`);
-}
-
-/** Transfert d'un dossier candidat à un autre BM référent, un par un — voir
- * transferEntrepriseAction (CRM) pour la même logique côté compte client. */
-export async function transferConsultantAction(formData: FormData) {
-  const session = await requireAdminOrDirecteur();
-  const id = String(formData.get("id") ?? "");
-  const targetId = String(formData.get("targetId") ?? "");
-  if (!id || !targetId) return;
-
-  const consultant = await prisma.consultant.findUnique({ where: { id } });
-  if (!consultant || !(await canAccessConsultant(session.user, consultant))) return;
-
-  await prisma.consultant.update({ where: { id }, data: { businessManagerId: targetId } });
-  revalidatePath(`/admin/consultants/${id}`);
-  revalidatePath("/admin/consultants");
-  revalidatePath("/admin");
 }
 
 export async function purgeConsultantAction(formData: FormData) {

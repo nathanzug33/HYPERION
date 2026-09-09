@@ -62,6 +62,11 @@ const schema = z.object({
   resumeContexte: z
     .string()
     .describe("Résumé de 4 à 6 lignes, générique, sans aucune information identifiante"),
+  presentationCourte: z
+    .string()
+    .describe(
+      "Résumé très court (2 à 3 phrases maximum), accrocheur, pour une carte de présentation dans une bibliothèque de profils — sans aucune information identifiante, distinct de resumeContexte (plus détaillé)"
+    ),
 
   langues: z
     .array(
@@ -135,7 +140,7 @@ Ta tâche : à partir d'un CV (ou d'un dossier de compétences existant, éventu
 Règles impératives :
 - N'invente aucune information. Si une donnée n'est pas déductible des documents fournis, laisse le champ vide (null ou tableau vide) plutôt que d'halluciner.
 - Aucune transcription d'entretien n'est fournie ? Base-toi uniquement sur le CV/dossier existant ; c'est une situation normale (candidat déjà rencontré, dossier reçu tel quel).
-- Le résumé de contexte et les expériences détaillées ne doivent contenir AUCUNE information identifiante (pas de nom de personne, pas de nom d'entreprise cliente réel si un NDA est mentionné — utilise alors une formulation générique comme "Entreprise cliente du secteur X").
+- Le résumé de contexte, la présentation courte et les expériences détaillées ne doivent contenir AUCUNE information identifiante (pas de nom de personne, pas de nom d'entreprise cliente réel si un NDA est mentionné — utilise alors une formulation générique comme "Entreprise cliente du secteur X").
 - Pour les champs contraints par un référentiel (secteurs, expertises, séniorité, mobilité, zones), choisis EXCLUSIVEMENT parmi les valeurs listées dans les référentiels fournis dans le message utilisateur — n'en invente pas de nouvelles, respecte l'orthographe exacte.
 - La séniorité et le niveau des compétences/langues doivent être cohérents avec les années d'expérience et les informations disponibles.
 - Sois factuel et concis, dans un français professionnel.

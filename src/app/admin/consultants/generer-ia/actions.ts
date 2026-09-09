@@ -10,6 +10,7 @@ import { findVille } from "@/lib/villes-france";
 import { saveCvFile } from "@/lib/cv-storage";
 import { extractFileText } from "@/lib/cv-text";
 import { findConsultantDuplicates } from "@/lib/duplicate-detection";
+import { findOrCreateByLabel, matchIds, normLabel } from "@/lib/ai-dc-match";
 
 export type GenerateIaState = { error?: string };
 
@@ -24,33 +25,6 @@ function parseMonthDate(value: string | null): Date | null {
   const match = /^(\d{4})-(\d{2})$/.exec(value.trim());
   if (!match) return null;
   return new Date(Number(match[1]), Number(match[2]) - 1, 1);
-}
-
-async function findOrCreateByLabel(
-  delegate: {
-    findMany: (args: {
-      where: { active: boolean };
-    }) => Promise<{ id: string; label: string }[]>;
-    create: (args: {
-      data: { label: string };
-    }) => Promise<{ id: string; label: string }>;
-  },
-  labels: string[]
-): Promise<Map<string, string>> {
-  const existing = await delegate.findMany({ where: { active: true } });
-  const byLower = new Map(existing.map((e) => [e.label.toLowerCase(), e.id]));
-  const result = new Map<string, string>();
-  for (const label of labels) {
-    const key = label.toLowerCase();
-    let id = byLower.get(key);
-    if (!id) {
-      const created = await delegate.create({ data: { label } });
-      id = created.id;
-      byLower.set(key, id);
-    }
-    result.set(label, id);
-  }
-  return result;
 }
 
 export async function generateConsultantFromAI(
@@ -127,17 +101,8 @@ export async function generateConsultantFromAI(
   // forcé par un enum côté modèle (voir ai-dc.ts), juste fortement suggéré
   // par le prompt — les valeurs non reconnues sont simplement ignorées
   // (référentiels non modifiés automatiquement).
-  const norm = (s: string) => s.trim().toLowerCase();
-  const matchIds = <T extends { id: string; label: string }>(
-    items: T[],
-    labels: string[]
-  ): string[] => {
-    const wanted = new Set(labels.map(norm));
-    return items.filter((i) => wanted.has(norm(i.label))).map((i) => i.id);
-  };
-
   const seniorityId =
-    seniorites.find((s) => norm(s.label) === norm(generated.seniorite))?.id ?? null;
+    seniorites.find((s) => normLabel(s.label) === normLabel(generated.seniorite))?.id ?? null;
   const secteurIds = matchIds(secteurs, generated.secteurs);
   const expertiseIds = matchIds(expertises, generated.expertises);
   const typeMobiliteIds = matchIds(typesMobilite, generated.typesMobilite);
@@ -180,6 +145,7 @@ export async function generateConsultantFromAI(
       anneesExperienceMin: generated.anneesExperienceMin,
       anneesExperienceMax: generated.anneesExperienceMax,
       resumeContexte: generated.resumeContexte,
+      presentationCourte: generated.presentationCourte,
       disponibilite: generated.disponibilite,
       typeContrat: generated.typeContrat,
       rayonKm: generated.rayonKm,

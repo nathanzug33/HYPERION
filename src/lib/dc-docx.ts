@@ -316,7 +316,7 @@ function fillExperiencesDetailleesSection(
 
 // --- Header, statut, profil (placeholders simples, occurrence unique) ------
 
-function fillSimplePlaceholders(xml: string, c: DcConsultant): string {
+function fillSimplePlaceholders(xml: string, c: DcConsultant, anonymize: boolean): string {
   const anneesLabel =
     c.anneesExperienceMin != null
       ? c.anneesExperienceMax != null && c.anneesExperienceMax !== c.anneesExperienceMin
@@ -330,7 +330,7 @@ function fillSimplePlaceholders(xml: string, c: DcConsultant): string {
 
   const replacements: [string, string][] = [
     ["[Intitulé du poste / spécialité]", c.intitulePoste ?? ""],
-    ["[Prénom NOM]", `${c.prenom} ${c.nom}`],
+    ["[Prénom NOM]", anonymize ? c.referenceAnonyme : `${c.prenom} ${c.nom}`],
     ["[X] ans d'expérience", anneesLabel],
     ["[Disponible : immédiatement]", c.disponibilite ? DISPONIBILITE_FULL[c.disponibilite] ?? "" : ""],
     ["[Compétence clé 1]", compClesLabels[0] ?? ""],
@@ -350,7 +350,11 @@ function fillSimplePlaceholders(xml: string, c: DcConsultant): string {
   return xml;
 }
 
-export async function buildDcDocx(c: DcConsultant): Promise<Buffer> {
+/** anonymize: remplace le nom réel par la référence anonyme dans l'en-tête
+ * du document — seule information identifiante présente dans le gabarit
+ * (aucun autre placeholder ne porte nom/email/téléphone). Utilisé pour le
+ * DC téléchargeable depuis la bibliothèque client. */
+export async function buildDcDocx(c: DcConsultant, opts?: { anonymize?: boolean }): Promise<Buffer> {
   const templateBuffer = await readFile(TEMPLATE_PATH);
   const zip = await JSZip.loadAsync(templateBuffer);
 
@@ -367,7 +371,7 @@ export async function buildDcDocx(c: DcConsultant): Promise<Buffer> {
   xml = fillLanguesSection(xml, c.langues);
   xml = fillExperiencesDetailleesSection(xml, c.experiences);
   xml = fillCompetencesSection(xml, c.competenceCategories);
-  xml = fillSimplePlaceholders(xml, c);
+  xml = fillSimplePlaceholders(xml, c, opts?.anonymize ?? false);
 
   zip.file("word/document.xml", xml);
   return zip.generateAsync({ type: "nodebuffer" });
