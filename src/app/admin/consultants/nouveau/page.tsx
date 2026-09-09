@@ -10,13 +10,6 @@ export default async function NouveauConsultantPage() {
         <h1 className="text-2xl font-semibold text-brand-ink">
           Nouveau candidat
         </h1>
-        <p className="mt-1 text-sm text-brand-gray">
-          Renseignez d&apos;abord l&apos;identité du candidat — il rejoint
-          aussitôt le vivier commun (ATS), visible par toute l&apos;équipe. La
-          référence anonyme est générée automatiquement ; les champs
-          exposables (pour en faire un dossier de compétences publiable) se
-          complètent à l&apos;étape suivante.
-        </p>
       </div>
 
       <form action={createConsultantAction} className="card space-y-4 p-5">
