@@ -70,6 +70,7 @@ export default async function AdminLayout({
           {isAdmin && (
             <>
               <div className="my-2 border-t border-white/15" />
+              <SidebarLink href="/admin/trading-lab">AI Trading Lab</SidebarLink>
               <SidebarLink href="/admin/referentiels">Référentiels</SidebarLink>
               <SidebarLink href="/admin/utilisateurs">Utilisateurs</SidebarLink>
               <SidebarLink href="/admin/journaux">Journaux</SidebarLink>

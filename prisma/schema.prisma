@@ -902,3 +902,74 @@ model ConsultationLog {
   @@index([consultantId])
   @@index([createdAt])
 }
+
+// ---------------------------------------------------------------------------
+// AI Trading Lab — agent autonome de gestion d'un portefeuille (cahier des
+// charges dédié, séparé du domaine ATS/CRM ci-dessus). Phase 1 de la
+// roadmap (§42) : dashboard + portefeuille virtuel (paper trading, §29).
+// Aucune donnée de marché réelle ni Market/AI/Execution Engine automatique
+// à ce stade (phases suivantes) : les positions sont saisies manuellement
+// par un administrateur, en lieu et place de ces moteurs à venir.
+// ---------------------------------------------------------------------------
+
+// Portefeuille de l'agent — singleton pour l'instant (un seul agent, un seul
+// capital). mode : PAPER uniquement en Phase 1 (§30 — SHADOW/LIVE_SAFE/
+// LIVE_AUTONOMOUS viendront avec les phases 6 à 8).
+model TradingPortfolio {
+  id             String   @id @default(cuid())
+  mode           String   @default("PAPER")
+  // Capital initial = capital protégé de référence (§2, §4) : 50 € par défaut.
+  capitalInitial Float    @default(50)
+  cash           Float    @default(50)
+  realizedPnl    Float    @default(0)
+  // Plus haute valeur historique du portefeuille (§18).
+  highWaterMark  Float    @default(50)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  positions TradingPosition[]
+  snapshots TradingSnapshot[]
+}
+
+// Position virtuelle (toujours longue : §14 interdit le short et le levier).
+model TradingPosition {
+  id           String    @id @default(cuid())
+  portfolioId  String
+  portfolio    TradingPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  asset        String
+  quantity     Float
+  entryPrice   Float
+  // Dernier prix connu — saisi manuellement en Phase 1 (pas de Market Engine
+  // branché) ; sert au calcul du P&L latent (§4).
+  currentPrice Float
+  exitPrice    Float?
+  stopLoss     Float?
+  takeProfit   Float?
+  // Justification de la décision d'ouverture (§25 journalisation).
+  reason       String?
+  status       String    @default("OPEN") // OPEN | CLOSED
+  realizedPnl  Float?
+  openedAt     DateTime  @default(now())
+  closedAt     DateTime?
+
+  @@index([portfolioId, status])
+}
+
+// Instantané de la valeur du portefeuille à chaque événement (ouverture,
+// clôture, mise à jour de prix) — historise le High Water Mark et le
+// drawdown (§18-19) sans avoir à les recalculer depuis l'origine.
+model TradingSnapshot {
+  id            String   @id @default(cuid())
+  portfolioId   String
+  portfolio     TradingPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  totalValue    Float
+  cash          Float
+  invested      Float
+  unrealizedPnl Float
+  highWaterMark Float
+  drawdownPct   Float
+  event         String // INITIAL | OUVERTURE | CLOTURE | MAJ_PRIX
+  createdAt     DateTime @default(now())
+
+  @@index([portfolioId, createdAt])
+}
