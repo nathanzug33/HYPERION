@@ -1,7 +1,13 @@
-import { PDFParse } from "pdf-parse";
-
+// Import dynamique (pas en tête de fichier) : pdf-parse ne doit être chargé
+// qu'au moment réel d'extraire un PDF, jamais au chargement du module. En
+// import statique, n'importe quelle Server Action du même fichier (y
+// compris sans rapport avec les CV, ex. suppression d'un dossier) échouait
+// au chargement sur Vercel avec "ReferenceError: DOMMatrix is not defined"
+// — une dépendance de pdf-parse référence une API navigateur dès son
+// évaluation, incompatible avec l'environnement serverless.
 export async function extractPdfText(buffer: Buffer): Promise<string> {
-  let parser: PDFParse;
+  const { PDFParse } = await import("pdf-parse");
+  let parser: InstanceType<typeof PDFParse>;
   try {
     parser = new PDFParse({ data: buffer });
   } catch {
