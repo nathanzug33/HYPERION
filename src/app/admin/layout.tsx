@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { requireStaff } from "@/lib/guards";
 import { ROLE_LABELS } from "@/lib/constants";
 import { getTaskCounts } from "@/lib/task-counts";
@@ -28,9 +29,15 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen">
       <aside className="sidebar-gradient flex w-64 shrink-0 flex-col">
-        <div className="px-5 pb-5 pt-7">
-          <span className="text-lg font-bold tracking-wide text-white">KERVYO</span>
-          <div className="mt-0.5 text-[11px] text-brand-green-light">by Hyperion Group</div>
+        <div className="px-5 pb-6 pt-8">
+          <Image
+            src="/kervyo-sidebar-dark.png"
+            alt="KERVYO by Hyperion Group"
+            width={1424}
+            height={288}
+            className="h-9 w-auto"
+            priority
+          />
         </div>
 
         <div className="px-4 pb-4">

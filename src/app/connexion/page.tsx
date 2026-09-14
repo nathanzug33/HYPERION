@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Image from "next/image";
 import LoginForm from "./login-form";
 
 // Une seule page de connexion (mêmes identifiants, même flux NextAuth) mais
@@ -34,15 +35,7 @@ async function ConnexionContent({
   const copy = isInterne
     ? {
         badge: "Accès interne",
-        title: (
-          <>
-            KERVYO
-            <br />
-            <span className="text-xl font-medium text-white/70 xl:text-2xl">
-              by Hyperion Group
-            </span>
-          </>
-        ),
+        bibliothequeLabel: null,
         pitch: "Outil de pilotage interne.",
         mobileTitle: "KERVYO",
         mobileSubtitle: "Accès interne réservé et journalisé.",
@@ -50,15 +43,7 @@ async function ConnexionContent({
       }
     : {
         badge: "Accès réservé",
-        title: (
-          <>
-            Bibliothèque KERVYO
-            <br />
-            <span className="text-xl font-medium text-white/70 xl:text-2xl">
-              by Hyperion Group
-            </span>
-          </>
-        ),
+        bibliothequeLabel: "Bibliothèque",
         pitch:
           "Consultez les profils de consultants anonymisés, suivez vos dossiers et vos demandes de contact — chaque connexion est journalisée et associée nominativement à votre compte.",
         mobileTitle: "Bibliothèque KERVYO by Hyperion Group",
@@ -84,9 +69,21 @@ async function ConnexionContent({
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80 ring-1 ring-white/20">
               {copy.badge}
             </span>
-            <h1 className="mt-5 text-3xl font-semibold leading-tight text-white xl:text-4xl">
-              {copy.title}
-            </h1>
+            <div className="mt-5">
+              {copy.bibliothequeLabel && (
+                <p className="mb-1.5 text-sm font-medium uppercase tracking-wide text-white/70">
+                  {copy.bibliothequeLabel}
+                </p>
+              )}
+              <Image
+                src="/kervyo-header-dark.png"
+                alt="KERVYO by Hyperion Group"
+                width={1520}
+                height={384}
+                className="h-12 w-auto xl:h-14"
+                priority
+              />
+            </div>
             <p className="mt-4 max-w-sm text-sm leading-6 text-white/70">{copy.pitch}</p>
           </div>
 

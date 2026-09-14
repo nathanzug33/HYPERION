@@ -54,5 +54,12 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Les fichiers statiques de /public (logos, favicon…) doivent rester
+  // accessibles sans authentification : l'optimiseur d'images de Next.js
+  // les récupère par un fetch HTTP interne, sans cookie de session — sans
+  // cette exclusion ce fetch se voit rediriger vers /connexion et
+  // l'optimisation échoue ("resource isn't a valid image").
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)",
+  ],
 };
