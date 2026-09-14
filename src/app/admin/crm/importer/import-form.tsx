@@ -13,6 +13,8 @@ type TargetField = {
 const TARGET_FIELDS: TargetField[] = [
   { key: "societeNom", label: "Société", required: true },
   { key: "ville", label: "Ville" },
+  { key: "codePostal", label: "Code postal" },
+  { key: "adresse", label: "Adresse" },
   { key: "siteWeb", label: "Site web" },
   { key: "contactNomComplet", label: "Contact — nom complet (1 seule colonne)" },
   { key: "prenom", label: "Contact — prénom (colonne séparée)" },
@@ -20,10 +22,14 @@ const TARGET_FIELDS: TargetField[] = [
   { key: "fonction", label: "Fonction du contact" },
   { key: "email", label: "Email du contact" },
   { key: "telephone", label: "Téléphone du contact" },
+  { key: "notesExtra1", label: "Info supplémentaire 1 → notes (ex. Secteur, Zone)" },
+  { key: "notesExtra2", label: "Info supplémentaire 2 → notes (ex. Secteur, Zone)" },
 ];
 
 const GUESSES: Record<string, string[]> = {
   societeNom: ["societe", "entreprise", "client", "raisonsociale", "company", "nomsociete", "nomentreprise"],
+  codePostal: ["codepostal", "cp", "postal", "zip"],
+  adresse: ["adresse", "address", "rue"],
   siteWeb: ["siteweb", "site", "website", "url", "web"],
   ville: ["ville", "city", "localite"],
   contactNomComplet: ["contact", "interlocuteur", "nomcomplet"],
@@ -37,8 +43,13 @@ const GUESSES: Record<string, string[]> = {
 // Ordre de priorité pour l'auto-détection : une colonne déjà retenue pour un
 // champ n'est plus proposée pour les suivants (évite qu'une seule colonne
 // "Nom" soit à la fois candidate pour la société et pour le contact).
+// notesExtra1/2 n'ont pas de mots-clés : jamais auto-détectées, seulement
+// assignables manuellement (ex. colonnes "Secteur"/"Zone" sans équivalent
+// direct dans le CRM — conservées en notes plutôt que perdues).
 const PRIORITE = [
   "societeNom",
+  "codePostal",
+  "adresse",
   "siteWeb",
   "ville",
   "contactNomComplet",
@@ -93,10 +104,24 @@ function buildRows(
       if (!prenom) prenom = parts[0] ?? "";
       if (!nom) nom = parts.length > 1 ? parts.slice(1).join(" ") : "";
     }
+
+    // Colonnes sans équivalent direct dans le CRM (ex. Secteur, Zone) :
+    // conservées en notes, préfixées par le nom de la colonne d'origine
+    // pour rester lisibles et identifiables.
+    const notesParts: string[] = [];
+    for (const field of ["notesExtra1", "notesExtra2"]) {
+      const header = mapping[field];
+      const value = header ? get(row, field) : "";
+      if (header && value) notesParts.push(`${header} : ${value}`);
+    }
+
     return {
       societeNom: get(row, "societeNom"),
       ville: get(row, "ville"),
+      codePostal: get(row, "codePostal"),
+      adresse: get(row, "adresse"),
       siteWeb: get(row, "siteWeb"),
+      notes: notesParts.join("\n"),
       prenom,
       nom,
       fonction: get(row, "fonction"),
@@ -237,10 +262,12 @@ export default function ImportForm() {
                   <tr>
                     <th className="px-2 py-1.5">Société</th>
                     <th className="px-2 py-1.5">Ville</th>
+                    <th className="px-2 py-1.5">CP</th>
                     <th className="px-2 py-1.5">Contact</th>
                     <th className="px-2 py-1.5">Fonction</th>
                     <th className="px-2 py-1.5">Email</th>
                     <th className="px-2 py-1.5">Téléphone</th>
+                    <th className="px-2 py-1.5">Notes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -248,12 +275,14 @@ export default function ImportForm() {
                     <tr key={i}>
                       <td className="px-2 py-1.5 font-medium text-brand-ink">{r.societeNom || "—"}</td>
                       <td className="px-2 py-1.5 text-brand-body">{r.ville || "—"}</td>
+                      <td className="px-2 py-1.5 text-brand-body">{r.codePostal || "—"}</td>
                       <td className="px-2 py-1.5 text-brand-body">
                         {[r.prenom, r.nom].filter(Boolean).join(" ") || "—"}
                       </td>
                       <td className="px-2 py-1.5 text-brand-body">{r.fonction || "—"}</td>
                       <td className="px-2 py-1.5 text-brand-body">{r.email || "—"}</td>
                       <td className="px-2 py-1.5 text-brand-body">{r.telephone || "—"}</td>
+                      <td className="px-2 py-1.5 whitespace-pre-line text-brand-body">{r.notes || "—"}</td>
                     </tr>
                   ))}
                 </tbody>

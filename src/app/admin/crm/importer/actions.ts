@@ -9,7 +9,10 @@ import { findContactDuplicates } from "@/lib/duplicate-detection";
 export type ImportRow = {
   societeNom: string;
   ville?: string;
+  codePostal?: string;
+  adresse?: string;
   siteWeb?: string;
+  notes?: string;
   prenom?: string;
   nom?: string;
   fonction?: string;
@@ -75,7 +78,10 @@ export async function importCrmRowsAction(rows: ImportRow[]): Promise<ImportResu
           data: {
             nom: societeNom,
             ville: row.ville?.trim() || null,
+            codePostal: row.codePostal?.trim() || null,
+            adresse: row.adresse?.trim() || null,
             siteWeb: row.siteWeb?.trim() || null,
+            notes: row.notes?.trim() || null,
             businessManagerId: session.user.id,
           },
           select: { id: true },
