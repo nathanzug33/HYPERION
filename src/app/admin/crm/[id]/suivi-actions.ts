@@ -84,12 +84,13 @@ export async function createSuiviCommercialAction(formData: FormData) {
         if (contact?.email) {
           await sendGmailMessage(accessToken, {
             to: contact.email,
-            subject: `RDV : ${titre}`,
+            subject: titre,
             bodyHtml: buildMeetInviteHtml({
               destinataire: `${contact.prenom} ${contact.nom}`,
-              titre,
+              nature: "rendez-vous",
               date: dateProgrammee,
               meetLink: event.meetLink,
+              auteur: session.user.name ?? "L'équipe HYPERION",
             }),
           });
         }

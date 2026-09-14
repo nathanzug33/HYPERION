@@ -451,6 +451,8 @@ export default function ConsultantEditForm({
         <SuiviSection
           consultantId={consultant.id}
           consultantEmail={consultant.email}
+          consultantPrenom={consultant.prenom}
+          consultantNom={consultant.nom}
           suivis={suivis}
           compact={false}
         />

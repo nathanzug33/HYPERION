@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   SUIVI_COMMERCIAL_TYPE_LABELS,
   SUIVI_COMMERCIAL_TYPE_SAISISSABLES,
@@ -45,17 +45,29 @@ export default function SuiviSection({
   entrepriseId,
   contactId,
   contactEmail,
+  entrepriseNom,
   suivis,
 }: {
   entrepriseId: string;
   contactId: string;
   contactEmail?: string | null;
+  entrepriseNom?: string;
   suivis: Suivi[];
 }) {
   const now = new Date();
   const [type, setType] = useState<string>("NOTE");
   const [modalite, setModalite] = useState<string>("");
+  const [titre, setTitre] = useState("");
   const avecMeetPossible = type === SUIVI_COMMERCIAL_TYPE.RDV && modalite === MODALITE_RDV.VISIO;
+
+  // Propose automatiquement un titre (repris comme sujet de l'email
+  // d'invitation) dès le passage en "RDV" + "Visio" — reste librement
+  // modifiable, on ne touche jamais à un titre déjà saisi par l'utilisateur.
+  useEffect(() => {
+    if (avecMeetPossible && !titre && entrepriseNom) {
+      setTitre(`Présentation Hyperion x ${entrepriseNom}`);
+    }
+  }, [avecMeetPossible, titre, entrepriseNom]);
 
   return (
     <div className="card p-4">
@@ -115,6 +127,8 @@ export default function SuiviSection({
         <input
           type="text"
           name="titre"
+          value={titre}
+          onChange={(e) => setTitre(e.target.value)}
           required
           placeholder="Titre (ex. Relancer sur le devis)"
           className="input text-xs"

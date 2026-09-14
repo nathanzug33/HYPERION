@@ -231,6 +231,8 @@ export default async function ConsultantEditPage({
       <CandidateActionsBar
         consultantId={id}
         consultantEmail={consultant.email}
+        consultantPrenom={consultant.prenom}
+        consultantNom={consultant.nom}
         canDelete={session.user.role === ROLES.ADMIN}
         suivis={suivis}
         entreprisesPourPush={entreprisesPourPush}

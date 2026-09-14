@@ -65,12 +65,13 @@ export async function createSuiviAction(formData: FormData) {
         if (consultant.email) {
           await sendGmailMessage(accessToken, {
             to: consultant.email,
-            subject: `Entretien : ${titre}`,
+            subject: titre,
             bodyHtml: buildMeetInviteHtml({
               destinataire: `${consultant.prenom} ${consultant.nom}`,
-              titre,
+              nature: "entretien",
               date: dateProgrammee,
               meetLink: event.meetLink,
+              auteur: session.user.name ?? "L'équipe HYPERION",
             }),
           });
         }

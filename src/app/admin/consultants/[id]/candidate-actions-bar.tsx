@@ -49,6 +49,8 @@ type PopupKey = (typeof TABS)[number]["key"];
 export default function CandidateActionsBar({
   consultantId,
   consultantEmail,
+  consultantPrenom,
+  consultantNom,
   canDelete,
   suivis,
   entreprisesPourPush,
@@ -58,6 +60,8 @@ export default function CandidateActionsBar({
 }: {
   consultantId: string;
   consultantEmail: string | null;
+  consultantPrenom: string;
+  consultantNom: string;
   canDelete: boolean;
   suivis: Suivi[];
   entreprisesPourPush: EntrepriseOption[];
@@ -131,6 +135,8 @@ export default function CandidateActionsBar({
             <SuiviSection
               consultantId={consultantId}
               consultantEmail={consultantEmail}
+              consultantPrenom={consultantPrenom}
+              consultantNom={consultantNom}
               suivis={suivis}
             />
           )}

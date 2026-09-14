@@ -63,6 +63,7 @@ export default async function ContactDetailPage({
             entrepriseId={id}
             contactId={contactId}
             contactEmail={contact.email}
+            entrepriseNom={entreprise.nom}
             suivis={suivis}
           />
         </div>

@@ -34,13 +34,16 @@ function buildRawMessage(input: { to: string; subject: string; bodyHtml: string 
   return base64UrlEncode(message);
 }
 
-/** Corps HTML simple de l'email d'invitation à un entretien/RDV en visio —
- * réutilisé côté ATS (candidat) et CRM (interlocuteur client). */
+/** Corps HTML de l'email de confirmation d'un entretien/RDV en visio —
+ * réutilisé côté ATS (candidat) et CRM (interlocuteur client), rédigé de
+ * façon autonome (date et lien Meet insérés automatiquement, signature =
+ * le compte KERVYO/Gmail connecté qui envoie). */
 export function buildMeetInviteHtml(input: {
   destinataire: string;
-  titre: string;
+  nature: "entretien" | "rendez-vous";
   date: Date;
   meetLink: string;
+  auteur: string;
 }): string {
   const dateFormatee = input.date.toLocaleString("fr-FR", {
     dateStyle: "full",
@@ -48,9 +51,9 @@ export function buildMeetInviteHtml(input: {
   });
   return `
     <p>Bonjour ${input.destinataire},</p>
-    <p>Vous êtes invité(e) à un rendez-vous en visio :</p>
-    <p><strong>${input.titre}</strong><br/>${dateFormatee}</p>
+    <p>Je vous confirme notre ${input.nature} en visioconférence du ${dateFormatee}.</p>
     <p><a href="${input.meetLink}">${input.meetLink}</a></p>
+    <p>Cordialement,<br/>${input.auteur}</p>
   `.trim();
 }
 

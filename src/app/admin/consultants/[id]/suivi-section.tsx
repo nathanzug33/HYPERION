@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   SUIVI_TYPE,
   SUIVI_TYPE_LABELS,
@@ -39,18 +39,32 @@ const TYPES_AVEC_ECHEANCE = [SUIVI_TYPE.RDV, SUIVI_TYPE.RAPPEL] as const;
 export default function SuiviSection({
   consultantId,
   consultantEmail,
+  consultantPrenom,
+  consultantNom,
   suivis,
   compact = true,
 }: {
   consultantId: string;
   consultantEmail?: string | null;
+  consultantPrenom?: string;
+  consultantNom?: string;
   suivis: Suivi[];
   compact?: boolean;
 }) {
   const now = new Date();
   const [type, setType] = useState<string>(SUIVI_TYPE.NOTE);
+  const [titre, setTitre] = useState("");
   const avecEcheance = TYPES_AVEC_ECHEANCE.includes(type as (typeof TYPES_AVEC_ECHEANCE)[number]);
   const avecMeetPossible = type === SUIVI_TYPE.RDV;
+
+  // Propose automatiquement un titre (repris comme sujet de l'email
+  // d'invitation) dès le passage en "Entretien" — reste librement
+  // modifiable, on ne touche jamais à un titre déjà saisi par l'utilisateur.
+  useEffect(() => {
+    if (type === SUIVI_TYPE.RDV && !titre && consultantPrenom && consultantNom) {
+      setTitre(`Entretien ${consultantPrenom} ${consultantNom} x Hyperion`);
+    }
+  }, [type, titre, consultantPrenom, consultantNom]);
 
   return (
     <div>
@@ -94,6 +108,8 @@ export default function SuiviSection({
         <input
           type="text"
           name="titre"
+          value={titre}
+          onChange={(e) => setTitre(e.target.value)}
           required
           placeholder="Titre (ex. Rappeler pour disponibilité)"
           className="input text-xs"
