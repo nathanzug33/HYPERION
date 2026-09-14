@@ -73,6 +73,9 @@ export default async function CrmListPage({
           <a href="/admin/crm/export/pipeline" className="btn btn-secondary">
             ⬇️ Export CSV
           </a>
+          <Link href="/admin/crm/importer" className="btn btn-secondary">
+            📥 Importer (Excel)
+          </Link>
           <Link href="/admin/crm/nouvelle" className="btn btn-primary">
             + Ajouter une entreprise
           </Link>
