@@ -3,9 +3,10 @@ import LoginForm from "./login-form";
 
 // Une seule page de connexion (mêmes identifiants, même flux NextAuth) mais
 // deux discours selon la destination visée : l'espace interne (KERVYO by
-// Hyperion Group, pour BM/Directeur BU/Admin) et l'espace client
-// (Bibliothèque KERVYO by Hyperion Group). Lien à partager en interne :
-// /connexion?next=/admin — lien client : /connexion (par défaut).
+// Hyperion Group, pour BM/Directeur BU/Admin, discours par défaut — usage
+// principal de l'outil) et l'espace client (Bibliothèque KERVYO by Hyperion
+// Group). Lien à partager en interne : /connexion (par défaut) — lien
+// client : /connexion?next=/bibliotheque.
 export default function ConnexionPage({
   searchParams,
 }: {
@@ -25,7 +26,10 @@ async function ConnexionContent({
 }) {
   const params = await searchParams;
   const next = params.next ?? "/";
-  const isInterne = next.startsWith("/admin");
+  // Par défaut (lien de base, sans next=/bibliotheque) : discours interne —
+  // c'est l'usage principal de l'outil. Seul un lien explicite vers l'espace
+  // client (partagé aux clients) affiche le discours "Bibliothèque".
+  const isInterne = !next.startsWith("/bibliotheque");
 
   const copy = isInterne
     ? {

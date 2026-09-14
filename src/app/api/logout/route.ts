@@ -6,9 +6,11 @@ import { auth, signOut } from "@/auth";
 // piloté par useActionState sur la même page).
 export async function POST() {
   // Renvoie vers la page de connexion branded pour l'espace quitté (KERVYO
-  // pour le staff, Bibliothèque pour un client) plutôt que systématiquement
-  // vers la version client par défaut.
+  // pour le staff, Bibliothèque pour un client) — le discours par défaut de
+  // /connexion étant désormais interne, un client sortant doit repasser
+  // explicitement par next=/bibliotheque.
   const session = await auth();
-  const redirectTo = session?.user && session.user.role !== "CLIENT" ? "/connexion?next=/admin" : "/connexion";
+  const redirectTo =
+    session?.user && session.user.role === "CLIENT" ? "/connexion?next=/bibliotheque" : "/connexion?next=/admin";
   await signOut({ redirectTo });
 }
