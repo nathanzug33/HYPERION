@@ -435,13 +435,26 @@ export const FORMATION_TYPE = {
 export type FormationType = (typeof FORMATION_TYPE)[keyof typeof FORMATION_TYPE];
 
 // Seuil de fraîcheur (§5.2 / §10) : au-delà, une fiche publiée est signalée.
-export const FICHE_FRAICHEUR_SEUIL_JOURS = Number(
-  process.env.FICHE_FRAICHEUR_SEUIL_JOURS ?? 30
+// `??` ne rattrape qu'une variable absente (undefined/null), pas une
+// variable présente mais vide ("") — cas réel rencontré en configurant les
+// variables d'environnement sur Vercel : Number("") vaut 0, ce qui avait
+// réduit la session à une durée de vie quasi nulle (cookie expiré presque
+// immédiatement après la connexion). parseEnvInt retombe sur le défaut pour
+// toute valeur non finie ou non strictement positive.
+function parseEnvInt(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+export const FICHE_FRAICHEUR_SEUIL_JOURS = parseEnvInt(
+  process.env.FICHE_FRAICHEUR_SEUIL_JOURS,
+  30
 );
 
 // Timeout d'inactivité de session (§5.1).
-export const SESSION_IDLE_TIMEOUT_MINUTES = Number(
-  process.env.SESSION_IDLE_TIMEOUT_MINUTES ?? 30
+export const SESSION_IDLE_TIMEOUT_MINUTES = parseEnvInt(
+  process.env.SESSION_IDLE_TIMEOUT_MINUTES,
+  30
 );
 
 // Verrouillage temporaire du compte après plusieurs échecs de connexion
