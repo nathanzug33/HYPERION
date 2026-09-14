@@ -22,6 +22,10 @@ export class InvalidTwoFactorCodeError extends CredentialsSignin {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  // Nécessaire derrière un proxy (Vercel) : sans ça, Auth.js peut dériver un
+  // hôte incohérent entre la réponse de connexion et les requêtes suivantes,
+  // et perdre la session immédiatement après un login pourtant réussi.
+  trustHost: true,
   session: {
     strategy: "jwt",
     // Déconnexion automatique après une période d'inactivité (§5.1).
