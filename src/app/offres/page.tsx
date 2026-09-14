@@ -18,7 +18,7 @@ export default async function OffresPubliquesPage() {
           aria-hidden
         />
         <div className="relative mx-auto max-w-4xl">
-          <span className="text-sm font-bold tracking-wide">KERVIO</span>
+          <span className="text-sm font-bold tracking-wide">KERVYO</span>
           <div className="text-[11px] text-brand-green-light">by Hyperion Group</div>
           <h1 className="mt-4 text-2xl font-semibold sm:text-3xl">Nos offres</h1>
           <p className="mt-2 max-w-xl text-sm text-white/70">

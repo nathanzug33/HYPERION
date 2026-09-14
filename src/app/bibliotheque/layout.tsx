@@ -36,10 +36,10 @@ export default async function BibliothequeLayout({
             <BrandMark className="text-white" />
             <div className="leading-tight">
               <div className="text-sm font-semibold text-white">
-                Bibliothèque de compétences
+                Bibliothèque KERVYO
               </div>
               <div className="text-[11px] uppercase tracking-wide text-white/55">
-                Portail réservé
+                by Hyperion Group
               </div>
             </div>
           </Link>

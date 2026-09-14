@@ -3,9 +3,9 @@ import "./globals.css";
 import CookieBanner from "@/components/CookieBanner";
 
 export const metadata: Metadata = {
-  title: "HYPERION",
+  title: "KERVYO by Hyperion Group",
   description:
-    "Hyperion Group — pilotage ATS/CRM (interne) et bibliothèque de profils de consultants anonymisés (clients).",
+    "KERVYO by Hyperion Group — pilotage ATS/CRM (interne) et bibliothèque de profils de consultants anonymisés (clients).",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

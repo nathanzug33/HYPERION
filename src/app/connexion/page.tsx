@@ -2,10 +2,10 @@ import { Suspense } from "react";
 import LoginForm from "./login-form";
 
 // Une seule page de connexion (mêmes identifiants, même flux NextAuth) mais
-// deux discours selon la destination visée : l'espace interne (KERVIO, pour
-// BM/Directeur BU/Admin) et l'espace client (Bibliothèque de compétences).
-// Lien à partager en interne : /connexion?next=/admin — lien client :
-// /connexion (par défaut).
+// deux discours selon la destination visée : l'espace interne (KERVYO by
+// Hyperion Group, pour BM/Directeur BU/Admin) et l'espace client
+// (Bibliothèque KERVYO by Hyperion Group). Lien à partager en interne :
+// /connexion?next=/admin — lien client : /connexion (par défaut).
 export default function ConnexionPage({
   searchParams,
 }: {
@@ -32,7 +32,7 @@ async function ConnexionContent({
         badge: "Accès interne",
         title: (
           <>
-            KERVIO
+            KERVYO
             <br />
             <span className="text-xl font-medium text-white/70 xl:text-2xl">
               by Hyperion Group
@@ -40,7 +40,7 @@ async function ConnexionContent({
           </>
         ),
         pitch: "Outil de pilotage interne.",
-        mobileTitle: "KERVIO",
+        mobileTitle: "KERVYO",
         mobileSubtitle: "Accès interne réservé et journalisé.",
         footer: null,
       }
@@ -48,14 +48,16 @@ async function ConnexionContent({
         badge: "Accès réservé",
         title: (
           <>
-            Bibliothèque de dossiers
+            Bibliothèque KERVYO
             <br />
-            de compétences
+            <span className="text-xl font-medium text-white/70 xl:text-2xl">
+              by Hyperion Group
+            </span>
           </>
         ),
         pitch:
           "Consultez les profils de consultants anonymisés, suivez vos dossiers et vos demandes de contact — chaque connexion est journalisée et associée nominativement à votre compte.",
-        mobileTitle: "Bibliothèque de dossiers de compétences",
+        mobileTitle: "Bibliothèque KERVYO by Hyperion Group",
         mobileSubtitle: "Accès réservé et journalisé.",
         footer: "Accès non ouvert ? Contactez votre business manager.",
       };

@@ -29,7 +29,7 @@ export default async function AdminLayout({
     <div className="flex min-h-screen">
       <aside className="sidebar-gradient flex w-64 shrink-0 flex-col">
         <div className="px-5 pb-5 pt-7">
-          <span className="text-lg font-bold tracking-wide text-white">KERVIO</span>
+          <span className="text-lg font-bold tracking-wide text-white">KERVYO</span>
           <div className="mt-0.5 text-[11px] text-brand-green-light">by Hyperion Group</div>
         </div>
 
