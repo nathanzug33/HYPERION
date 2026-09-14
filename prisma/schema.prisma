@@ -1,17 +1,15 @@
 // Schéma de données — Portail "Bibliothèque de dossiers de compétences"
 //
-// Choix de développement local : SQLite (fichier, zéro dépendance externe).
-// Pour la production, le cahier des charges impose un hébergement UE : basculez
-// `provider` sur "postgresql" et pointez DATABASE_URL vers une instance
-// PostgreSQL hébergée en UE. Aucun type spécifique à SQLite n'est utilisé
-// (pas d'enum natif, pas de tableau scalaire) : le schéma est portable tel quel.
+// Hébergement : PostgreSQL (Supabase, région UE — cahier des charges impose
+// un hébergement UE). Aucun type spécifique à un moteur n'est utilisé (pas
+// d'enum natif, pas de tableau scalaire) : le schéma est resté portable.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

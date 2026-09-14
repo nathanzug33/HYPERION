@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 // Détection de doublons à la création — non bloquante : le dossier/contact
 // est créé normalement, on se contente de signaler les correspondances
 // probables pour que l'utilisateur vérifie et fusionne/supprime lui-même si
-// besoin. Correspondance sur nom+prénom exacts (insensible à la casse n'est
-// pas supporté nativement par Prisma sur SQLite) ou même email.
+// besoin. Correspondance sur nom+prénom (insensible à la casse) ou même
+// email.
 
 export async function findConsultantDuplicates(
   nom: string,
@@ -16,8 +16,13 @@ export async function findConsultantDuplicates(
     where: {
       id: { not: excludeId },
       OR: [
-        { AND: [{ nom }, { prenom }] },
-        ...(email ? [{ email }] : []),
+        {
+          AND: [
+            { nom: { equals: nom, mode: "insensitive" } },
+            { prenom: { equals: prenom, mode: "insensitive" } },
+          ],
+        },
+        ...(email ? [{ email: { equals: email, mode: "insensitive" as const } }] : []),
       ],
     },
     select: { id: true, referenceAnonyme: true, nom: true, prenom: true },
@@ -37,8 +42,13 @@ export async function findContactDuplicates(
       entrepriseId,
       id: { not: excludeId },
       OR: [
-        { AND: [{ nom }, { prenom }] },
-        ...(email ? [{ email }] : []),
+        {
+          AND: [
+            { nom: { equals: nom, mode: "insensitive" } },
+            { prenom: { equals: prenom, mode: "insensitive" } },
+          ],
+        },
+        ...(email ? [{ email: { equals: email, mode: "insensitive" as const } }] : []),
       ],
     },
     select: { id: true, nom: true, prenom: true },

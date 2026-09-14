@@ -8,9 +8,11 @@ dans le cahier des charges (`cahierdeschargesbibliothequedc.md`).
 ## Stack technique
 
 - **Next.js 16** (App Router, Server Actions, TypeScript, Tailwind CSS v4)
-- **Prisma** + **SQLite** en local/démo (bascule facile vers PostgreSQL — voir
-  plus bas), aucun type spécifique à SQLite n'est utilisé (pas d'enum natif,
-  pas de tableau scalaire) : le schéma est portable tel quel.
+- **Prisma** + **PostgreSQL** (Supabase, région UE — cahier des charges). Le
+  stockage des pièces jointes (CV, pièces jointes CRM) utilise Supabase
+  Storage (`src/lib/object-storage.ts`), pas le disque local — nécessaire
+  sur une plateforme serverless comme Vercel dont le système de fichiers
+  est éphémère.
 - **NextAuth v5** (Credentials + JWT), pas d'auto-inscription
 - Aucune dépendance externe pour l'envoi d'email en développement (les
   emails sont journalisés en console — voir `src/lib/mail.ts`)
@@ -27,8 +29,8 @@ dans le cahier des charges (`cahierdeschargesbibliothequedc.md`).
 
 ```bash
 npm install
-cp .env.example .env        # adapter AUTH_SECRET en production
-npm run db:migrate          # crée prisma/dev.db et applique le schéma
+cp .env.example .env        # DATABASE_URL Supabase + AUTH_SECRET, voir plus bas
+npm run db:migrate          # applique le schéma sur la base PostgreSQL
 npm run db:seed             # comptes de démonstration + données d'exemple
 npm run dev
 ```
@@ -248,10 +250,18 @@ projection anonymisée habituelle. Route :
 
 ## Passage en production
 
-- **Base de données** : changer `provider = "sqlite"` en `"postgresql"`
-  dans `prisma/schema.prisma`, pointer `DATABASE_URL` vers une instance
-  PostgreSQL hébergée dans l'UE, puis `npx prisma migrate deploy`. Aucun
-  champ du schéma n'est spécifique à SQLite.
+- **Base de données** : `DATABASE_URL` doit pointer vers l'instance
+  PostgreSQL Supabase (région UE), puis `npx prisma migrate deploy` pour
+  appliquer le schéma. Chaîne de connexion disponible dans le tableau de
+  bord Supabase (Project Settings → Database → Connection string, mode
+  "Transaction pooler" recommandé pour un déploiement serverless comme
+  Vercel).
+- **Stockage des pièces jointes** : créer un bucket **privé** nommé
+  `hyperion-storage` dans Supabase Storage (Project Settings → Storage),
+  puis renseigner `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` (Project
+  Settings → API — clé de service, jamais exposée côté client, utilisée
+  uniquement dans du code serveur). Sans bucket créé au préalable, l'upload
+  d'un CV ou d'une pièce jointe CRM échoue.
 - **Email** : brancher un fournisseur transactionnel réel dans
   `src/lib/mail.ts` (SMTP, Resend, Postmark…) — actuellement les emails
   sont uniquement journalisés côté serveur.
