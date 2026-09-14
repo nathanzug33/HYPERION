@@ -38,16 +38,19 @@ const TYPES_AVEC_ECHEANCE = [SUIVI_TYPE.RDV, SUIVI_TYPE.RAPPEL] as const;
 
 export default function SuiviSection({
   consultantId,
+  consultantEmail,
   suivis,
   compact = true,
 }: {
   consultantId: string;
+  consultantEmail?: string | null;
   suivis: Suivi[];
   compact?: boolean;
 }) {
   const now = new Date();
   const [type, setType] = useState<string>(SUIVI_TYPE.NOTE);
   const avecEcheance = TYPES_AVEC_ECHEANCE.includes(type as (typeof TYPES_AVEC_ECHEANCE)[number]);
+  const avecMeetPossible = type === SUIVI_TYPE.RDV;
 
   return (
     <div>
@@ -76,6 +79,18 @@ export default function SuiviSection({
             />
           )}
         </div>
+        {avecMeetPossible && (
+          <label className="flex items-center gap-1.5 text-[11px] text-brand-body">
+            <input
+              type="checkbox"
+              name="avecMeet"
+              disabled={!consultantEmail}
+              className="rounded border-slate-300"
+            />
+            Ajouter un lien Google Meet et envoyer l&apos;invitation par email au candidat
+            {!consultantEmail && " (email du candidat manquant)"}
+          </label>
+        )}
         <input
           type="text"
           name="titre"

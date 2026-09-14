@@ -59,7 +59,12 @@ export default async function ContactDetailPage({
         <ContactEditForm contact={contact} />
 
         <div className="lg:sticky lg:top-20 lg:self-start">
-          <SuiviSection entrepriseId={id} contactId={contactId} suivis={suivis} />
+          <SuiviSection
+            entrepriseId={id}
+            contactId={contactId}
+            contactEmail={contact.email}
+            suivis={suivis}
+          />
         </div>
       </div>
     </div>

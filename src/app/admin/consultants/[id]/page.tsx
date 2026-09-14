@@ -230,6 +230,7 @@ export default async function ConsultantEditPage({
 
       <CandidateActionsBar
         consultantId={id}
+        consultantEmail={consultant.email}
         canDelete={session.user.role === ROLES.ADMIN}
         suivis={suivis}
         entreprisesPourPush={entreprisesPourPush}

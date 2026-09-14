@@ -13,6 +13,7 @@ import {
 } from "@/lib/constants";
 import { getValidAccessToken } from "@/lib/google-oauth";
 import { createCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
+import { sendGmailMessage, buildMeetInviteHtml } from "@/lib/google-gmail";
 
 async function assertConsultantAccess(consultantId: string) {
   const session = await requireStaff();
@@ -37,21 +38,43 @@ export async function createSuiviAction(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim() || null;
   const dateProgrammeeRaw = String(formData.get("dateProgrammee") ?? "");
   const dateProgrammee = dateProgrammeeRaw ? new Date(dateProgrammeeRaw) : null;
+  // Uniquement pertinent pour un entretien (pas un simple rappel interne) —
+  // demande un lien Google Meet et envoie l'invitation par email au
+  // candidat, depuis l'adresse Gmail pro du créateur.
+  const avecMeet = formData.get("avecMeet") === "on" && type === SUIVI_TYPE.RDV;
 
   // Réplique en miroir dans Google Agenda si le créateur a connecté son
   // compte — best-effort, ne bloque jamais la création du suivi.
   let googleEventId: string | null = null;
+  let meetNote = "";
   if (
     dateProgrammee &&
     (type === SUIVI_TYPE.RDV || type === SUIVI_TYPE.RAPPEL)
   ) {
     const accessToken = await getValidAccessToken(session.user.id);
     if (accessToken) {
-      googleEventId = await createCalendarEvent(accessToken, {
+      const event = await createCalendarEvent(accessToken, {
         summary: titre,
         description: notes ?? undefined,
         start: dateProgrammee,
+        withMeet: avecMeet,
       });
+      googleEventId = event?.eventId ?? null;
+      if (event?.meetLink) {
+        meetNote = `Lien Google Meet : ${event.meetLink}\n\n`;
+        if (consultant.email) {
+          await sendGmailMessage(accessToken, {
+            to: consultant.email,
+            subject: `Entretien : ${titre}`,
+            bodyHtml: buildMeetInviteHtml({
+              destinataire: `${consultant.prenom} ${consultant.nom}`,
+              titre,
+              date: dateProgrammee,
+              meetLink: event.meetLink,
+            }),
+          });
+        }
+      }
     }
   }
 
@@ -70,7 +93,7 @@ export async function createSuiviAction(formData: FormData) {
         consultantId,
         type,
         titre,
-        notes,
+        notes: meetNote ? `${meetNote}${notes ?? ""}`.trim() : notes,
         dateProgrammee,
         googleEventId,
         createdById: session.user.id,

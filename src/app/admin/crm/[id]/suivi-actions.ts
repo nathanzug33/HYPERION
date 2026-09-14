@@ -9,6 +9,7 @@ import { SUIVI_COMMERCIAL_TYPE_SAISISSABLES, SUIVI_COMMERCIAL_TYPE, MODALITE_RDV
 import { saveCrmFile, deleteCrmFile } from "@/lib/crm-storage";
 import { getValidAccessToken } from "@/lib/google-oauth";
 import { createCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
+import { sendGmailMessage, buildMeetInviteHtml } from "@/lib/google-gmail";
 
 async function assertEntrepriseAccess(entrepriseId: string) {
   const session = await requireStaff();
@@ -48,6 +49,13 @@ export async function createSuiviCommercialAction(formData: FormData) {
     modaliteRaw && (Object.values(MODALITE_RDV) as string[]).includes(modaliteRaw)
       ? modaliteRaw
       : null;
+  // Uniquement pertinent pour un RDV en visio — demande un lien Google Meet
+  // et envoie l'invitation par email à l'interlocuteur, depuis l'adresse
+  // Gmail pro du créateur.
+  const avecMeet =
+    formData.get("avecMeet") === "on" &&
+    type === SUIVI_COMMERCIAL_TYPE.RDV &&
+    modalite === MODALITE_RDV.VISIO;
 
   const fichier = formData.get("fichier");
   const savedFichier =
@@ -56,17 +64,36 @@ export async function createSuiviCommercialAction(formData: FormData) {
   // Réplique en miroir dans Google Agenda si le créateur a connecté son
   // compte — best-effort, ne bloque jamais la création du suivi.
   let googleEventId: string | null = null;
+  let meetNote = "";
   if (
     dateProgrammee &&
     (type === SUIVI_COMMERCIAL_TYPE.RDV || type === SUIVI_COMMERCIAL_TYPE.RAPPEL)
   ) {
     const accessToken = await getValidAccessToken(session.user.id);
     if (accessToken) {
-      googleEventId = await createCalendarEvent(accessToken, {
+      const event = await createCalendarEvent(accessToken, {
         summary: titre,
         description: notes ?? undefined,
         start: dateProgrammee,
+        withMeet: avecMeet,
       });
+      googleEventId = event?.eventId ?? null;
+      if (event?.meetLink) {
+        meetNote = `Lien Google Meet : ${event.meetLink}\n\n`;
+        const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+        if (contact?.email) {
+          await sendGmailMessage(accessToken, {
+            to: contact.email,
+            subject: `RDV : ${titre}`,
+            bodyHtml: buildMeetInviteHtml({
+              destinataire: `${contact.prenom} ${contact.nom}`,
+              titre,
+              date: dateProgrammee,
+              meetLink: event.meetLink,
+            }),
+          });
+        }
+      }
     }
   }
 
@@ -77,7 +104,7 @@ export async function createSuiviCommercialAction(formData: FormData) {
       type,
       modalite,
       titre,
-      notes,
+      notes: meetNote ? `${meetNote}${notes ?? ""}`.trim() : notes,
       dateProgrammee,
       googleEventId,
       fichierUrl: savedFichier?.storedName ?? null,

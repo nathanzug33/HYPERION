@@ -48,6 +48,7 @@ type PopupKey = (typeof TABS)[number]["key"];
 
 export default function CandidateActionsBar({
   consultantId,
+  consultantEmail,
   canDelete,
   suivis,
   entreprisesPourPush,
@@ -56,6 +57,7 @@ export default function CandidateActionsBar({
   publicView,
 }: {
   consultantId: string;
+  consultantEmail: string | null;
   canDelete: boolean;
   suivis: Suivi[];
   entreprisesPourPush: EntrepriseOption[];
@@ -125,7 +127,13 @@ export default function CandidateActionsBar({
             </button>
           </div>
 
-          {open === "action" && <SuiviSection consultantId={consultantId} suivis={suivis} />}
+          {open === "action" && (
+            <SuiviSection
+              consultantId={consultantId}
+              consultantEmail={consultantEmail}
+              suivis={suivis}
+            />
+          )}
 
           {open === "push" && (
             <div className="space-y-4">

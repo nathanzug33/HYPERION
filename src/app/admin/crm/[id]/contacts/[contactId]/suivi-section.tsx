@@ -1,7 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import {
   SUIVI_COMMERCIAL_TYPE_LABELS,
   SUIVI_COMMERCIAL_TYPE_SAISISSABLES,
   MODALITE_RDV_LABELS,
+  SUIVI_COMMERCIAL_TYPE,
+  MODALITE_RDV,
   type SuiviCommercialType,
   type ModaliteRdv,
 } from "@/lib/constants";
@@ -39,13 +44,18 @@ const TYPE_STYLES: Record<string, string> = {
 export default function SuiviSection({
   entrepriseId,
   contactId,
+  contactEmail,
   suivis,
 }: {
   entrepriseId: string;
   contactId: string;
+  contactEmail?: string | null;
   suivis: Suivi[];
 }) {
   const now = new Date();
+  const [type, setType] = useState<string>("NOTE");
+  const [modalite, setModalite] = useState<string>("");
+  const avecMeetPossible = type === SUIVI_COMMERCIAL_TYPE.RDV && modalite === MODALITE_RDV.VISIO;
 
   return (
     <div className="card p-4">
@@ -57,14 +67,25 @@ export default function SuiviSection({
         <input type="hidden" name="entrepriseId" value={entrepriseId} />
         <input type="hidden" name="contactId" value={contactId} />
         <div className="grid grid-cols-2 gap-2">
-          <select name="type" defaultValue="NOTE" className="input text-xs">
+          <select
+            name="type"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="input text-xs"
+          >
             {SUIVI_COMMERCIAL_TYPE_SAISISSABLES.map((t) => (
               <option key={t} value={t}>
                 {SUIVI_COMMERCIAL_TYPE_LABELS[t as SuiviCommercialType]}
               </option>
             ))}
           </select>
-          <select name="modalite" defaultValue="" className="input text-xs" title="Modalité (RDV / appel)">
+          <select
+            name="modalite"
+            value={modalite}
+            onChange={(e) => setModalite(e.target.value)}
+            className="input text-xs"
+            title="Modalité (RDV / appel)"
+          >
             <option value="">Modalité (RDV/appel)</option>
             {Object.entries(MODALITE_RDV_LABELS).map(([k, v]) => (
               <option key={k} value={k}>
@@ -79,6 +100,18 @@ export default function SuiviSection({
           className="input text-xs"
           title="Échéance (RDV / rappel)"
         />
+        {avecMeetPossible && (
+          <label className="flex items-center gap-1.5 text-[11px] text-brand-body">
+            <input
+              type="checkbox"
+              name="avecMeet"
+              disabled={!contactEmail}
+              className="rounded border-slate-300"
+            />
+            Ajouter un lien Google Meet et envoyer l&apos;invitation par email à l&apos;interlocuteur
+            {!contactEmail && " (email manquant)"}
+          </label>
+        )}
         <input
           type="text"
           name="titre"

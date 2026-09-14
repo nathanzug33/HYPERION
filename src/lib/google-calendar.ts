@@ -6,7 +6,17 @@
 const CALENDAR_TIMEZONE = "Europe/Paris";
 const DEFAULT_DURATION_MINUTES = 30;
 
-type EventInput = { summary: string; description?: string; start: Date };
+type EventInput = {
+  summary: string;
+  description?: string;
+  start: Date;
+  // Demande à Google de générer un lien Google Meet pour cet événement
+  // (entretien/RDV en visio) — voir google-gmail.ts pour l'envoi de
+  // l'invitation par email avec ce lien.
+  withMeet?: boolean;
+};
+
+type EventResult = { eventId: string; meetLink: string | null };
 
 function toEventBody(input: EventInput) {
   const end = new Date(input.start.getTime() + DEFAULT_DURATION_MINUTES * 60 * 1000);
@@ -15,31 +25,44 @@ function toEventBody(input: EventInput) {
     description: input.description,
     start: { dateTime: input.start.toISOString(), timeZone: CALENDAR_TIMEZONE },
     end: { dateTime: end.toISOString(), timeZone: CALENDAR_TIMEZONE },
+    ...(input.withMeet
+      ? {
+          conferenceData: {
+            createRequest: {
+              requestId: crypto.randomUUID(),
+              conferenceSolutionKey: { type: "hangoutsMeet" },
+            },
+          },
+        }
+      : {}),
   };
 }
 
 export async function createCalendarEvent(
   accessToken: string,
   input: EventInput
-): Promise<string | null> {
+): Promise<EventResult | null> {
   try {
-    const res = await fetch(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(toEventBody(input)),
-      }
+    const url = new URL(
+      "https://www.googleapis.com/calendar/v3/calendars/primary/events"
     );
+    if (input.withMeet) url.searchParams.set("conferenceDataVersion", "1");
+
+    const res = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(toEventBody(input)),
+    });
     if (!res.ok) {
       console.error(`[google-calendar] Création échouée (${res.status}) :`, await res.text());
       return null;
     }
     const data = await res.json();
-    return data.id ?? null;
+    if (!data.id) return null;
+    return { eventId: data.id, meetLink: data.hangoutLink ?? null };
   } catch (err) {
     console.error("[google-calendar] Erreur réseau (création) :", err);
     return null;

@@ -448,7 +448,12 @@ export default function ConsultantEditForm({
       {/* Hors du <form> principal : SuiviSection a son propre <form>
           (action différente), imbriquer des <form> n'est pas valide en HTML. */}
       <div hidden={tab !== "suivi"} className="card p-5">
-        <SuiviSection consultantId={consultant.id} suivis={suivis} compact={false} />
+        <SuiviSection
+          consultantId={consultant.id}
+          consultantEmail={consultant.email}
+          suivis={suivis}
+          compact={false}
+        />
       </div>
     </div>
   );
