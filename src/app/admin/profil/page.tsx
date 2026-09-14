@@ -3,7 +3,7 @@ import { requireStaff } from "@/lib/guards";
 import { ROLE_LABELS } from "@/lib/constants";
 import TwoFactorSection from "@/components/TwoFactorSection";
 import GoogleConnectionSection from "./google-connection-section";
-import { updateOwnProfileAction } from "./actions";
+import { updateOwnProfileAction, changeOwnPasswordAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +13,26 @@ const GOOGLE_ERROR_LABELS: Record<string, string> = {
   access_denied: "Vous avez annulé la connexion à Google.",
 };
 
+const PWD_ERROR_LABELS: Record<string, string> = {
+  actuel_incorrect: "Mot de passe actuel incorrect.",
+  confirmation: "Les deux nouveaux mots de passe ne correspondent pas.",
+  trop_court: "Le nouveau mot de passe doit faire au moins 8 caractères.",
+};
+
 export default async function StaffProfilPage({
   searchParams,
 }: {
-  searchParams: Promise<{ google?: string; reason?: string; maj?: string; error?: string }>;
+  searchParams: Promise<{
+    google?: string;
+    reason?: string;
+    maj?: string;
+    error?: string;
+    pwdMaj?: string;
+    pwdError?: string;
+  }>;
 }) {
   const session = await requireStaff();
-  const { google, reason, maj, error } = await searchParams;
+  const { google, reason, maj, error, pwdMaj, pwdError } = await searchParams;
 
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: session.user.id },
@@ -83,6 +96,66 @@ export default async function StaffProfilPage({
           </p>
           <button type="submit" className="btn btn-primary">
             Enregistrer
+          </button>
+        </div>
+      </form>
+
+      {pwdMaj === "ok" && (
+        <div className="rounded-xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-brand-green">
+          ✅ Mot de passe modifié.
+        </div>
+      )}
+      {pwdError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {PWD_ERROR_LABELS[pwdError] ?? "Impossible de modifier le mot de passe."}
+        </div>
+      )}
+
+      <form action={changeOwnPasswordAction} className="card space-y-4 p-5">
+        <h2 className="text-sm font-semibold text-brand-ink">Changer mon mot de passe</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label className="block text-xs font-medium text-brand-body">
+              Mot de passe actuel
+            </label>
+            <input
+              type="password"
+              name="currentPassword"
+              required
+              autoComplete="current-password"
+              className="input mt-1.5"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-brand-body">
+              Nouveau mot de passe
+            </label>
+            <input
+              type="password"
+              name="newPassword"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              className="input mt-1.5"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-brand-body">
+              Confirmer le nouveau mot de passe
+            </label>
+            <input
+              type="password"
+              name="confirmPassword"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              className="input mt-1.5"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <button type="submit" className="btn btn-primary">
+            Modifier le mot de passe
           </button>
         </div>
       </form>
