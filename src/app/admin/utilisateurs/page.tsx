@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/guards";
 import { ROLE_LABELS } from "@/lib/constants";
-import { toggleUserActive } from "./actions";
+import { toggleUserActive, resendInvitationAction } from "./actions";
 import CreateUserForm from "./create-user-form";
 
 export const dynamic = "force-dynamic";
@@ -69,16 +69,29 @@ export default async function UtilisateursPage() {
                   </span>
                 </td>
                 <td className="px-4 py-2 text-right">
-                  <form action={toggleUserActive}>
-                    <input type="hidden" name="id" value={u.id} />
-                    <input type="hidden" name="active" value={String(u.active)} />
-                    <button
-                      type="submit"
-                      className="link-underline text-xs text-brand-gray hover:text-brand-ink"
-                    >
-                      {u.active ? "Révoquer l'accès" : "Réactiver"}
-                    </button>
-                  </form>
+                  <div className="flex items-center justify-end gap-3">
+                    {!u.lastLoginAt && (
+                      <form action={resendInvitationAction}>
+                        <input type="hidden" name="id" value={u.id} />
+                        <button
+                          type="submit"
+                          className="link-underline text-xs text-brand-blue-dark hover:text-brand-ink"
+                        >
+                          Renvoyer l&apos;invitation
+                        </button>
+                      </form>
+                    )}
+                    <form action={toggleUserActive}>
+                      <input type="hidden" name="id" value={u.id} />
+                      <input type="hidden" name="active" value={String(u.active)} />
+                      <button
+                        type="submit"
+                        className="link-underline text-xs text-brand-gray hover:text-brand-ink"
+                      >
+                        {u.active ? "Révoquer l'accès" : "Réactiver"}
+                      </button>
+                    </form>
+                  </div>
                 </td>
               </tr>
             ))}

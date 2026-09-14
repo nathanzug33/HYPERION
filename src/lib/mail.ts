@@ -1,7 +1,14 @@
-// Abstraction d'envoi d'email. En l'absence de fournisseur SMTP configuré
-// (SMTP_HOST), les emails sont simplement journalisés côté serveur — ce qui
-// suffit pour la recette. Pour la mise en production, brancher un fournisseur
-// (SMTP, Resend, Postmark…) dans `deliver()` ci-dessous.
+// Abstraction d'envoi d'email. Pas de fournisseur SMTP/transactionnel
+// configuré (SMTP_HOST) : plutôt que de dépendre d'un service tiers, on
+// envoie via l'API Gmail au nom d'un compte admin ayant connecté son Google
+// (§ intégration Gmail) — d'abord celui qui déclenche l'action (senderUserId)
+// si fourni, sinon n'importe quel admin actif connecté. Sans aucun admin
+// connecté, repli sur le journal serveur (recette uniquement — rien n'est
+// réellement délivré).
+
+import { prisma } from "@/lib/prisma";
+import { getValidAccessToken } from "@/lib/google-oauth";
+import { sendViaGmail } from "@/lib/gmail-send";
 
 type MailAttachment = {
   filename: string;
@@ -14,15 +21,41 @@ type MailInput = {
   subject: string;
   text: string;
   attachments?: MailAttachment[];
+  /** Utilisateur à l'origine de l'envoi — son compte Gmail connecté est
+   * essayé en priorité s'il y en a un. */
+  senderUserId?: string;
 };
 
-async function deliver({ to, subject, text, attachments }: MailInput) {
+async function resolveSenderAccessToken(senderUserId?: string): Promise<string | null> {
+  if (senderUserId) {
+    const token = await getValidAccessToken(senderUserId);
+    if (token) return token;
+  }
+  const adminsWithGoogle = await prisma.user.findMany({
+    where: { role: "ADMIN", active: true, googleAccessTokenEnc: { not: null } },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  for (const admin of adminsWithGoogle) {
+    const token = await getValidAccessToken(admin.id);
+    if (token) return token;
+  }
+  return null;
+}
+
+async function deliver({ to, subject, text, attachments, senderUserId }: MailInput) {
+  const accessToken = await resolveSenderAccessToken(senderUserId);
+  if (accessToken) {
+    const sent = await sendViaGmail(accessToken, { to, subject, text, attachments });
+    if (sent) return;
+  }
+
   const attachmentNote = attachments?.length
     ? `\n[pièce(s) jointe(s) : ${attachments.map((a) => a.filename).join(", ")}]`
     : "";
   if (!process.env.SMTP_HOST) {
     console.log(
-      `[mail:dev] À: ${to}\nObjet: ${subject}\n---\n${text}${attachmentNote}\n---`
+      `[mail:dev] Aucun compte Gmail admin connecté — À: ${to}\nObjet: ${subject}\n---\n${text}${attachmentNote}\n---`
     );
     return;
   }
@@ -31,11 +64,16 @@ async function deliver({ to, subject, text, attachments }: MailInput) {
   console.log(`[mail] Envoi à ${to} — ${subject}${attachmentNote}`);
 }
 
-export async function sendPasswordResetEmail(to: string, resetUrl: string) {
+export async function sendPasswordResetEmail(
+  to: string,
+  resetUrl: string,
+  senderUserId?: string
+) {
   await deliver({
     to,
     subject: "Réinitialisation de votre mot de passe",
     text: `Pour réinitialiser votre mot de passe, suivez ce lien (valable 1h) :\n${resetUrl}`,
+    senderUserId,
   });
 }
 
@@ -44,12 +82,14 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
  * dédié pour un premier accès plutôt qu'un oubli de mot de passe. */
 export async function sendAccountInvitationEmail(
   to: string,
-  params: { name: string; roleLabel: string; setPasswordUrl: string }
+  params: { name: string; roleLabel: string; setPasswordUrl: string },
+  senderUserId?: string
 ) {
   await deliver({
     to,
-    subject: "Bienvenue sur HYPERION — activez votre compte",
-    text: `Bonjour ${params.name},\n\nUn compte ${params.roleLabel} vient d'être créé pour vous sur HYPERION.\n\nPour définir votre mot de passe et accéder à votre compte, suivez ce lien (valable 72h) :\n${params.setPasswordUrl}`,
+    subject: "Bienvenue sur KERVYO — activez votre compte",
+    text: `Bonjour ${params.name},\n\nUn compte ${params.roleLabel} vient d'être créé pour vous sur KERVYO.\n\nPour définir votre mot de passe et accéder à votre compte, suivez ce lien (valable 72h) :\n${params.setPasswordUrl}`,
+    senderUserId,
   });
 }
 

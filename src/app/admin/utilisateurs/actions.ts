@@ -14,7 +14,7 @@ export async function createUserAction(
   _prev: CreateUserState,
   formData: FormData
 ): Promise<CreateUserState> {
-  await requireAdmin();
+  const session = await requireAdmin();
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const name = String(formData.get("name") ?? "").trim();
@@ -63,16 +63,52 @@ export async function createUserAction(
     },
   });
   const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  await sendAccountInvitationEmail(email, {
-    name,
-    roleLabel: ROLE_LABELS[role as Role],
-    setPasswordUrl: `${base}/reinitialiser/${token}`,
-  });
+  await sendAccountInvitationEmail(
+    email,
+    {
+      name,
+      roleLabel: ROLE_LABELS[role as Role],
+      setPasswordUrl: `${base}/reinitialiser/${token}`,
+    },
+    session.user.id
+  );
 
   revalidatePath("/admin/utilisateurs");
   return {
     success: `Compte créé pour ${email}. Une invitation avec un lien de définition de mot de passe a été envoyée (valable 72h).`,
   };
+}
+
+/** Régénère un lien d'activation et le renvoie — utile quand l'invitation
+ * initiale ne semble jamais être arrivée (boîte mail non vérifiée à
+ * l'époque, filtre anti-spam…). Un nouveau token invalide l'ancien via son
+ * expiration naturelle ; l'ancien reste inoffensif s'il traîne encore. */
+export async function resendInvitationAction(formData: FormData) {
+  const session = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return;
+
+  const token = crypto.randomBytes(32).toString("hex");
+  await prisma.passwordResetToken.create({
+    data: {
+      token,
+      userId: user.id,
+      expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
+    },
+  });
+  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  await sendAccountInvitationEmail(
+    user.email,
+    {
+      name: user.name,
+      roleLabel: ROLE_LABELS[user.role as Role],
+      setPasswordUrl: `${base}/reinitialiser/${token}`,
+    },
+    session.user.id
+  );
+
+  revalidatePath("/admin/utilisateurs");
 }
 
 export async function toggleUserActive(formData: FormData) {
