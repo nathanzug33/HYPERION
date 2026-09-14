@@ -3,14 +3,21 @@
 // Hébergement : PostgreSQL (Supabase, région UE — cahier des charges impose
 // un hébergement UE). Aucun type spécifique à un moteur n'est utilisé (pas
 // d'enum natif, pas de tableau scalaire) : le schéma est resté portable.
+//
+// Deux chaînes de connexion distinctes (recommandation Prisma + Supabase) :
+// DATABASE_URL (pooler "Transaction", port 6543) pour l'app en prod/serverless
+// — le pooler ne supporte pas les verrous nécessaires aux migrations ;
+// DIRECT_URL (connexion directe, port 5432) utilisée uniquement par
+// `prisma migrate deploy`/`migrate dev`, jamais par l'app elle-même.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------

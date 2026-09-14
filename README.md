@@ -250,12 +250,13 @@ projection anonymisée habituelle. Route :
 
 ## Passage en production
 
-- **Base de données** : `DATABASE_URL` doit pointer vers l'instance
-  PostgreSQL Supabase (région UE), puis `npx prisma migrate deploy` pour
-  appliquer le schéma. Chaîne de connexion disponible dans le tableau de
-  bord Supabase (Project Settings → Database → Connection string, mode
-  "Transaction pooler" recommandé pour un déploiement serverless comme
-  Vercel).
+- **Base de données** : deux chaînes de connexion Supabase distinctes
+  (Project Settings → Database → Connection string) — `DATABASE_URL` en
+  mode **"Transaction pooler"** (port 6543, utilisée par l'app en
+  production/serverless) et `DIRECT_URL` en mode **"Direct connection"**
+  (port 5432, utilisée uniquement par `npx prisma migrate deploy` : le
+  pooler ne supporte pas les verrous nécessaires aux migrations — sans
+  `DIRECT_URL`, la commande reste bloquée indéfiniment sans erreur).
 - **Stockage des pièces jointes** : créer un bucket **privé** nommé
   `hyperion-storage` dans Supabase Storage (Project Settings → Storage),
   puis renseigner `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` (Project
