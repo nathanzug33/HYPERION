@@ -14,6 +14,9 @@ type EventInput = {
   // (entretien/RDV en visio) — voir google-gmail.ts pour l'envoi de
   // l'invitation par email avec ce lien.
   withMeet?: boolean;
+  // Adresse du RDV physique — affichée dans le champ "lieu" de l'événement,
+  // pour la retrouver directement dans l'agenda sans revenir sur HYPERION.
+  location?: string;
 };
 
 type EventResult = { eventId: string; meetLink: string | null };
@@ -23,6 +26,7 @@ function toEventBody(input: EventInput) {
   return {
     summary: input.summary,
     description: input.description,
+    location: input.location,
     start: { dateTime: input.start.toISOString(), timeZone: CALENDAR_TIMEZONE },
     end: { dateTime: end.toISOString(), timeZone: CALENDAR_TIMEZONE },
     ...(input.withMeet

@@ -53,9 +53,10 @@ export async function createSuiviAction(formData: FormData) {
     type === SUIVI_TYPE.RDV && modalite === MODALITE_RDV.PHYSIQUE ? adresseRaw || null : null;
 
   // Visio : demande un lien Google Meet et envoie l'invitation par email au
-  // candidat, depuis l'adresse Gmail pro du créateur. Physique : envoie une
-  // confirmation avec l'adresse saisie ci-dessus, sans passer par Google
-  // Calendar.
+  // candidat, depuis l'adresse Gmail pro du créateur. Physique : l'adresse
+  // saisie ci-dessus est reprise comme lieu de l'événement Google Agenda
+  // (pas besoin de revenir sur HYPERION pour la retrouver) et envoie une
+  // confirmation par email.
   const avecMeet =
     formData.get("avecMeet") === "on" &&
     type === SUIVI_TYPE.RDV &&
@@ -81,6 +82,7 @@ export async function createSuiviAction(formData: FormData) {
         description: notes ?? undefined,
         start: dateProgrammee,
         withMeet: avecMeet,
+        location: adresse ?? undefined,
       });
       googleEventId = event?.eventId ?? null;
       if (event?.meetLink) {

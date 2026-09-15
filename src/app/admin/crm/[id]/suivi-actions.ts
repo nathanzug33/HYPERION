@@ -93,8 +93,9 @@ export async function createSuiviCommercialAction(formData: FormData) {
 
   // Visio : demande un lien Google Meet et envoie l'invitation par email —
   // à l'interlocuteur seul pour un RDV classique, à l'interlocuteur ET au
-  // candidat pour un RT. Physique : envoie une confirmation avec l'adresse
-  // saisie ci-dessus, sans passer par Google Calendar.
+  // candidat pour un RT. Physique : l'adresse saisie ci-dessus est reprise
+  // comme lieu de l'événement Google Agenda et envoie une confirmation par
+  // email.
   const avecMeet =
     formData.get("avecMeet") === "on" && estRdvOuRt && modalite === MODALITE_RDV.VISIO;
   const avecConfirmationAdresse =
@@ -122,6 +123,7 @@ export async function createSuiviCommercialAction(formData: FormData) {
         description: notes ?? undefined,
         start: dateProgrammee,
         withMeet: avecMeet,
+        location: adresse ?? undefined,
       });
       googleEventId = event?.eventId ?? null;
       meetLink = event?.meetLink ?? null;
