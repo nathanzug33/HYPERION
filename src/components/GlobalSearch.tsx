@@ -12,9 +12,10 @@ type SearchResults = {
     entrepriseId: string;
     entrepriseNom: string;
   }[];
+  entreprises: { id: string; nom: string; ville: string | null }[];
 };
 
-const EMPTY: SearchResults = { candidats: [], contacts: [] };
+const EMPTY: SearchResults = { candidats: [], contacts: [], entreprises: [] };
 
 export default function GlobalSearch() {
   const [q, setQ] = useState("");
@@ -51,7 +52,10 @@ export default function GlobalSearch() {
   }, [q]);
 
   const hasQuery = q.trim().length >= 2;
-  const hasResults = results.candidats.length > 0 || results.contacts.length > 0;
+  const hasResults =
+    results.candidats.length > 0 ||
+    results.contacts.length > 0 ||
+    results.entreprises.length > 0;
 
   return (
     <div ref={containerRef} className="relative">
@@ -118,6 +122,25 @@ export default function GlobalSearch() {
                   <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-brand-green/10 px-2 py-0.5 text-[10px] font-medium text-brand-green">
                     Client · {c.entrepriseNom}
                   </span>
+                </div>
+              </Link>
+            ))}
+          {!loading &&
+            results.entreprises.map((e) => (
+              <Link
+                key={`entreprise-${e.id}`}
+                href={`/admin/crm/${e.id}`}
+                onClick={() => setOpen(false)}
+                className="block px-3 py-2 text-sm transition-colors hover:bg-brand-blue-bg-soft"
+              >
+                <div className="truncate font-medium text-brand-ink">{e.nom}</div>
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  <span className="rounded-full bg-brand-green/10 px-2 py-0.5 text-[10px] font-medium text-brand-green">
+                    Société
+                  </span>
+                  {e.ville && (
+                    <span className="truncate text-[11px] text-brand-gray">{e.ville}</span>
+                  )}
                 </div>
               </Link>
             ))}

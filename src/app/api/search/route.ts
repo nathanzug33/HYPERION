@@ -3,20 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 
-// Recherche globale de la barre latérale interne : un seul champ, deux
-// familles de résultats (candidat ATS / interlocuteur CRM) distinguées par
-// pastille côté client — évite de confondre un candidat et un interlocuteur
-// homonymes (cf. audit produit).
+// Recherche globale de la barre latérale interne : un seul champ, trois
+// familles de résultats (candidat ATS / interlocuteur CRM / société CRM)
+// distinguées par pastille côté client — évite de confondre un candidat et
+// un interlocuteur homonymes (cf. audit produit).
 export async function GET(req: Request) {
   const session = await requireStaff();
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") ?? "").trim();
 
   if (q.length < 2) {
-    return NextResponse.json({ candidats: [], contacts: [] });
+    return NextResponse.json({ candidats: [], contacts: [], entreprises: [] });
   }
 
-  const [candidats, contacts] = await Promise.all([
+  const [candidats, contacts, entreprises] = await Promise.all([
     prisma.consultant.findMany({
       where: {
         OR: [
@@ -46,6 +46,17 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
       take: 6,
     }),
+    prisma.entreprise.findMany({
+      where: {
+        AND: [
+          entrepriseVisibilityWhere(session.user),
+          { nom: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      select: { id: true, nom: true, ville: true },
+      orderBy: { updatedAt: "desc" },
+      take: 6,
+    }),
   ]);
 
   return NextResponse.json({
@@ -61,6 +72,11 @@ export async function GET(req: Request) {
       prenom: c.prenom,
       entrepriseId: c.entrepriseId,
       entrepriseNom: c.entreprise.nom,
+    })),
+    entreprises: entreprises.map((e) => ({
+      id: e.id,
+      nom: e.nom,
+      ville: e.ville,
     })),
   });
 }
