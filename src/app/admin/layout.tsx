@@ -28,7 +28,7 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen">
-      <aside className="sidebar-gradient flex w-64 shrink-0 flex-col">
+      <aside className="sidebar-gradient sticky top-0 flex h-screen w-64 shrink-0 flex-col">
         <div className="px-5 pb-6 pt-8">
           <Image
             src="/kervyo-sidebar-dark.png"
@@ -44,7 +44,7 @@ export default async function AdminLayout({
           <GlobalSearch />
         </div>
 
-        <nav className="flex-1 space-y-1 px-4">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-4">
           <SidebarLink href="/admin" exact badge={taskCounts.enRetard}>
             Tableau de bord
           </SidebarLink>
@@ -83,29 +83,28 @@ export default async function AdminLayout({
             </>
           )}
         </nav>
-      </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-end gap-3 border-b border-slate-200/80 bg-white px-4 py-2.5 sm:px-6">
+        <div className="mt-auto space-y-1 border-t border-white/15 px-4 py-4">
           <Link
             href="/admin/profil"
-            className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-brand-blue-bg-soft"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 transition-colors duration-150 hover:bg-white/8"
             title="Mon compte"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-blue-light text-[11px] font-semibold text-brand-ink">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-blue-light text-[11px] font-semibold text-brand-ink">
               {initials}
             </span>
-            <div className="text-left leading-tight">
-              <div className="text-xs font-medium text-brand-ink">{session.user.name}</div>
-              <div className="text-[10px] text-brand-gray">
+            <div className="min-w-0 flex-1 text-left leading-tight">
+              <div className="truncate text-sm font-medium text-white">{session.user.name}</div>
+              <div className="truncate text-[11px] text-white/55">
                 {ROLE_LABELS[session.user.role as keyof typeof ROLE_LABELS] ?? session.user.role}
               </div>
             </div>
           </Link>
-          <LogoutButton />
-        </header>
-        <main className="animate-fade-in flex-1 px-4 py-8 pb-24 sm:px-6">{children}</main>
-      </div>
+          <LogoutButton sidebar />
+        </div>
+      </aside>
+
+      <main className="animate-fade-in min-w-0 flex-1 px-4 py-8 pb-24 sm:px-6">{children}</main>
     </div>
   );
 }
