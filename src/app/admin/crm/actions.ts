@@ -234,6 +234,39 @@ export async function updateContactAction(formData: FormData) {
   revalidatePath(`/admin/crm/${contact.entrepriseId}`);
 }
 
+/** Édition rapide depuis la fiche entreprise (popup bas-droite) — ne touche
+ * volontairement qu'à l'identité/coordonnées, jamais à fonction/notes/
+ * principal, pour ne jamais écraser ces champs quand ce mini-formulaire
+ * n'en montre qu'une partie (contrairement à updateContactAction, complet). */
+export async function quickUpdateContactAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const contact = await prisma.contact.findUnique({ where: { id } });
+  if (!contact) return;
+  await assertOwnership(contact.entrepriseId);
+
+  const prenom = String(formData.get("prenom") ?? "").trim();
+  const nom = String(formData.get("nom") ?? "").trim();
+  if (!prenom || !nom) return;
+  const civiliteRaw = String(formData.get("civilite") ?? "");
+  const civilite = (Object.values(CIVILITE) as string[]).includes(civiliteRaw)
+    ? civiliteRaw
+    : null;
+
+  await prisma.contact.update({
+    where: { id },
+    data: {
+      civilite,
+      prenom,
+      nom,
+      email: String(formData.get("email") ?? "") || null,
+      telephone: String(formData.get("telephone") ?? "") || null,
+    },
+  });
+
+  revalidatePath(`/admin/crm/${contact.entrepriseId}`);
+  revalidatePath(`/admin/crm/${contact.entrepriseId}/contacts/${id}`);
+}
+
 export async function deleteContactAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const contact = await prisma.contact.findUnique({ where: { id } });

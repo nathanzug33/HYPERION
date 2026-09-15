@@ -1,7 +1,9 @@
 import Link from "next/link";
+import ContactQuickEditPopover from "./contact-quick-edit-popover";
 
 type Contact = {
   id: string;
+  civilite: string | null;
   prenom: string;
   nom: string;
   fonction: string | null;
@@ -59,12 +61,15 @@ export default function ContactsSection({
                   <td className="py-2 pr-3 text-brand-body">{c.email ?? "—"}</td>
                   <td className="py-2 pr-3 text-brand-body">{c.telephone ?? "—"}</td>
                   <td className="py-2 pr-3 whitespace-nowrap text-right">
-                    <Link
-                      href={`/admin/crm/${entrepriseId}/contacts/${c.id}`}
-                      className="link-underline text-xs text-brand-blue-dark"
-                    >
-                      Ouvrir
-                    </Link>
+                    <div className="flex items-center justify-end gap-2.5">
+                      <ContactQuickEditPopover entrepriseId={entrepriseId} contact={c} />
+                      <Link
+                        href={`/admin/crm/${entrepriseId}/contacts/${c.id}`}
+                        className="link-underline text-xs text-brand-blue-dark"
+                      >
+                        Ouvrir
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -8,6 +8,7 @@ import {
 } from "@/lib/constants";
 import { consultantVisibilityWhere } from "@/lib/consultant-access";
 import NouveauCandidatPopover from "./nouveau-popover";
+import ConsultantQuickEditPopover from "./quick-edit-popover";
 
 export const dynamic = "force-dynamic";
 
@@ -148,6 +149,9 @@ export default async function ConsultantsListPage({
                     </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
+                    <span className="mr-1.5">
+                      <ConsultantQuickEditPopover consultant={c} />
+                    </span>
                     <Link
                       href={`/admin/consultants/${c.id}/apercu`}
                       className="link-underline text-sm text-brand-blue-dark"

@@ -287,6 +287,38 @@ export async function updateConsultantAction(formData: FormData) {
   revalidatePath("/admin/consultants");
 }
 
+/** Édition rapide depuis la liste des candidats (popup bas-droite) — ne
+ * touche volontairement qu'à l'identité/coordonnées, jamais aux nombreux
+ * autres champs gérés par updateConsultantAction (durée de conservation,
+ * statut candidat, rémunération, CV…) pour ne jamais les écraser quand ce
+ * mini-formulaire n'en montre qu'une partie. */
+export async function quickUpdateConsultantAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  await assertOwnership(id);
+
+  const prenom = String(formData.get("prenom") ?? "").trim();
+  const nom = String(formData.get("nom") ?? "").trim();
+  if (!prenom || !nom) return;
+  const civiliteRaw = String(formData.get("civilite") ?? "");
+  const civilite = (Object.values(CIVILITE) as string[]).includes(civiliteRaw)
+    ? civiliteRaw
+    : null;
+
+  await prisma.consultant.update({
+    where: { id },
+    data: {
+      civilite,
+      prenom,
+      nom,
+      email: String(formData.get("email") ?? "") || null,
+      telephone: String(formData.get("telephone") ?? "") || null,
+    },
+  });
+
+  revalidatePath(`/admin/consultants/${id}`);
+  revalidatePath("/admin/consultants");
+}
+
 const REQUIRED_FOR_PUBLICATION = [
   "intitulePoste",
   "seniorityId",
