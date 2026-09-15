@@ -5,13 +5,17 @@ import {
   SUIVI_TYPE,
   SUIVI_TYPE_LABELS,
   SUIVI_TYPE_SAISISSABLES,
+  MODALITE_RDV,
+  MODALITE_RDV_LABELS,
   type SuiviType,
+  type ModaliteRdv,
 } from "@/lib/constants";
 import { createSuiviAction, toggleSuiviFaitAction, deleteSuiviAction } from "./suivi-actions";
 
 type Suivi = {
   id: string;
   type: string;
+  modalite: string | null;
   titre: string;
   notes: string | null;
   dateProgrammee: Date | null;
@@ -53,9 +57,12 @@ export default function SuiviSection({
 }) {
   const now = new Date();
   const [type, setType] = useState<string>(SUIVI_TYPE.NOTE);
+  const [modalite, setModalite] = useState<string>("");
   const [titre, setTitre] = useState("");
   const avecEcheance = TYPES_AVEC_ECHEANCE.includes(type as (typeof TYPES_AVEC_ECHEANCE)[number]);
-  const avecMeetPossible = type === SUIVI_TYPE.RDV;
+  const estRdv = type === SUIVI_TYPE.RDV;
+  const avecMeetPossible = estRdv && modalite === MODALITE_RDV.VISIO;
+  const avecAdressePossible = estRdv && modalite === MODALITE_RDV.PHYSIQUE;
 
   // Propose automatiquement un titre (repris comme sujet de l'email
   // d'invitation) dès le passage en "Entretien" — reste librement
@@ -93,6 +100,22 @@ export default function SuiviSection({
             />
           )}
         </div>
+        {estRdv && (
+          <select
+            name="modalite"
+            value={modalite}
+            onChange={(e) => setModalite(e.target.value)}
+            className="input text-xs"
+            title="Modalité de l'entretien"
+          >
+            <option value="">Modalité (visio/physique…)</option>
+            {Object.entries(MODALITE_RDV_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </select>
+        )}
         {avecMeetPossible && (
           <label className="flex items-center gap-1.5 text-[11px] text-brand-body">
             <input
@@ -104,6 +127,31 @@ export default function SuiviSection({
             Ajouter un lien Google Meet et envoyer l&apos;invitation par email au candidat
             {!consultantEmail && " (email du candidat manquant)"}
           </label>
+        )}
+        {avecAdressePossible && (
+          <div className="space-y-1.5">
+            <div>
+              <label className="block text-[11px] text-brand-gray">
+                Adresse de l&apos;entretien
+              </label>
+              <textarea
+                name="adresse"
+                rows={2}
+                placeholder="Adresse complète (agence, étage, code d'accès…)"
+                className="input text-xs"
+              />
+            </div>
+            <label className="flex items-center gap-1.5 text-[11px] text-brand-body">
+              <input
+                type="checkbox"
+                name="avecConfirmationAdresse"
+                disabled={!consultantEmail}
+                className="rounded border-slate-300"
+              />
+              Envoyer un email de confirmation au candidat avec cette adresse
+              {!consultantEmail && " (email du candidat manquant)"}
+            </label>
+          </div>
         )}
         <input
           type="text"
@@ -153,6 +201,11 @@ export default function SuiviSection({
                       >
                         {SUIVI_TYPE_LABELS[s.type as SuiviType] ?? s.type}
                       </span>
+                      {s.modalite && (
+                        <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-brand-body">
+                          {MODALITE_RDV_LABELS[s.modalite as ModaliteRdv] ?? s.modalite}
+                        </span>
+                      )}
                       {s.fait && (
                         <span className="rounded-full bg-brand-green/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-green">
                           Fait

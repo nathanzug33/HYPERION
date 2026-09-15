@@ -10,11 +10,13 @@ import {
   SUIVI_TYPE,
   STATUT_CANDIDAT_INTERNE,
   STATUT_CANDIDAT_INTERNE_LABELS,
+  MODALITE_RDV,
   formatSalutationNom,
 } from "@/lib/constants";
 import { getValidAccessToken } from "@/lib/google-oauth";
 import { createCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
 import { sendGmailMessage, buildMeetInviteHtml } from "@/lib/google-gmail";
+import { sendRdvPhysiqueConfirmation } from "@/lib/mail";
 
 async function assertConsultantAccess(consultantId: string) {
   const session = await requireStaff();
@@ -39,15 +41,35 @@ export async function createSuiviAction(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim() || null;
   const dateProgrammeeRaw = String(formData.get("dateProgrammee") ?? "");
   const dateProgrammee = dateProgrammeeRaw ? new Date(dateProgrammeeRaw) : null;
-  // Uniquement pertinent pour un entretien (pas un simple rappel interne) —
-  // demande un lien Google Meet et envoie l'invitation par email au
-  // candidat, depuis l'adresse Gmail pro du créateur.
-  const avecMeet = formData.get("avecMeet") === "on" && type === SUIVI_TYPE.RDV;
+  const modaliteRaw = String(formData.get("modalite") ?? "");
+  const modalite =
+    modaliteRaw && (Object.values(MODALITE_RDV) as string[]).includes(modaliteRaw)
+      ? modaliteRaw
+      : null;
+  // Adresse du RDV physique — ressaisie à chaque fois (agences/locaux du
+  // candidat variables, futures agences HYPERION…).
+  const adresseRaw = String(formData.get("adresse") ?? "").trim();
+  const adresse =
+    type === SUIVI_TYPE.RDV && modalite === MODALITE_RDV.PHYSIQUE ? adresseRaw || null : null;
+
+  // Visio : demande un lien Google Meet et envoie l'invitation par email au
+  // candidat, depuis l'adresse Gmail pro du créateur. Physique : envoie une
+  // confirmation avec l'adresse saisie ci-dessus, sans passer par Google
+  // Calendar.
+  const avecMeet =
+    formData.get("avecMeet") === "on" &&
+    type === SUIVI_TYPE.RDV &&
+    modalite === MODALITE_RDV.VISIO;
+  const avecConfirmationAdresse =
+    formData.get("avecConfirmationAdresse") === "on" &&
+    type === SUIVI_TYPE.RDV &&
+    modalite === MODALITE_RDV.PHYSIQUE &&
+    Boolean(adresse);
 
   // Réplique en miroir dans Google Agenda si le créateur a connecté son
   // compte — best-effort, ne bloque jamais la création du suivi.
   let googleEventId: string | null = null;
-  let meetNote = "";
+  let lieuNote = "";
   if (
     dateProgrammee &&
     (type === SUIVI_TYPE.RDV || type === SUIVI_TYPE.RAPPEL)
@@ -62,7 +84,7 @@ export async function createSuiviAction(formData: FormData) {
       });
       googleEventId = event?.eventId ?? null;
       if (event?.meetLink) {
-        meetNote = `Lien Google Meet : ${event.meetLink}\n\n`;
+        lieuNote = `Lien Google Meet : ${event.meetLink}\n\n`;
         if (consultant.email) {
           await sendGmailMessage(accessToken, {
             to: consultant.email,
@@ -80,6 +102,23 @@ export async function createSuiviAction(formData: FormData) {
     }
   }
 
+  if (adresse) {
+    lieuNote = `Adresse : ${adresse}\n\n`;
+    if (avecConfirmationAdresse && dateProgrammee && consultant.email) {
+      await sendRdvPhysiqueConfirmation(
+        consultant.email,
+        {
+          destinataire: formatSalutationNom(consultant),
+          nature: "entretien",
+          date: dateProgrammee,
+          adresse,
+          auteur: session.user.name ?? "L'équipe HYPERION",
+        },
+        session.user.id
+      );
+    }
+  }
+
   // Un candidat "plus disponible" ou en "refus" n'est plus à proposer :
   // on repasse automatiquement son statut interne en Indisponible (sauf
   // s'il est déjà staffé chez un client — ce suivi ATS n'a alors plus de
@@ -94,8 +133,10 @@ export async function createSuiviAction(formData: FormData) {
       data: {
         consultantId,
         type,
+        modalite,
+        adresse,
         titre,
-        notes: meetNote ? `${meetNote}${notes ?? ""}`.trim() : notes,
+        notes: lieuNote ? `${lieuNote}${notes ?? ""}`.trim() : notes,
         dateProgrammee,
         googleEventId,
         createdById: session.user.id,

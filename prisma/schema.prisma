@@ -315,8 +315,14 @@ model SuiviCandidat {
   consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
 
   type  String // NOTE | APPEL | RDV | RAPPEL | STATUT
-  titre String
-  notes String?
+  // Modalité de l'entretien (RDV uniquement) : VISIO | PHYSIQUE | TELEPHONE.
+  modalite String?
+  // Adresse du RDV physique — ressaisie à chaque fois (agences/locaux du
+  // candidat variables), peut inclure des instructions d'accès (code,
+  // étage…), insérée telle quelle dans le mail de confirmation.
+  adresse String?
+  titre   String
+  notes   String?
 
   // Échéance (RDV/RAPPEL) ; null pour une note, un appel déjà passé, ou un
   // changement de statut (toujours déjà survenu).
@@ -440,17 +446,26 @@ model SuiviCommercial {
   contactId    String?
   contact      Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
   // Renseigné lorsque l'action est une proposition d'un candidat ATS à ce
-  // contact (§ push candidat → client) : la même ligne apparaît alors dans
-  // le fil d'activité du contact ET dans l'historique du candidat.
+  // contact (§ push candidat → client), ou un Rendez-vous Technique (RT) —
+  // rencontre client/candidat avant validation d'un besoin. Dans les deux
+  // cas la même ligne apparaît dans le fil d'activité du contact ET dans
+  // l'historique du candidat.
   consultantId String?
   consultant   Consultant? @relation(fields: [consultantId], references: [id], onDelete: SetNull)
 
-  type     String // NOTE | APPEL | EMAIL | RDV | RAPPEL | PROPOSITION_ENVOYEE | CONTRAT_SIGNE | STATUT
-  // Modalité de l'échange (surtout pertinente pour RDV et APPEL) : VISIO |
-  // PHYSIQUE | TELEPHONE. Laissée vide pour les types où elle n'a pas de sens.
+  type     String // NOTE | APPEL | EMAIL | RDV | RDV_TECHNIQUE | RAPPEL | PROPOSITION_ENVOYEE | CONTRAT_SIGNE | STATUT
+  // Modalité de l'échange (surtout pertinente pour RDV, RDV_TECHNIQUE et
+  // APPEL) : VISIO | PHYSIQUE | TELEPHONE. Laissée vide pour les types où
+  // elle n'a pas de sens.
   modalite String?
-  titre    String
-  notes    String?
+  // Adresse du rendez-vous physique (RDV ou RDV_TECHNIQUE) — saisie à la
+  // main à chaque fois plutôt que reprise de l'adresse de l'entreprise : le
+  // site industriel du RDV n'est pas forcément son siège. Peut inclure des
+  // instructions d'accès (code, étage…), insérée telle quelle dans le mail
+  // de confirmation.
+  adresse String?
+  titre   String
+  notes   String?
 
   // Pièce jointe optionnelle (devis, proposition commerciale…), même
   // principe que le stockage des CV : voir src/lib/crm-storage.ts et la

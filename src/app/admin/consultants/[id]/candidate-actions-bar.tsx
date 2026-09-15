@@ -14,10 +14,12 @@ import {
   unpublishConsultantAction,
   purgeConsultantAction,
 } from "../actions";
+import { SUIVI_COMMERCIAL_TYPE_LABELS, type SuiviCommercialType } from "@/lib/constants";
 
 type Suivi = {
   id: string;
   type: string;
+  modalite: string | null;
   titre: string;
   notes: string | null;
   dateProgrammee: Date | null;
@@ -31,7 +33,9 @@ type EntrepriseOption = { id: string; nom: string; contacts: Contact[] };
 
 type Proposition = {
   id: string;
+  type: string;
   createdAt: Date;
+  dateProgrammee: Date | null;
   entreprise: { nom: string };
   contact: { prenom: string; nom: string } | null;
 };
@@ -154,11 +158,20 @@ export default function CandidateActionsBar({
                 <ul className="space-y-1.5 border-t border-slate-100 pt-3 text-xs">
                   {propositions.map((p) => (
                     <li key={p.id} className="text-brand-body">
+                      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-brand-body">
+                        {SUIVI_COMMERCIAL_TYPE_LABELS[p.type as SuiviCommercialType] ?? p.type}
+                      </span>{" "}
                       <span className="font-medium text-brand-ink">{p.entreprise.nom}</span>
                       {p.contact && ` — ${p.contact.prenom} ${p.contact.nom}`}
                       <span className="text-brand-gray">
                         {" "}
-                        · {new Date(p.createdAt).toLocaleDateString("fr-FR")}
+                        ·{" "}
+                        {p.dateProgrammee
+                          ? new Date(p.dateProgrammee).toLocaleString("fr-FR", {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })
+                          : new Date(p.createdAt).toLocaleDateString("fr-FR")}
                       </span>
                     </li>
                   ))}

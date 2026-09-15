@@ -172,3 +172,134 @@ export async function sendCandidatPropositionEmail(to: string, params: CandidatP
     ],
   });
 }
+
+// ---------------------------------------------------------------------------
+// Confirmations de RDV physique (adresse à renseigner à chaque fois — pas de
+// lien Meet à générer, donc pas besoin de passer par l'API Google Calendar)
+// — utilisées côté CRM (interlocuteur) et ATS (candidat), voir respectivement
+// suivi-actions.ts de src/app/admin/crm/[id]/ et src/app/admin/consultants/[id]/.
+// ---------------------------------------------------------------------------
+
+type RdvPhysiqueParams = {
+  destinataire: string;
+  nature: "entretien" | "rendez-vous";
+  date: Date;
+  adresse: string;
+  auteur: string;
+};
+
+export function buildRdvPhysiqueEmail(params: RdvPhysiqueParams) {
+  const dateFormatee = params.date.toLocaleString("fr-FR", {
+    dateStyle: "full",
+    timeStyle: "short",
+  });
+  return {
+    subject:
+      params.nature === "entretien"
+        ? `Confirmation de l'entretien — ${dateFormatee}`
+        : `Confirmation du rendez-vous — ${dateFormatee}`,
+    text: [
+      `Bonjour ${params.destinataire},`,
+      "",
+      `Je vous confirme notre ${params.nature} du ${dateFormatee}, à l'adresse suivante :`,
+      params.adresse,
+      "",
+      "Cordialement,",
+      params.auteur,
+    ].join("\n"),
+  };
+}
+
+export async function sendRdvPhysiqueConfirmation(
+  to: string,
+  params: RdvPhysiqueParams,
+  senderUserId?: string
+) {
+  const { subject, text } = buildRdvPhysiqueEmail(params);
+  await deliver({ to, subject, text, senderUserId });
+}
+
+// ---------------------------------------------------------------------------
+// Rendez-vous technique (RT) : rencontre client/candidat avant validation
+// d'un besoin (§ SUIVI_COMMERCIAL_TYPE.RDV_TECHNIQUE) — deux emails distincts
+// à envoyer, un à l'interlocuteur client (qui ne voit que la référence
+// anonymisée du candidat, jamais son identité) et un au candidat (qui lui
+// voit le nom réel du client, ex. "TotalEnergies").
+// ---------------------------------------------------------------------------
+
+/** Lieu du RT : lien Meet (visio) ou adresse (physique) — jamais les deux. */
+export type RtLieu = { visio: true; lien: string } | { visio: false; adresse: string };
+
+type RtClientParams = {
+  destinataire: string;
+  date: Date;
+  candidatReference: string;
+  candidatPoste: string | null;
+  lieu: RtLieu;
+  auteur: string;
+};
+
+export function buildRtClientEmail(params: RtClientParams) {
+  const dateFormatee = params.date.toLocaleString("fr-FR", {
+    dateStyle: "full",
+    timeStyle: "short",
+  });
+  const profil = `${params.candidatReference}${
+    params.candidatPoste ? ` — ${params.candidatPoste}` : ""
+  }`;
+  return {
+    subject: `Confirmation du rendez-vous technique — ${dateFormatee}`,
+    text: [
+      `Bonjour ${params.destinataire},`,
+      "",
+      `Je vous confirme la rencontre avec le profil ${profil} le ${dateFormatee}.`,
+      "",
+      params.lieu.visio ? params.lieu.lien : params.lieu.adresse,
+      "",
+      "Cordialement,",
+      params.auteur,
+    ].join("\n"),
+  };
+}
+
+export async function sendRtClientEmail(to: string, params: RtClientParams, senderUserId?: string) {
+  const { subject, text } = buildRtClientEmail(params);
+  await deliver({ to, subject, text, senderUserId });
+}
+
+type RtCandidatParams = {
+  destinataire: string;
+  date: Date;
+  entrepriseNom: string;
+  lieu: RtLieu;
+  auteur: string;
+};
+
+export function buildRtCandidatEmail(params: RtCandidatParams) {
+  const dateFormatee = params.date.toLocaleString("fr-FR", {
+    dateStyle: "full",
+    timeStyle: "short",
+  });
+  return {
+    subject: `Rendez-vous technique confirmé — ${dateFormatee}`,
+    text: [
+      `Bonjour ${params.destinataire},`,
+      "",
+      `Votre rendez-vous technique est confirmé le ${dateFormatee}, avec notre client ${params.entrepriseNom}.`,
+      "",
+      params.lieu.visio ? params.lieu.lien : params.lieu.adresse,
+      "",
+      "Cordialement,",
+      params.auteur,
+    ].join("\n"),
+  };
+}
+
+export async function sendRtCandidatEmail(
+  to: string,
+  params: RtCandidatParams,
+  senderUserId?: string
+) {
+  const { subject, text } = buildRtCandidatEmail(params);
+  await deliver({ to, subject, text, senderUserId });
+}

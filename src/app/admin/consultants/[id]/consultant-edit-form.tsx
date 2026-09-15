@@ -56,6 +56,7 @@ type TabKey = (typeof TABS)[number]["key"];
 type Suivi = {
   id: string;
   type: string;
+  modalite: string | null;
   titre: string;
   notes: string | null;
   dateProgrammee: Date | null;

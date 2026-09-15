@@ -25,11 +25,19 @@ export default async function ContactDetailPage({
   const contact = await prisma.contact.findUnique({ where: { id: contactId } });
   if (!contact || contact.entrepriseId !== id) notFound();
 
-  const suivis = await prisma.suiviCommercial.findMany({
-    where: { contactId },
-    orderBy: { createdAt: "desc" },
-    include: { createdBy: { select: { name: true } } },
-  });
+  const [suivis, candidats] = await Promise.all([
+    prisma.suiviCommercial.findMany({
+      where: { contactId },
+      orderBy: { createdAt: "desc" },
+      include: { createdBy: { select: { name: true } } },
+    }),
+    // Pour la recherche de candidat lors de la saisie d'un Rendez-vous
+    // technique (RT) — voir suivi-section.tsx.
+    prisma.consultant.findMany({
+      orderBy: { nom: "asc" },
+      select: { id: true, prenom: true, nom: true, referenceAnonyme: true },
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -65,6 +73,7 @@ export default async function ContactDetailPage({
             contactEmail={contact.email}
             entrepriseNom={entreprise.nom}
             suivis={suivis}
+            candidats={candidats}
           />
         </div>
       </div>

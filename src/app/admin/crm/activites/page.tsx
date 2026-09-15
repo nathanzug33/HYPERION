@@ -23,6 +23,7 @@ const TYPE_STYLES: Record<string, string> = {
   APPEL: "bg-brand-blue-bg text-brand-blue-dark",
   EMAIL: "bg-brand-blue-bg text-brand-blue-dark",
   RDV: "bg-brand-blue/15 text-brand-blue-dark",
+  RDV_TECHNIQUE: "bg-purple-100 text-purple-700",
   RAPPEL: "bg-amber-50 text-amber-700",
   PROPOSITION_ENVOYEE: "bg-purple-50 text-purple-700",
   CONTRAT_SIGNE: "bg-brand-green/10 text-brand-green",
@@ -87,6 +88,7 @@ export default async function CrmActivitesPage({
     include: {
       entreprise: { select: { id: true, nom: true } },
       contact: { select: { id: true, prenom: true, nom: true } },
+      consultant: { select: { id: true, referenceAnonyme: true } },
       createdBy: { select: { name: true } },
     },
     take: 300,
@@ -214,6 +216,14 @@ export default async function CrmActivitesPage({
                         </span>
                       )}
                     </div>
+                    {a.consultant && (
+                      <Link
+                        href={`/admin/consultants/${a.consultant.id}`}
+                        className="mt-1 block text-[11px] text-brand-blue-dark hover:underline"
+                      >
+                        → {a.consultant.referenceAnonyme}
+                      </Link>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <Link

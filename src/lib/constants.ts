@@ -138,6 +138,11 @@ export const SUIVI_COMMERCIAL_TYPE = {
   APPEL: "APPEL",
   EMAIL: "EMAIL",
   RDV: "RDV",
+  // Rendez-vous technique (RT) : rencontre entre le client et un candidat
+  // du vivier ATS, avant validation d'un besoin — nécessite un candidat
+  // associé (consultantId sur SuiviCommercial) et envoie une confirmation
+  // aux deux parties (client ET candidat), contrairement aux autres types.
+  RDV_TECHNIQUE: "RDV_TECHNIQUE",
   RAPPEL: "RAPPEL",
   PROPOSITION_ENVOYEE: "PROPOSITION_ENVOYEE",
   CONTRAT_SIGNE: "CONTRAT_SIGNE",
@@ -151,6 +156,7 @@ export const SUIVI_COMMERCIAL_TYPE_LABELS: Record<SuiviCommercialType, string> =
   APPEL: "Appel",
   EMAIL: "Email",
   RDV: "Rendez-vous",
+  RDV_TECHNIQUE: "Rendez-vous technique (RT)",
   RAPPEL: "Rappel",
   PROPOSITION_ENVOYEE: "Proposition envoyée",
   CONTRAT_SIGNE: "Contrat signé",
@@ -162,6 +168,7 @@ export const SUIVI_COMMERCIAL_TYPE_SAISISSABLES = [
   SUIVI_COMMERCIAL_TYPE.APPEL,
   SUIVI_COMMERCIAL_TYPE.EMAIL,
   SUIVI_COMMERCIAL_TYPE.RDV,
+  SUIVI_COMMERCIAL_TYPE.RDV_TECHNIQUE,
   SUIVI_COMMERCIAL_TYPE.RAPPEL,
   SUIVI_COMMERCIAL_TYPE.PROPOSITION_ENVOYEE,
   SUIVI_COMMERCIAL_TYPE.CONTRAT_SIGNE,

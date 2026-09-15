@@ -20,6 +20,7 @@ type Suivi = {
   id: string;
   type: string;
   modalite: string | null;
+  adresse: string | null;
   titre: string;
   notes: string | null;
   fichierUrl: string | null;
@@ -30,16 +31,23 @@ type Suivi = {
   createdBy: { name: string };
 };
 
+type CandidatOption = { id: string; prenom: string; nom: string; referenceAnonyme: string };
+
 const TYPE_STYLES: Record<string, string> = {
   NOTE: "bg-slate-100 text-brand-body",
   APPEL: "bg-brand-blue-bg text-brand-blue-dark",
   EMAIL: "bg-brand-blue-bg text-brand-blue-dark",
   RDV: "bg-brand-blue/15 text-brand-blue-dark",
+  RDV_TECHNIQUE: "bg-purple-100 text-purple-700",
   RAPPEL: "bg-amber-50 text-amber-700",
   PROPOSITION_ENVOYEE: "bg-purple-50 text-purple-700",
   CONTRAT_SIGNE: "bg-brand-green/10 text-brand-green",
   STATUT: "bg-brand-green/10 text-brand-green",
 };
+
+function candidatLabel(c: CandidatOption): string {
+  return `${c.prenom} ${c.nom} (${c.referenceAnonyme})`;
+}
 
 export default function SuiviSection({
   entrepriseId,
@@ -47,27 +55,48 @@ export default function SuiviSection({
   contactEmail,
   entrepriseNom,
   suivis,
+  candidats,
 }: {
   entrepriseId: string;
   contactId: string;
   contactEmail?: string | null;
   entrepriseNom?: string;
   suivis: Suivi[];
+  candidats: CandidatOption[];
 }) {
   const now = new Date();
   const [type, setType] = useState<string>("NOTE");
   const [modalite, setModalite] = useState<string>("");
   const [titre, setTitre] = useState("");
-  const avecMeetPossible = type === SUIVI_COMMERCIAL_TYPE.RDV && modalite === MODALITE_RDV.VISIO;
+  const [candidatQuery, setCandidatQuery] = useState("");
+  const [consultantId, setConsultantId] = useState("");
+  const estRt = type === SUIVI_COMMERCIAL_TYPE.RDV_TECHNIQUE;
+  const estRdvOuRt = type === SUIVI_COMMERCIAL_TYPE.RDV || estRt;
+  const avecMeetPossible = estRdvOuRt && modalite === MODALITE_RDV.VISIO;
+  const avecAdressePossible = estRdvOuRt && modalite === MODALITE_RDV.PHYSIQUE;
+  const candidatSelectionne = candidats.find((c) => c.id === consultantId);
 
   // Propose automatiquement un titre (repris comme sujet de l'email
-  // d'invitation) dès le passage en "RDV" + "Visio" — reste librement
-  // modifiable, on ne touche jamais à un titre déjà saisi par l'utilisateur.
+  // d'invitation) dès le passage en "RDV" + "Visio", ou dès qu'un candidat
+  // est choisi pour un RT — reste librement modifiable, on ne touche jamais
+  // à un titre déjà saisi par l'utilisateur.
   useEffect(() => {
-    if (avecMeetPossible && !titre && entrepriseNom) {
+    if (avecMeetPossible && !estRt && !titre && entrepriseNom) {
       setTitre(`Présentation Hyperion x ${entrepriseNom}`);
     }
-  }, [avecMeetPossible, titre, entrepriseNom]);
+  }, [avecMeetPossible, estRt, titre, entrepriseNom]);
+
+  useEffect(() => {
+    if (estRt && candidatSelectionne && !titre) {
+      setTitre(`RT ${candidatSelectionne.referenceAnonyme} x ${entrepriseNom ?? "client"}`);
+    }
+  }, [estRt, candidatSelectionne, titre, entrepriseNom]);
+
+  function handleCandidatQueryChange(value: string) {
+    setCandidatQuery(value);
+    const match = candidats.find((c) => candidatLabel(c) === value);
+    setConsultantId(match?.id ?? "");
+  }
 
   return (
     <div className="card p-4">
@@ -106,9 +135,37 @@ export default function SuiviSection({
             ))}
           </select>
         </div>
+        {estRt && (
+          <div>
+            <input type="hidden" name="consultantId" value={consultantId} />
+            <label className="block text-[11px] text-brand-gray">
+              Candidat (ATS) associé au RT
+            </label>
+            <input
+              type="text"
+              list="candidats-datalist"
+              value={candidatQuery}
+              onChange={(e) => handleCandidatQueryChange(e.target.value)}
+              placeholder="Rechercher un candidat par nom…"
+              required
+              className="input text-xs"
+            />
+            <datalist id="candidats-datalist">
+              {candidats.map((c) => (
+                <option key={c.id} value={candidatLabel(c)} />
+              ))}
+            </datalist>
+            {candidatQuery && !consultantId && (
+              <p className="mt-1 text-[10px] text-amber-700">
+                Choisissez un candidat dans la liste proposée.
+              </p>
+            )}
+          </div>
+        )}
         <input
           type="datetime-local"
           name="dateProgrammee"
+          required={estRdvOuRt}
           className="input text-xs"
           title="Échéance (RDV / rappel)"
         />
@@ -120,9 +177,32 @@ export default function SuiviSection({
               disabled={!contactEmail}
               className="rounded border-slate-300"
             />
-            Ajouter un lien Google Meet et envoyer l&apos;invitation par email à l&apos;interlocuteur
-            {!contactEmail && " (email manquant)"}
+            {estRt
+              ? "Ajouter un lien Google Meet et envoyer la confirmation au client et au candidat"
+              : "Ajouter un lien Google Meet et envoyer l'invitation par email à l'interlocuteur"}
+            {!contactEmail && " (email interlocuteur manquant)"}
           </label>
+        )}
+        {avecAdressePossible && (
+          <div className="space-y-1.5">
+            <div>
+              <label className="block text-[11px] text-brand-gray">
+                Adresse du rendez-vous
+              </label>
+              <textarea
+                name="adresse"
+                rows={2}
+                placeholder="Adresse complète (site, bâtiment, code d'accès…)"
+                className="input text-xs"
+              />
+            </div>
+            <label className="flex items-center gap-1.5 text-[11px] text-brand-body">
+              <input type="checkbox" name="avecConfirmationAdresse" className="rounded border-slate-300" />
+              {estRt
+                ? "Envoyer la confirmation (avec cette adresse) au client et au candidat"
+                : "Envoyer un email de confirmation à l'interlocuteur avec cette adresse"}
+            </label>
+          </div>
         )}
         <input
           type="text"
