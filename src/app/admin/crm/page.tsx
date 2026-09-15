@@ -15,11 +15,33 @@ export const dynamic = "force-dynamic";
 export default async function CrmListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; ville?: string; businessManagerId?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    statut?: string;
+    ville?: string;
+    businessManagerId?: string;
+    sort?: string;
+  }>;
 }) {
   const session = await requireStaff();
-  const { q, statut, ville, businessManagerId } = await searchParams;
+  const { q, statut, ville, businessManagerId, sort } = await searchParams;
   const peutFiltrerParBm = canReassignReferent(session.user);
+
+  // Tri sur la colonne "Entreprise" — cycle A→Z / Z→A / tri par défaut
+  // (dernière mise à jour) au clic sur l'en-tête, cf. buildSortHref ci-dessous.
+  const currentSort = sort === "nom_asc" || sort === "nom_desc" ? sort : "default";
+  const nextSort =
+    currentSort === "default" ? "nom_asc" : currentSort === "nom_asc" ? "nom_desc" : "default";
+  function buildSortHref(target: string) {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (ville) params.set("ville", ville);
+    if (statut) params.set("statut", statut);
+    if (businessManagerId) params.set("businessManagerId", businessManagerId);
+    if (target !== "default") params.set("sort", target);
+    const qs = params.toString();
+    return `/admin/crm${qs ? `?${qs}` : ""}`;
+  }
 
   const where: Prisma.EntrepriseWhereInput = {
     AND: [
@@ -46,7 +68,12 @@ export default async function CrmListPage({
   const [entreprises, bms] = await Promise.all([
     prisma.entreprise.findMany({
       where,
-      orderBy: { updatedAt: "desc" },
+      orderBy:
+        currentSort === "nom_asc"
+          ? { nom: "asc" }
+          : currentSort === "nom_desc"
+            ? { nom: "desc" }
+            : { updatedAt: "desc" },
       include: {
         businessManager: true,
         industrie: true,
@@ -124,7 +151,18 @@ export default async function CrmListPage({
         <table className="w-full text-sm">
           <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
             <tr>
-              <th className="px-4 py-3">Entreprise</th>
+              <th className="px-4 py-3">
+                <Link
+                  href={buildSortHref(nextSort)}
+                  className="inline-flex items-center gap-1 hover:text-brand-ink"
+                  title="Trier par nom d'entreprise"
+                >
+                  Entreprise
+                  <span aria-hidden className="text-[10px]">
+                    {currentSort === "nom_asc" ? "▲" : currentSort === "nom_desc" ? "▼" : "⇅"}
+                  </span>
+                </Link>
+              </th>
               <th className="px-4 py-3">Secteur</th>
               <th className="px-4 py-3">Ville</th>
               <th className="px-4 py-3">Contacts</th>
