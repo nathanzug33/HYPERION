@@ -8,7 +8,11 @@ import {
   formatSecteurActivite,
 } from "@/lib/constants";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
+import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
+import SortableHeader from "@/components/SortableHeader";
 import type { Prisma } from "@prisma/client";
+
+const SORT_KEYS = ["nom", "secteur", "ville", "contacts", "bm", "statut", "maj"] as const;
 
 export const dynamic = "force-dynamic";
 
@@ -27,21 +31,11 @@ export default async function CrmListPage({
   const { q, statut, ville, businessManagerId, sort } = await searchParams;
   const peutFiltrerParBm = canReassignReferent(session.user);
 
-  // Tri sur la colonne "Entreprise" — cycle A→Z / Z→A / tri par défaut
-  // (dernière mise à jour) au clic sur l'en-tête, cf. buildSortHref ci-dessous.
-  const currentSort = sort === "nom_asc" || sort === "nom_desc" ? sort : "default";
-  const nextSort =
-    currentSort === "default" ? "nom_asc" : currentSort === "nom_asc" ? "nom_desc" : "default";
-  function buildSortHref(target: string) {
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (ville) params.set("ville", ville);
-    if (statut) params.set("statut", statut);
-    if (businessManagerId) params.set("businessManagerId", businessManagerId);
-    if (target !== "default") params.set("sort", target);
-    const qs = params.toString();
-    return `/admin/crm${qs ? `?${qs}` : ""}`;
-  }
+  // Tri par colonne — cycle A→Z / Z→A / tri par défaut (dernière mise à
+  // jour) au clic sur l'en-tête.
+  const sortState = parseSort(sort, SORT_KEYS);
+  const baseParams = { q, ville, statut, businessManagerId };
+  const hrefFor = (key: string) => buildSortHref("/admin/crm", baseParams, nextSort(key, sortState));
 
   const where: Prisma.EntrepriseWhereInput = {
     AND: [
@@ -69,11 +63,21 @@ export default async function CrmListPage({
     prisma.entreprise.findMany({
       where,
       orderBy:
-        currentSort === "nom_asc"
-          ? { nom: "asc" }
-          : currentSort === "nom_desc"
-            ? { nom: "desc" }
-            : { updatedAt: "desc" },
+        sortState.key === "nom"
+          ? { nom: sortState.dir }
+          : sortState.key === "secteur"
+            ? { industrie: { label: sortState.dir } }
+            : sortState.key === "ville"
+              ? { ville: sortState.dir }
+              : sortState.key === "contacts"
+                ? { contacts: { _count: sortState.dir } }
+                : sortState.key === "bm"
+                  ? { businessManager: { name: sortState.dir } }
+                  : sortState.key === "statut"
+                    ? { statutCommercial: sortState.dir }
+                    : sortState.key === "maj"
+                      ? { updatedAt: sortState.dir }
+                      : { updatedAt: "desc" },
       include: {
         businessManager: true,
         industrie: true,
@@ -152,23 +156,26 @@ export default async function CrmListPage({
           <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
             <tr>
               <th className="px-4 py-3">
-                <Link
-                  href={buildSortHref(nextSort)}
-                  className="inline-flex items-center gap-1 hover:text-brand-ink"
-                  title="Trier par nom d'entreprise"
-                >
-                  Entreprise
-                  <span aria-hidden className="text-[10px]">
-                    {currentSort === "nom_asc" ? "▲" : currentSort === "nom_desc" ? "▼" : "⇅"}
-                  </span>
-                </Link>
+                <SortableHeader label="Entreprise" sortKey="nom" current={sortState} href={hrefFor("nom")} />
               </th>
-              <th className="px-4 py-3">Secteur</th>
-              <th className="px-4 py-3">Ville</th>
-              <th className="px-4 py-3">Contacts</th>
-              <th className="px-4 py-3">BM référent</th>
-              <th className="px-4 py-3">Statut</th>
-              <th className="px-4 py-3">Dernière maj</th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Secteur" sortKey="secteur" current={sortState} href={hrefFor("secteur")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Ville" sortKey="ville" current={sortState} href={hrefFor("ville")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Contacts" sortKey="contacts" current={sortState} href={hrefFor("contacts")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="BM référent" sortKey="bm" current={sortState} href={hrefFor("bm")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Statut" sortKey="statut" current={sortState} href={hrefFor("statut")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Dernière maj" sortKey="maj" current={sortState} href={hrefFor("maj")} />
+              </th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>

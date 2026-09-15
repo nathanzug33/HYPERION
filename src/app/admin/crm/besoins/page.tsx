@@ -3,9 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { ROLES, STATUT_BESOIN, STATUT_BESOIN_LABELS, canReassignReferent, type StatutBesoin } from "@/lib/constants";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
+import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
+import SortableHeader from "@/components/SortableHeader";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+const SORT_KEYS = ["poste", "entreprise", "bm", "candidats", "statut"] as const;
 
 const STATUT_STYLES: Record<string, string> = {
   OUVERT: "bg-brand-blue/10 text-brand-blue-dark",
@@ -17,11 +21,16 @@ const STATUT_STYLES: Record<string, string> = {
 export default async function BesoinsBibliothequePage({
   searchParams,
 }: {
-  searchParams: Promise<{ statut?: string; businessManagerId?: string }>;
+  searchParams: Promise<{ statut?: string; businessManagerId?: string; sort?: string }>;
 }) {
   const session = await requireStaff();
-  const { statut, businessManagerId } = await searchParams;
+  const { statut, businessManagerId, sort } = await searchParams;
   const peutFiltrerParBm = canReassignReferent(session.user);
+
+  const sortState = parseSort(sort, SORT_KEYS);
+  const baseParams = { statut, businessManagerId };
+  const hrefFor = (key: string) =>
+    buildSortHref("/admin/crm/besoins", baseParams, nextSort(key, sortState));
 
   const where: Prisma.BesoinWhereInput = {
     AND: [
@@ -34,7 +43,18 @@ export default async function BesoinsBibliothequePage({
   const [besoins, bms] = await Promise.all([
     prisma.besoin.findMany({
       where,
-      orderBy: { updatedAt: "desc" },
+      orderBy:
+        sortState.key === "poste"
+          ? { intitulePoste: sortState.dir }
+          : sortState.key === "entreprise"
+            ? { entreprise: { nom: sortState.dir } }
+            : sortState.key === "bm"
+              ? { businessManager: { name: sortState.dir } }
+              : sortState.key === "candidats"
+                ? { candidats: { _count: sortState.dir } }
+                : sortState.key === "statut"
+                  ? { statut: sortState.dir }
+                  : { updatedAt: "desc" },
       include: {
         entreprise: true,
         contact: true,
@@ -84,11 +104,31 @@ export default async function BesoinsBibliothequePage({
           <table className="w-full text-sm">
             <thead className="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
               <tr>
-                <th className="px-4 py-3">Poste</th>
-                <th className="px-4 py-3">Entreprise</th>
-                <th className="px-4 py-3">BM référent</th>
-                <th className="px-4 py-3">Candidats</th>
-                <th className="px-4 py-3">Statut</th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="Poste" sortKey="poste" current={sortState} href={hrefFor("poste")} />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader
+                    label="Entreprise"
+                    sortKey="entreprise"
+                    current={sortState}
+                    href={hrefFor("entreprise")}
+                  />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="BM référent" sortKey="bm" current={sortState} href={hrefFor("bm")} />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader
+                    label="Candidats"
+                    sortKey="candidats"
+                    current={sortState}
+                    href={hrefFor("candidats")}
+                  />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="Statut" sortKey="statut" current={sortState} href={hrefFor("statut")} />
+                </th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>

@@ -6,10 +6,14 @@ import {
   STATUT_PUBLICATION_LABELS,
   STATUT_CANDIDAT_INTERNE_LABELS,
 } from "@/lib/constants";
+import { parseSort, nextSort } from "@/lib/sort";
+import SortableHeader from "@/components/SortableHeader";
 import FilterForm from "./filter-form";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+const SORT_KEYS = ["ref", "nom", "poste", "seniorite", "bm", "statutCandidat", "publication"] as const;
 
 function toArray(v: string | string[] | undefined): string[] {
   if (!v) return [];
@@ -33,6 +37,27 @@ export default async function RechercheAvanceePage({
   const seniorite = toArray(sp.seniorite);
   const disponibilite = toArray(sp.disponibilite);
   const statutCandidatInterne = toArray(sp.statutCandidatInterne);
+
+  // Tri par colonne — cycle A→Z / Z→A / tri par défaut (dernière mise à
+  // jour) au clic sur l'en-tête ; les autres filtres (multi-valeurs) sont
+  // préservés tels quels dans l'URL.
+  const sortParam = typeof sp.sort === "string" ? sp.sort : undefined;
+  const sortState = parseSort(sortParam, SORT_KEYS);
+  function hrefFor(key: string) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) {
+      if (k === "sort") continue;
+      if (Array.isArray(v)) {
+        for (const item of v) params.append(k, item);
+      } else if (v) {
+        params.set(k, v);
+      }
+    }
+    const target = nextSort(key, sortState);
+    if (target) params.set("sort", target);
+    const qs = params.toString();
+    return `/admin/consultants/recherche${qs ? `?${qs}` : ""}`;
+  }
 
   const where: Prisma.ConsultantWhereInput = {
     AND: [
@@ -80,7 +105,22 @@ export default async function RechercheAvanceePage({
     await Promise.all([
       prisma.consultant.findMany({
         where,
-        orderBy: { updatedAt: "desc" },
+        orderBy:
+          sortState.key === "ref"
+            ? { referenceAnonyme: sortState.dir }
+            : sortState.key === "nom"
+              ? [{ nom: sortState.dir }, { prenom: sortState.dir }]
+              : sortState.key === "poste"
+                ? { intitulePoste: sortState.dir }
+                : sortState.key === "seniorite"
+                  ? { seniority: { ordre: sortState.dir } }
+                  : sortState.key === "bm"
+                    ? { businessManager: { name: sortState.dir } }
+                    : sortState.key === "statutCandidat"
+                      ? { statutCandidatInterne: sortState.dir }
+                      : sortState.key === "publication"
+                        ? { statutPublication: sortState.dir }
+                        : { updatedAt: "desc" },
         include: { businessManager: true, seniority: true },
       }),
       prisma.competence.findMany({ where: { active: true }, orderBy: { label: "asc" } }),
@@ -143,13 +183,42 @@ export default async function RechercheAvanceePage({
             <table className="w-full text-sm">
               <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
                 <tr>
-                  <th className="px-4 py-3">Référence</th>
-                  <th className="px-4 py-3">Nom</th>
-                  <th className="px-4 py-3">Poste</th>
-                  <th className="px-4 py-3">Séniorité</th>
-                  <th className="px-4 py-3">BM référent</th>
-                  <th className="px-4 py-3">Statut candidat</th>
-                  <th className="px-4 py-3">Publication</th>
+                  <th className="px-4 py-3">
+                    <SortableHeader label="Référence" sortKey="ref" current={sortState} href={hrefFor("ref")} />
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader label="Nom" sortKey="nom" current={sortState} href={hrefFor("nom")} />
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader label="Poste" sortKey="poste" current={sortState} href={hrefFor("poste")} />
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader
+                      label="Séniorité"
+                      sortKey="seniorite"
+                      current={sortState}
+                      href={hrefFor("seniorite")}
+                    />
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader label="BM référent" sortKey="bm" current={sortState} href={hrefFor("bm")} />
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader
+                      label="Statut candidat"
+                      sortKey="statutCandidat"
+                      current={sortState}
+                      href={hrefFor("statutCandidat")}
+                    />
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader
+                      label="Publication"
+                      sortKey="publication"
+                      current={sortState}
+                      href={hrefFor("publication")}
+                    />
+                  </th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>

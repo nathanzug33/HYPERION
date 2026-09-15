@@ -9,9 +9,13 @@ import {
   type StatutOffre,
 } from "@/lib/constants";
 import { offreVisibilityWhere } from "@/lib/offre-access";
+import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
+import SortableHeader from "@/components/SortableHeader";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+const SORT_KEYS = ["reference", "titre", "client", "bm", "candidatures", "statut"] as const;
 
 const STATUT_STYLES: Record<string, string> = {
   BROUILLON: "bg-slate-100 text-brand-gray",
@@ -24,11 +28,16 @@ const STATUT_STYLES: Record<string, string> = {
 export default async function OffresPage({
   searchParams,
 }: {
-  searchParams: Promise<{ statut?: string; businessManagerId?: string }>;
+  searchParams: Promise<{ statut?: string; businessManagerId?: string; sort?: string }>;
 }) {
   const session = await requireStaff();
-  const { statut, businessManagerId } = await searchParams;
+  const { statut, businessManagerId, sort } = await searchParams;
   const peutFiltrerParBm = canReassignReferent(session.user);
+
+  const sortState = parseSort(sort, SORT_KEYS);
+  const baseParams = { statut, businessManagerId };
+  const hrefFor = (key: string) =>
+    buildSortHref("/admin/offres", baseParams, nextSort(key, sortState));
 
   const where: Prisma.OffreWhereInput = {
     AND: [
@@ -41,7 +50,20 @@ export default async function OffresPage({
   const [offres, bms] = await Promise.all([
     prisma.offre.findMany({
       where,
-      orderBy: { updatedAt: "desc" },
+      orderBy:
+        sortState.key === "reference"
+          ? { reference: sortState.dir }
+          : sortState.key === "titre"
+            ? { titre: sortState.dir }
+            : sortState.key === "client"
+              ? { entreprise: { nom: sortState.dir } }
+              : sortState.key === "bm"
+                ? { businessManager: { name: sortState.dir } }
+                : sortState.key === "candidatures"
+                  ? { candidatures: { _count: sortState.dir } }
+                  : sortState.key === "statut"
+                    ? { statut: sortState.dir }
+                    : { updatedAt: "desc" },
       include: {
         entreprise: true,
         businessManager: true,
@@ -96,12 +118,34 @@ export default async function OffresPage({
           <table className="w-full text-sm">
             <thead className="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
               <tr>
-                <th className="px-4 py-3">Référence</th>
-                <th className="px-4 py-3">Titre</th>
-                <th className="px-4 py-3">Client</th>
-                <th className="px-4 py-3">BM référent</th>
-                <th className="px-4 py-3">Candidatures</th>
-                <th className="px-4 py-3">Statut</th>
+                <th className="px-4 py-3">
+                  <SortableHeader
+                    label="Référence"
+                    sortKey="reference"
+                    current={sortState}
+                    href={hrefFor("reference")}
+                  />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="Titre" sortKey="titre" current={sortState} href={hrefFor("titre")} />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="Client" sortKey="client" current={sortState} href={hrefFor("client")} />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="BM référent" sortKey="bm" current={sortState} href={hrefFor("bm")} />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader
+                    label="Candidatures"
+                    sortKey="candidatures"
+                    current={sortState}
+                    href={hrefFor("candidatures")}
+                  />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="Statut" sortKey="statut" current={sortState} href={hrefFor("statut")} />
+                </th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>

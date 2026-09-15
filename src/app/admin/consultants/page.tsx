@@ -7,23 +7,35 @@ import {
   formatStatutBibliotheque,
 } from "@/lib/constants";
 import { consultantVisibilityWhere } from "@/lib/consultant-access";
+import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
+import SortableHeader from "@/components/SortableHeader";
 import NouveauCandidatPopover from "./nouveau-popover";
 import ConsultantQuickEditPopover from "./quick-edit-popover";
 
 export const dynamic = "force-dynamic";
 
+const SORT_KEYS = ["ref", "nom", "poste", "bm", "bibliotheque", "completude", "maj"] as const;
+
 export default async function ConsultantsListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; purge?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; purge?: string; sort?: string }>;
 }) {
   const session = await requireStaff();
-  const { q, statut, purge } = await searchParams;
+  const { q, statut, purge, sort } = await searchParams;
 
   const staleThreshold = new Date();
   staleThreshold.setDate(staleThreshold.getDate() - FICHE_FRAICHEUR_SEUIL_JOURS);
 
-  const consultants = await prisma.consultant.findMany({
+  // Tri par colonne — cycle A→Z / Z→A / tri par défaut (dernière mise à
+  // jour) au clic sur l'en-tête. La complétude est calculée (pas stockée en
+  // base), donc triée côté JS après récupération de la liste.
+  const sortState = parseSort(sort, SORT_KEYS);
+  const baseParams = { q, statut, purge };
+  const hrefFor = (key: string) =>
+    buildSortHref("/admin/consultants", baseParams, nextSort(key, sortState));
+
+  const consultantsBruts = await prisma.consultant.findMany({
     where: {
       AND: [
         consultantVisibilityWhere(session.user),
@@ -44,12 +56,33 @@ export default async function ConsultantsListPage({
           : {},
       ],
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy:
+      sortState.key === "ref"
+        ? { referenceAnonyme: sortState.dir }
+        : sortState.key === "nom"
+          ? [{ nom: sortState.dir }, { prenom: sortState.dir }]
+          : sortState.key === "poste"
+            ? { intitulePoste: sortState.dir }
+            : sortState.key === "bm"
+              ? { businessManager: { name: sortState.dir } }
+              : sortState.key === "bibliotheque"
+                ? { statutPublication: sortState.dir }
+                : sortState.key === "maj"
+                  ? { updatedAt: sortState.dir }
+                  : { updatedAt: "desc" },
     include: {
       businessManager: true,
       _count: { select: { secteurs: true, expertises: true, langues: true } },
     },
   });
+
+  const consultants =
+    sortState.key === "completude"
+      ? [...consultantsBruts].sort((a, b) => {
+          const diff = computeCompletude(a) - computeCompletude(b);
+          return sortState.dir === "asc" ? diff : -diff;
+        })
+      : consultantsBruts;
 
   return (
     <div className="space-y-6">
@@ -105,13 +138,37 @@ export default async function ConsultantsListPage({
         <table className="w-full text-sm">
           <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
             <tr>
-              <th className="px-4 py-3">Référence</th>
-              <th className="px-4 py-3">Nom</th>
-              <th className="px-4 py-3">Poste</th>
-              <th className="px-4 py-3">BM référent</th>
-              <th className="px-4 py-3">Bibliothèque</th>
-              <th className="px-4 py-3">Complétude</th>
-              <th className="px-4 py-3">Dernière maj</th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Référence" sortKey="ref" current={sortState} href={hrefFor("ref")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Nom" sortKey="nom" current={sortState} href={hrefFor("nom")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Poste" sortKey="poste" current={sortState} href={hrefFor("poste")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="BM référent" sortKey="bm" current={sortState} href={hrefFor("bm")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader
+                  label="Bibliothèque"
+                  sortKey="bibliotheque"
+                  current={sortState}
+                  href={hrefFor("bibliotheque")}
+                />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader
+                  label="Complétude"
+                  sortKey="completude"
+                  current={sortState}
+                  href={hrefFor("completude")}
+                />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Dernière maj" sortKey="maj" current={sortState} href={hrefFor("maj")} />
+              </th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>

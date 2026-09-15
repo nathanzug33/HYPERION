@@ -3,15 +3,40 @@ import { requireAdmin } from "@/lib/guards";
 import { ROLE_LABELS } from "@/lib/constants";
 import { toggleUserActive, resendInvitationAction } from "./actions";
 import CreateUserForm from "./create-user-form";
+import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
+import SortableHeader from "@/components/SortableHeader";
 
 export const dynamic = "force-dynamic";
 
-export default async function UtilisateursPage() {
+const SORT_KEYS = ["nom", "email", "role", "org", "connexion", "statut"] as const;
+
+export default async function UtilisateursPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sort?: string }>;
+}) {
   await requireAdmin();
+  const { sort } = await searchParams;
+
+  const sortState = parseSort(sort, SORT_KEYS);
+  const hrefFor = (key: string) => buildSortHref("/admin/utilisateurs", {}, nextSort(key, sortState));
 
   const [users, organizations] = await Promise.all([
     prisma.user.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy:
+        sortState.key === "nom"
+          ? { name: sortState.dir }
+          : sortState.key === "email"
+            ? { email: sortState.dir }
+            : sortState.key === "role"
+              ? { role: sortState.dir }
+              : sortState.key === "org"
+                ? { clientOrganization: { name: sortState.dir } }
+                : sortState.key === "connexion"
+                  ? { lastLoginAt: sortState.dir }
+                  : sortState.key === "statut"
+                    ? { active: sortState.dir }
+                    : { createdAt: "desc" },
       include: { clientOrganization: true },
     }),
     prisma.clientOrganization.findMany({
@@ -32,12 +57,29 @@ export default async function UtilisateursPage() {
         <table className="w-full text-sm">
           <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
             <tr>
-              <th className="px-4 py-2">Nom</th>
-              <th className="px-4 py-2">Email</th>
-              <th className="px-4 py-2">Rôle</th>
-              <th className="px-4 py-2">Organisation</th>
-              <th className="px-4 py-2">Dernière connexion</th>
-              <th className="px-4 py-2">Statut</th>
+              <th className="px-4 py-2">
+                <SortableHeader label="Nom" sortKey="nom" current={sortState} href={hrefFor("nom")} />
+              </th>
+              <th className="px-4 py-2">
+                <SortableHeader label="Email" sortKey="email" current={sortState} href={hrefFor("email")} />
+              </th>
+              <th className="px-4 py-2">
+                <SortableHeader label="Rôle" sortKey="role" current={sortState} href={hrefFor("role")} />
+              </th>
+              <th className="px-4 py-2">
+                <SortableHeader label="Organisation" sortKey="org" current={sortState} href={hrefFor("org")} />
+              </th>
+              <th className="px-4 py-2">
+                <SortableHeader
+                  label="Dernière connexion"
+                  sortKey="connexion"
+                  current={sortState}
+                  href={hrefFor("connexion")}
+                />
+              </th>
+              <th className="px-4 py-2">
+                <SortableHeader label="Statut" sortKey="statut" current={sortState} href={hrefFor("statut")} />
+              </th>
               <th className="px-4 py-2"></th>
             </tr>
           </thead>

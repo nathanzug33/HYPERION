@@ -11,9 +11,13 @@ import {
 } from "@/lib/constants";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { terminerMissionAction } from "../crm/[id]/besoins/actions";
+import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
+import SortableHeader from "@/components/SortableHeader";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+const SORT_KEYS = ["consultant", "poste", "client", "bm", "tjm", "debut", "fin", "statut"] as const;
 
 const STATUT_STYLES: Record<string, string> = {
   EN_COURS: "bg-brand-blue/10 text-brand-blue-dark",
@@ -24,12 +28,17 @@ const STATUT_STYLES: Record<string, string> = {
 export default async function MissionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ statut?: string; businessManagerId?: string }>;
+  searchParams: Promise<{ statut?: string; businessManagerId?: string; sort?: string }>;
 }) {
   const session = await requireStaff();
-  const { statut, businessManagerId } = await searchParams;
+  const { statut, businessManagerId, sort } = await searchParams;
   const peutFiltrerParBm = canReassignReferent(session.user);
   const statutFiltre = statut ?? STATUT_MISSION.EN_COURS;
+
+  const sortState = parseSort(sort, SORT_KEYS);
+  const baseParams = { statut, businessManagerId };
+  const hrefFor = (key: string) =>
+    buildSortHref("/admin/missions", baseParams, nextSort(key, sortState));
 
   const where: Prisma.MissionWhereInput = {
     AND: [
@@ -42,7 +51,24 @@ export default async function MissionsPage({
   const [missions, bms] = await Promise.all([
     prisma.mission.findMany({
       where,
-      orderBy: { dateDebut: "desc" },
+      orderBy:
+        sortState.key === "consultant"
+          ? { consultant: { nom: sortState.dir } }
+          : sortState.key === "poste"
+            ? { intitulePoste: sortState.dir }
+            : sortState.key === "client"
+              ? { entreprise: { nom: sortState.dir } }
+              : sortState.key === "bm"
+                ? { businessManager: { name: sortState.dir } }
+                : sortState.key === "tjm"
+                  ? { tjm: sortState.dir }
+                  : sortState.key === "debut"
+                    ? { dateDebut: sortState.dir }
+                    : sortState.key === "fin"
+                      ? { dateFinPrevue: sortState.dir }
+                      : sortState.key === "statut"
+                        ? { statut: sortState.dir }
+                        : { dateDebut: "desc" },
       include: { entreprise: true, consultant: true, businessManager: true },
     }),
     peutFiltrerParBm
@@ -94,14 +120,35 @@ export default async function MissionsPage({
           <table className="w-full text-sm">
             <thead className="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
               <tr>
-                <th className="px-4 py-3">Consultant</th>
-                <th className="px-4 py-3">Poste</th>
-                <th className="px-4 py-3">Client</th>
-                <th className="px-4 py-3">BM référent</th>
-                <th className="px-4 py-3">TJM</th>
-                <th className="px-4 py-3">Début</th>
-                <th className="px-4 py-3">Fin prévue</th>
-                <th className="px-4 py-3">Statut</th>
+                <th className="px-4 py-3">
+                  <SortableHeader
+                    label="Consultant"
+                    sortKey="consultant"
+                    current={sortState}
+                    href={hrefFor("consultant")}
+                  />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="Poste" sortKey="poste" current={sortState} href={hrefFor("poste")} />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="Client" sortKey="client" current={sortState} href={hrefFor("client")} />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="BM référent" sortKey="bm" current={sortState} href={hrefFor("bm")} />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="TJM" sortKey="tjm" current={sortState} href={hrefFor("tjm")} />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="Début" sortKey="debut" current={sortState} href={hrefFor("debut")} />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="Fin prévue" sortKey="fin" current={sortState} href={hrefFor("fin")} />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader label="Statut" sortKey="statut" current={sortState} href={hrefFor("statut")} />
+                </th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>

@@ -10,9 +10,13 @@ import {
 } from "@/lib/constants";
 import { resolvePeriode, suiviCommercialDateFilter } from "@/lib/periode";
 import PeriodeSelector from "@/components/PeriodeSelector";
+import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
+import SortableHeader from "@/components/SortableHeader";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+const SORT_KEYS = ["type", "entreprise", "interlocuteur", "titre", "date", "statut", "createur"] as const;
 
 const TYPE_STYLES: Record<string, string> = {
   NOTE: "bg-slate-100 text-brand-body",
@@ -34,13 +38,19 @@ export default async function CrmActivitesPage({
     periode?: string;
     debut?: string;
     fin?: string;
+    sort?: string;
   }>;
 }) {
   const session = await requireStaff();
   const sp = await searchParams;
-  const { type, fait } = sp;
+  const { type, fait, sort } = sp;
   const periodeActive = Boolean(sp.periode);
   const periode = resolvePeriode(sp);
+
+  const sortState = parseSort(sort, SORT_KEYS);
+  const baseParams = { type, fait, periode: sp.periode, debut: sp.debut, fin: sp.fin };
+  const hrefFor = (key: string) =>
+    buildSortHref("/admin/crm/activites", baseParams, nextSort(key, sortState));
 
   const dateFilter: Prisma.SuiviCommercialWhereInput = periodeActive
     ? suiviCommercialDateFilter(periode)
@@ -58,7 +68,22 @@ export default async function CrmActivitesPage({
 
   const activites = await prisma.suiviCommercial.findMany({
     where,
-    orderBy: [{ dateProgrammee: "desc" }, { createdAt: "desc" }],
+    orderBy:
+      sortState.key === "type"
+        ? { type: sortState.dir }
+        : sortState.key === "entreprise"
+          ? { entreprise: { nom: sortState.dir } }
+          : sortState.key === "interlocuteur"
+            ? { contact: { nom: sortState.dir } }
+            : sortState.key === "titre"
+              ? { titre: sortState.dir }
+              : sortState.key === "date"
+                ? { dateProgrammee: sortState.dir }
+                : sortState.key === "statut"
+                  ? { fait: sortState.dir }
+                  : sortState.key === "createur"
+                    ? { createdBy: { name: sortState.dir } }
+                    : [{ dateProgrammee: "desc" as const }, { createdAt: "desc" as const }],
     include: {
       entreprise: { select: { id: true, nom: true } },
       contact: { select: { id: true, prenom: true, nom: true } },
@@ -132,13 +157,42 @@ export default async function CrmActivitesPage({
         <table className="w-full text-sm">
           <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
             <tr>
-              <th className="px-4 py-3">Type</th>
-              <th className="px-4 py-3">Entreprise</th>
-              <th className="px-4 py-3">Interlocuteur</th>
-              <th className="px-4 py-3">Titre</th>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Statut</th>
-              <th className="px-4 py-3">Créé par</th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Type" sortKey="type" current={sortState} href={hrefFor("type")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader
+                  label="Entreprise"
+                  sortKey="entreprise"
+                  current={sortState}
+                  href={hrefFor("entreprise")}
+                />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader
+                  label="Interlocuteur"
+                  sortKey="interlocuteur"
+                  current={sortState}
+                  href={hrefFor("interlocuteur")}
+                />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Titre" sortKey="titre" current={sortState} href={hrefFor("titre")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Date" sortKey="date" current={sortState} href={hrefFor("date")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader label="Statut" sortKey="statut" current={sortState} href={hrefFor("statut")} />
+              </th>
+              <th className="px-4 py-3">
+                <SortableHeader
+                  label="Créé par"
+                  sortKey="createur"
+                  current={sortState}
+                  href={hrefFor("createur")}
+                />
+              </th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
