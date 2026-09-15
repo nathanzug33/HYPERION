@@ -7,6 +7,7 @@ import {
   formatStatutBibliotheque,
 } from "@/lib/constants";
 import { consultantVisibilityWhere } from "@/lib/consultant-access";
+import NouveauCandidatPopover from "./nouveau-popover";
 
 export const dynamic = "force-dynamic";
 
@@ -71,9 +72,7 @@ export default async function ConsultantsListPage({
           <a href="/admin/consultants/export/vivier" className="btn btn-secondary">
             ⬇️ Export CSV
           </a>
-          <Link href="/admin/consultants/nouveau" className="btn btn-secondary">
-            + Ajouter un candidat
-          </Link>
+          <NouveauCandidatPopover />
           <Link href="/admin/consultants/generer-ia" className="btn btn-primary">
             ✨ Générer avec l&apos;IA
           </Link>
