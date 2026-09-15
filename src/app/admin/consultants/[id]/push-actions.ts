@@ -9,7 +9,7 @@ import { buildDcDocx, dcConsultantInclude } from "@/lib/dc-docx";
 import { sendCandidatPropositionEmail, buildCandidatPropositionEmail } from "@/lib/mail";
 import { getValidAccessToken } from "@/lib/google-oauth";
 import { sendViaGmail } from "@/lib/gmail-send";
-import { SUIVI_COMMERCIAL_TYPE } from "@/lib/constants";
+import { SUIVI_COMMERCIAL_TYPE, formatSalutationNom } from "@/lib/constants";
 
 /** Propose un candidat (DC) à un contact CRM : trace visible sur la fiche
  * candidat ET sur la fiche du contact (même ligne, un SuiviCommercial
@@ -44,7 +44,7 @@ export async function pushCandidatToClientAction(formData: FormData) {
     .replace(/[^\w.-]/g, "");
 
   const propositionParams = {
-    contactName: `${contact.prenom} ${contact.nom}`,
+    contactName: formatSalutationNom(contact),
     bmName: session.user.name || "Votre contact HYPERION",
     reference: consultant.referenceAnonyme,
     intitulePoste: consultant.intitulePoste,

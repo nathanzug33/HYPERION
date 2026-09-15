@@ -9,6 +9,7 @@ import {
   STATUT_PUBLICATION,
   STATUT_CANDIDAT_INTERNE_LABELS,
   SUIVI_TYPE,
+  CIVILITE,
   canReassignReferent,
 } from "@/lib/constants";
 import { findVille } from "@/lib/villes-france";
@@ -79,8 +80,14 @@ export async function createConsultantAction(formData: FormData) {
 
   const email = String(formData.get("email") ?? "") || null;
 
+  const civiliteRaw = String(formData.get("civilite") ?? "");
+  const civilite = (Object.values(CIVILITE) as string[]).includes(civiliteRaw)
+    ? civiliteRaw
+    : null;
+
   const consultant = await prisma.consultant.create({
     data: {
+      civilite,
       nom,
       prenom,
       email,
@@ -125,7 +132,13 @@ export async function updateConsultantAction(formData: FormData) {
   const seniorites = await prisma.seniorite.findMany({ where: { active: true } });
   const seniorityId = deriveSeniorityId(anneesExperience, seniorites);
 
+  const civiliteRaw = String(formData.get("civilite") ?? "");
+  const civilite = (Object.values(CIVILITE) as string[]).includes(civiliteRaw)
+    ? civiliteRaw
+    : null;
+
   const data = {
+    civilite,
     nom: String(formData.get("nom") ?? "").trim(),
     prenom: String(formData.get("prenom") ?? "").trim(),
     email: String(formData.get("email") ?? "") || null,

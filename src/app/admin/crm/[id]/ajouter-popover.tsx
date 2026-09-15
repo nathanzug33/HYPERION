@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DUREE_ESTIMEE_OPTIONS } from "@/lib/constants";
+import { DUREE_ESTIMEE_OPTIONS, CIVILITE_LABELS } from "@/lib/constants";
 import { createContactAction } from "../actions";
 import { createBesoinAction } from "./besoins/actions";
 
@@ -69,6 +69,19 @@ export default function AjouterPopover({
               className="space-y-2"
             >
               <input type="hidden" name="entrepriseId" value={entrepriseId} />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] text-brand-gray">Civilité</label>
+                  <select name="civilite" defaultValue="" className="input text-xs">
+                    <option value="">—</option>
+                    {Object.entries(CIVILITE_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[11px] text-brand-gray">Prénom</label>

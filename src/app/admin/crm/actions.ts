@@ -8,6 +8,7 @@ import {
   STATUT_ENTREPRISE_LABELS,
   SUIVI_COMMERCIAL_TYPE,
   SECTEUR_CATEGORIE,
+  CIVILITE,
   canReassignReferent,
 } from "@/lib/constants";
 import { canAccessEntreprise } from "@/lib/crm-access";
@@ -174,10 +175,15 @@ export async function createContactAction(formData: FormData) {
   const nom = String(formData.get("nom") ?? "").trim();
   if (!prenom || !nom) return;
   const email = String(formData.get("email") ?? "") || null;
+  const civiliteRaw = String(formData.get("civilite") ?? "");
+  const civilite = (Object.values(CIVILITE) as string[]).includes(civiliteRaw)
+    ? civiliteRaw
+    : null;
 
   const contact = await prisma.contact.create({
     data: {
       entrepriseId,
+      civilite,
       prenom,
       nom,
       fonction: String(formData.get("fonction") ?? "") || null,
@@ -206,9 +212,15 @@ export async function updateContactAction(formData: FormData) {
   const nom = String(formData.get("nom") ?? "").trim();
   if (!prenom || !nom) return;
 
+  const civiliteRaw = String(formData.get("civilite") ?? "");
+  const civilite = (Object.values(CIVILITE) as string[]).includes(civiliteRaw)
+    ? civiliteRaw
+    : null;
+
   await prisma.contact.update({
     where: { id },
     data: {
+      civilite,
       prenom,
       nom,
       fonction: String(formData.get("fonction") ?? "") || null,

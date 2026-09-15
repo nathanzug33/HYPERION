@@ -5,7 +5,12 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { canAccessEntreprise } from "@/lib/crm-access";
-import { SUIVI_COMMERCIAL_TYPE_SAISISSABLES, SUIVI_COMMERCIAL_TYPE, MODALITE_RDV } from "@/lib/constants";
+import {
+  SUIVI_COMMERCIAL_TYPE_SAISISSABLES,
+  SUIVI_COMMERCIAL_TYPE,
+  MODALITE_RDV,
+  formatSalutationNom,
+} from "@/lib/constants";
 import { saveCrmFile, deleteCrmFile } from "@/lib/crm-storage";
 import { getValidAccessToken } from "@/lib/google-oauth";
 import { createCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
@@ -86,7 +91,7 @@ export async function createSuiviCommercialAction(formData: FormData) {
             to: contact.email,
             subject: titre,
             bodyHtml: buildMeetInviteHtml({
-              destinataire: `${contact.prenom} ${contact.nom}`,
+              destinataire: formatSalutationNom(contact),
               nature: "rendez-vous",
               date: dateProgrammee,
               meetLink: event.meetLink,

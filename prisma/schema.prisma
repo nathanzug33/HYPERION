@@ -204,6 +204,7 @@ model Consultant {
   id String @id @default(cuid())
 
   // --- Champs internes (jamais exposés au client) -------------------------
+  civilite              String? // "M" | "MME" — pour les emails automatiques ("Bonjour M./Mme Nom")
   nom                   String
   prenom                String
   email                 String?
@@ -410,6 +411,7 @@ model Contact {
   entrepriseId String
   entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
 
+  civilite  String? // "M" | "MME" — pour les emails automatiques ("Bonjour M./Mme Nom")
   prenom    String
   nom       String
   fonction  String? // ex. Responsable qualité, Responsable production…

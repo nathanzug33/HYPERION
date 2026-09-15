@@ -1,4 +1,5 @@
 import type { Contact } from "@prisma/client";
+import { CIVILITE_LABELS } from "@/lib/constants";
 import { updateContactAction, deleteContactAction } from "../../../actions";
 
 export default function ContactEditForm({ contact }: { contact: Contact }) {
@@ -6,6 +7,23 @@ export default function ContactEditForm({ contact }: { contact: Contact }) {
     <div className="card space-y-4 p-5">
       <form action={updateContactAction} className="space-y-3">
         <input type="hidden" name="id" value={contact.id} />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-brand-body">Civilité</label>
+            <select
+              name="civilite"
+              defaultValue={contact.civilite ?? ""}
+              className="input mt-1.5"
+            >
+              <option value="">—</option>
+              {Object.entries(CIVILITE_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-brand-body">Prénom</label>

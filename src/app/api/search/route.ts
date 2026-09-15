@@ -18,14 +18,22 @@ export async function GET(req: Request) {
 
   const [candidats, contacts] = await Promise.all([
     prisma.consultant.findMany({
-      where: { OR: [{ nom: { contains: q } }, { prenom: { contains: q } }] },
+      where: {
+        OR: [
+          { nom: { contains: q, mode: "insensitive" } },
+          { prenom: { contains: q, mode: "insensitive" } },
+        ],
+      },
       select: { id: true, nom: true, prenom: true, referenceAnonyme: true },
       orderBy: { updatedAt: "desc" },
       take: 6,
     }),
     prisma.contact.findMany({
       where: {
-        OR: [{ nom: { contains: q } }, { prenom: { contains: q } }],
+        OR: [
+          { nom: { contains: q, mode: "insensitive" } },
+          { prenom: { contains: q, mode: "insensitive" } },
+        ],
         entreprise: entrepriseVisibilityWhere(session.user),
       },
       select: {

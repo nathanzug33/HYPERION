@@ -10,6 +10,7 @@ import {
   SUIVI_TYPE,
   STATUT_CANDIDAT_INTERNE,
   STATUT_CANDIDAT_INTERNE_LABELS,
+  formatSalutationNom,
 } from "@/lib/constants";
 import { getValidAccessToken } from "@/lib/google-oauth";
 import { createCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
@@ -67,7 +68,7 @@ export async function createSuiviAction(formData: FormData) {
             to: consultant.email,
             subject: titre,
             bodyHtml: buildMeetInviteHtml({
-              destinataire: `${consultant.prenom} ${consultant.nom}`,
+              destinataire: formatSalutationNom(consultant),
               nature: "entretien",
               date: dateProgrammee,
               meetLink: event.meetLink,

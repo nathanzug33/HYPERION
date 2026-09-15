@@ -25,18 +25,18 @@ export default async function CrmListPage({
     AND: [
       entrepriseVisibilityWhere(session.user),
       statut ? { statutCommercial: statut } : {},
-      ville ? { ville: { contains: ville } } : {},
+      ville ? { ville: { contains: ville, mode: "insensitive" } } : {},
       peutFiltrerParBm && businessManagerId ? { businessManagerId } : {},
       q
         ? {
             OR: [
-              { nom: { contains: q } },
-              { industrie: { label: { contains: q } } },
-              { ville: { contains: q } },
-              { notes: { contains: q } },
-              { contacts: { some: { nom: { contains: q } } } },
-              { contacts: { some: { prenom: { contains: q } } } },
-              { contacts: { some: { fonction: { contains: q } } } },
+              { nom: { contains: q, mode: "insensitive" } },
+              { industrie: { label: { contains: q, mode: "insensitive" } } },
+              { ville: { contains: q, mode: "insensitive" } },
+              { notes: { contains: q, mode: "insensitive" } },
+              { contacts: { some: { nom: { contains: q, mode: "insensitive" } } } },
+              { contacts: { some: { prenom: { contains: q, mode: "insensitive" } } } },
+              { contacts: { some: { fonction: { contains: q, mode: "insensitive" } } } },
             ],
           }
         : {},

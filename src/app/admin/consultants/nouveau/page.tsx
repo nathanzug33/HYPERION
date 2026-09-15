@@ -1,4 +1,5 @@
 import { requireStaff } from "@/lib/guards";
+import { CIVILITE_LABELS } from "@/lib/constants";
 import { createConsultantAction } from "../actions";
 
 export default async function NouveauConsultantPage() {
@@ -13,6 +14,17 @@ export default async function NouveauConsultantPage() {
       </div>
 
       <form action={createConsultantAction} className="card space-y-4 p-5">
+        <div>
+          <label className="block text-xs font-medium text-brand-body">Civilité</label>
+          <select name="civilite" defaultValue="" className="input mt-1.5">
+            <option value="">—</option>
+            {Object.entries(CIVILITE_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-brand-body">Prénom</label>

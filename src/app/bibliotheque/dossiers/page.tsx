@@ -59,9 +59,13 @@ export default async function DossiersPage({
     ...(q
       ? {
           OR: [
-            { intitulePoste: { contains: q } },
-            { resumeContexte: { contains: q } },
-            { competences: { some: { competence: { label: { contains: q } } } } },
+            { intitulePoste: { contains: q, mode: "insensitive" } },
+            { resumeContexte: { contains: q, mode: "insensitive" } },
+            {
+              competences: {
+                some: { competence: { label: { contains: q, mode: "insensitive" } } },
+              },
+            },
           ],
         }
       : {}),

@@ -22,6 +22,7 @@ import {
   DISPONIBILITE_LABELS,
   STATUT_CANDIDAT_INTERNE_LABELS,
   TYPE_CONTRAT_LABELS,
+  CIVILITE_LABELS,
 } from "@/lib/constants";
 import { updateConsultantAction } from "../actions";
 import { VILLES_FRANCE } from "@/lib/villes-france";
@@ -132,6 +133,16 @@ export default function ConsultantEditForm({
               Identité & contact
             </legend>
             <div className="grid grid-cols-2 gap-3">
+              <Field label="Civilité">
+                <select name="civilite" defaultValue={consultant.civilite ?? ""} className="input">
+                  <option value="">—</option>
+                  {Object.entries(CIVILITE_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </Field>
               <Field label="Prénom">
                 <input name="prenom" defaultValue={consultant.prenom} required className="input" />
               </Field>

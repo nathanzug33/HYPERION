@@ -30,13 +30,13 @@ export default async function ConsultantsListPage({
         q
           ? {
               OR: [
-                { nom: { contains: q } },
-                { prenom: { contains: q } },
-                { referenceAnonyme: { contains: q } },
-                { intitulePoste: { contains: q } },
-                { sourceCvTexte: { contains: q } },
-                { notesEntretien: { contains: q } },
-                { resumeContexte: { contains: q } },
+                { nom: { contains: q, mode: "insensitive" } },
+                { prenom: { contains: q, mode: "insensitive" } },
+                { referenceAnonyme: { contains: q, mode: "insensitive" } },
+                { intitulePoste: { contains: q, mode: "insensitive" } },
+                { sourceCvTexte: { contains: q, mode: "insensitive" } },
+                { notesEntretien: { contains: q, mode: "insensitive" } },
+                { resumeContexte: { contains: q, mode: "insensitive" } },
               ],
             }
           : {},

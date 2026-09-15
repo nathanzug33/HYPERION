@@ -1,5 +1,21 @@
 // Valeurs métier centralisées (équivalent d'enums, portable SQLite/PostgreSQL).
 
+// Civilité (candidat ATS / interlocuteur CRM) — uniquement pour personnaliser
+// le "Bonjour M./Mme Nom" des emails automatiques (Meet, propositions…).
+export const CIVILITE = { M: "M", MME: "MME" } as const;
+export const CIVILITE_LABELS: Record<string, string> = { M: "M.", MME: "Mme" };
+
+/** "M. Nom" / "Mme Nom" si la civilité est connue (plus pro à l'écrit),
+ * sinon repli sur "Prénom Nom" tant qu'elle n'a pas été renseignée. */
+export function formatSalutationNom(person: {
+  civilite?: string | null;
+  prenom: string;
+  nom: string;
+}): string {
+  const label = person.civilite ? CIVILITE_LABELS[person.civilite] : null;
+  return label ? `${label} ${person.nom}` : `${person.prenom} ${person.nom}`;
+}
+
 export const ROLES = {
   ADMIN: "ADMIN",
   DIRECTEUR_BU: "DIRECTEUR_BU",
