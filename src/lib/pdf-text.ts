@@ -7,13 +7,29 @@
 // embarque un module de rendu image qui exige le binaire natif
 // @napi-rs/canvas (et la globale navigateur DOMMatrix qu'il fournit),
 // lequel échoue à charger sur l'environnement serverless de Vercel selon
-// les CV (présence d'une image/photo dans le PDF) — d'où des échecs
-// intermittents ("DOMMatrix is not defined", puis, après un premier
-// correctif partiel, "fichier illisible"). Or l'extraction de texte pur
-// n'a jamais besoin de rendu/canvas : en appelant nous-mêmes
-// getTextContent() par page (sans jamais appeler page.render()), on
-// élimine complètement cette dépendance et la classe de bugs qui va avec.
+// les CV (présence d'une image/photo dans le PDF). Or l'extraction de
+// texte pur n'a jamais besoin de rendu/canvas : en appelant nous-mêmes
+// getTextContent() par page (sans jamais appeler page.render()), on évite
+// tout le code de rendu qui en dépend.
+//
+// Reste un problème : pdfjs-dist lui-même définit, dès l'IMPORT du module
+// (pas seulement au rendu), une constante de niveau module `new DOMMatrix()`
+// — il tente de se fournir cette globale via ce même binaire natif
+// @napi-rs/canvas, et se contente d'un avertissement s'il échoue plutôt que
+// de fournir un vrai remplaçant, d'où le crash au chargement. Comme on n'a
+// besoin d'aucune vraie transformation matricielle (juste que le module
+// s'importe sans planter), on fournit nous-mêmes un DOMMatrix "shim" pur JS
+// (@thednp/dommatrix, aucun binaire natif, donc portable partout) AVANT
+// d'importer pdfjs-dist — s'il en existe déjà un (le binaire natif a
+// fonctionné), on ne le remplace pas.
+async function ensureDOMMatrixPolyfill(): Promise<void> {
+  if (typeof globalThis.DOMMatrix !== "undefined") return;
+  const { default: CSSMatrix } = await import("@thednp/dommatrix");
+  globalThis.DOMMatrix = CSSMatrix as unknown as typeof DOMMatrix;
+}
+
 export async function extractPdfText(buffer: Buffer): Promise<string> {
+  await ensureDOMMatrixPolyfill();
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
   let doc;
