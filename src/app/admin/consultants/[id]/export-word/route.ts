@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { buildDcDocx, dcConsultantInclude } from "@/lib/dc-docx";
 import { canAccessConsultant } from "@/lib/consultant-access";
+import { saveDcFile } from "@/lib/dc-storage";
 
 export async function GET(
   _req: Request,
@@ -26,6 +27,24 @@ export async function GET(
   const filename = `DC_HYPERION_${consultant.referenceAnonyme}_${consultant.nom}_${consultant.prenom}.docx`
     .replace(/\s+/g, "_")
     .replace(/[^\w.-]/g, "");
+
+  // Conservé comme pièce jointe (historique des DC générés, voir l'onglet
+  // "Pièces jointes") — best-effort : un échec de stockage ne doit jamais
+  // empêcher le téléchargement lui-même.
+  try {
+    const saved = await saveDcFile(buffer, filename);
+    await prisma.consultantFichier.create({
+      data: {
+        consultantId: id,
+        type: "DC",
+        storedName: saved.storedName,
+        nomOriginal: saved.originalName,
+        createdById: session.user.id,
+      },
+    });
+  } catch (err) {
+    console.error("[export-word] Échec de l'enregistrement du DC en pièce jointe :", err);
+  }
 
   return new Response(new Uint8Array(buffer), {
     headers: {

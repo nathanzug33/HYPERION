@@ -72,7 +72,14 @@ export default async function ConsultantsListPage({
                   : { updatedAt: "desc" },
     include: {
       businessManager: true,
-      _count: { select: { secteurs: true, expertises: true, langues: true } },
+      _count: {
+        select: {
+          secteurs: true,
+          expertises: true,
+          langues: true,
+          fichiers: { where: { type: "CV" } },
+        },
+      },
     },
   });
 
@@ -244,17 +251,16 @@ export default async function ConsultantsListPage({
 // brouillon (§ CVthèque qu'on enrichit en continu) — pas un critère de
 // publication, juste un indicateur visuel sur la liste.
 function computeCompletude(c: {
-  cvFileUrl: string | null;
   anneesExperience: number | null;
   disponibilite: string | null;
   resumeContexte: string | null;
   natureContrat: string | null;
   salaireBrutAnnuel: number | null;
   tjmAchat: number | null;
-  _count: { secteurs: number; expertises: number; langues: number };
+  _count: { secteurs: number; expertises: number; langues: number; fichiers: number };
 }): number {
   const criteres = [
-    Boolean(c.cvFileUrl),
+    c._count.fichiers > 0,
     c._count.secteurs > 0,
     c._count.expertises > 0,
     c.anneesExperience != null,

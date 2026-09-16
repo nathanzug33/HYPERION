@@ -153,8 +153,20 @@ export async function generateConsultantFromAI(
       genereParIA: true,
       sourceCvTexte: cvText,
       sourceTranscriptTexte: transcriptText || null,
-      cvFileUrl: savedCv?.storedName ?? null,
-      cvFileNomOriginal: savedCv?.originalName ?? null,
+      ...(savedCv
+        ? {
+            fichiers: {
+              create: [
+                {
+                  type: "CV",
+                  storedName: savedCv.storedName,
+                  nomOriginal: savedCv.originalName,
+                  createdById: businessManagerId,
+                },
+              ],
+            },
+          }
+        : {}),
 
       secteurs: { create: secteurIds.map((secteurId) => ({ secteurId })) },
       expertises: { create: expertiseIds.map((expertiseId) => ({ expertiseId })) },

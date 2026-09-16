@@ -51,6 +51,7 @@ export default async function ConsultantEditPage({
       competenceCategories: { orderBy: { ordre: "asc" } },
       formations: { orderBy: { ordre: "asc" } },
       experiences: { orderBy: { ordre: "asc" } },
+      fichiers: { orderBy: { createdAt: "desc" } },
     },
   });
 

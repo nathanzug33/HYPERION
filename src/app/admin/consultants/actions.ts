@@ -15,6 +15,7 @@ import {
 import { findVille } from "@/lib/villes-france";
 import { canAccessConsultant } from "@/lib/consultant-access";
 import { saveCvFile, deleteCvFile } from "@/lib/cv-storage";
+import { deleteDcFile } from "@/lib/dc-storage";
 import { extractFileText } from "@/lib/cv-text";
 import { findConsultantDuplicates } from "@/lib/duplicate-detection";
 import { deriveSeniorityId } from "@/lib/ai-dc-match";
@@ -98,9 +99,21 @@ export async function createConsultantAction(formData: FormData) {
       dateCollecte,
       dateConservationLimite: computeRetentionDate(dateCollecte, 24),
       statutPublication: STATUT_PUBLICATION.BROUILLON,
-      cvFileUrl: savedCv?.storedName ?? null,
-      cvFileNomOriginal: savedCv?.originalName ?? null,
       sourceCvTexte: cvText || null,
+      ...(savedCv
+        ? {
+            fichiers: {
+              create: [
+                {
+                  type: "CV",
+                  storedName: savedCv.storedName,
+                  nomOriginal: savedCv.originalName,
+                  createdById: businessManagerId,
+                },
+              ],
+            },
+          }
+        : {}),
     },
   });
 
@@ -119,11 +132,11 @@ export async function updateConsultantAction(formData: FormData) {
     Number(formData.get("dureeConservationMois")) || 24;
 
   const cvFile = formData.get("cvFile");
+  // Un nouveau CV s'ajoute à l'historique, il ne remplace/supprime jamais
+  // les précédents (plusieurs versions du CV peuvent coexister, voir
+  // l'onglet "Pièces jointes").
   const savedCv =
     cvFile instanceof File && cvFile.size > 0 ? await saveCvFile(cvFile) : null;
-  if (savedCv) {
-    await deleteCvFile(consultant.cvFileUrl);
-  }
   const cvText = savedCv ? await extractFileText(cvFile).catch(() => "") : "";
 
   const anneesExperience = formData.get("anneesExperience")
@@ -186,13 +199,7 @@ export async function updateConsultantAction(formData: FormData) {
     rayonKm: formData.get("rayonKm") ? Number(formData.get("rayonKm")) : null,
     ouvertGrandDeplacement: formData.get("ouvertGrandDeplacement") === "on",
     ...resolveVille(String(formData.get("villeRattachement") ?? "")),
-    ...(savedCv
-      ? {
-          cvFileUrl: savedCv.storedName,
-          cvFileNomOriginal: savedCv.originalName,
-          sourceCvTexte: cvText || null,
-        }
-      : {}),
+    ...(savedCv ? { sourceCvTexte: cvText || null } : {}),
   };
 
   const secteurIds = getMulti(formData, "secteurIds");
@@ -224,6 +231,19 @@ export async function updateConsultantAction(formData: FormData) {
 
   await prisma.$transaction([
     prisma.consultant.update({ where: { id }, data }),
+    ...(savedCv
+      ? [
+          prisma.consultantFichier.create({
+            data: {
+              consultantId: id,
+              type: "CV",
+              storedName: savedCv.storedName,
+              nomOriginal: savedCv.originalName,
+              createdById: session.user.id,
+            },
+          }),
+        ]
+      : []),
     ...(statutChange
       ? [
           prisma.suiviCandidat.create({
@@ -389,11 +409,16 @@ export async function purgeConsultantAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const consultant = await prisma.consultant.findUnique({
     where: { id },
-    select: { cvFileUrl: true },
+    select: { fichiers: { select: { type: true, storedName: true } } },
   });
   await prisma.consultant.delete({ where: { id } });
+  // La suppression en cascade retire les lignes ConsultantFichier, mais pas
+  // les fichiers eux-mêmes dans le stockage objet — à faire explicitement.
   if (consultant) {
-    await deleteCvFile(consultant.cvFileUrl);
+    for (const f of consultant.fichiers) {
+      if (f.type === "CV") await deleteCvFile(f.storedName);
+      else await deleteDcFile(f.storedName);
+    }
   }
   revalidatePath("/admin/consultants");
   redirect("/admin/consultants");

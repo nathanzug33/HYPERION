@@ -228,11 +228,22 @@ export async function applyDcFromIaAction(
         genereParIA: true,
         sourceCvTexte: cvText,
         sourceTranscriptTexte: transcriptText || consultant.sourceTranscriptTexte,
-        ...(savedCv
-          ? { cvFileUrl: savedCv.storedName, cvFileNomOriginal: savedCv.originalName }
-          : {}),
       },
     }),
+
+    ...(savedCv
+      ? [
+          prisma.consultantFichier.create({
+            data: {
+              consultantId: id,
+              type: "CV",
+              storedName: savedCv.storedName,
+              nomOriginal: savedCv.originalName,
+              createdById: session.user.id,
+            },
+          }),
+        ]
+      : []),
 
     prisma.consultantSecteur.deleteMany({ where: { consultantId: id } }),
     prisma.consultantSecteur.createMany({

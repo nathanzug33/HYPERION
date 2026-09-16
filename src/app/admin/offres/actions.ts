@@ -175,10 +175,24 @@ export async function ajouterCandidatureAuVivierAction(formData: FormData) {
       dateCollecte,
       dateConservationLimite: computeRetentionDate(dateCollecte, 24),
       statutPublication: STATUT_PUBLICATION.BROUILLON,
-      cvFileUrl: candidature.cvFileUrl,
-      cvFileNomOriginal: candidature.cvFileNomOriginal,
       consentementRgpd: candidature.consentementRgpd,
       consentementDate: candidature.consentementRgpd ? candidature.createdAt : null,
+      ...(candidature.cvFileUrl
+        ? {
+            fichiers: {
+              create: [
+                {
+                  type: "CV",
+                  storedName: candidature.cvFileUrl,
+                  nomOriginal:
+                    candidature.cvFileNomOriginal ||
+                    `CV_${candidature.prenom}_${candidature.nom}.pdf`,
+                  createdById: session.user.id,
+                },
+              ],
+            },
+          }
+        : {}),
     },
   });
 

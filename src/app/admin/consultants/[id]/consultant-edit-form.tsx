@@ -6,6 +6,7 @@ import type {
   Consultant,
   ConsultantCompetence,
   ConsultantExpertise,
+  ConsultantFichier,
   ConsultantLangue,
   ConsultantSecteur,
   ConsultantTypeMobilite,
@@ -39,6 +40,7 @@ type ConsultantWithRelations = Consultant & {
   formations: Formation[];
   experiences: Experience[];
   seniority: Seniorite | null;
+  fichiers: ConsultantFichier[];
 };
 
 type Referential = { id: string; label: string };
@@ -410,39 +412,86 @@ export default function ConsultantEditForm({
         </div>
 
         {/* --- Pièces jointes ---------------------------------------------- */}
-        <div hidden={tab !== "pieces"} className="space-y-4">
-          <div className="card p-5 space-y-2">
-            <h3 className="text-sm font-semibold text-brand-ink">CV</h3>
-            <Field label={consultant.cvFileUrl ? "Remplacer le CV" : "CV"}>
-              <input
-                type="file"
-                name="cvFile"
-                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                className="block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-3 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
-              />
-            </Field>
-            {consultant.cvFileUrl && (
+        <div hidden={tab !== "pieces"} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-4">
+            <div className="card p-5 space-y-2">
+              <h3 className="text-sm font-semibold text-brand-ink">CV</h3>
+              <Field label="Ajouter un CV">
+                <input
+                  type="file"
+                  name="cvFile"
+                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-3 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
+                />
+              </Field>
               <p className="text-xs text-brand-gray">
-                CV actuel :{" "}
-                <a
-                  href={`/admin/consultants/${consultant.id}/cv`}
-                  className="font-medium text-brand-blue hover:underline"
-                >
-                  {consultant.cvFileNomOriginal || "télécharger"}
-                </a>
-                . Choisissez un fichier ci-dessus pour le remplacer (nécessite d&apos;enregistrer).
+                S&apos;ajoute aux CV déjà enregistrés (à droite) — aucun n&apos;est jamais
+                remplacé. Nécessite d&apos;enregistrer les modifications.
               </p>
-            )}
+            </div>
+
+            <div className="card p-5 space-y-2">
+              <h3 className="text-sm font-semibold text-brand-ink">DC — format HYPERION</h3>
+              <a href={`/admin/consultants/${consultant.id}/export-word`} className="btn btn-accent">
+                Générer le DC (Word)
+              </a>
+              <p className="text-xs text-brand-gray">
+                Généré à partir des données actuelles du dossier (profil, compétences,
+                formations, expériences) et conservé à droite avec les versions précédentes.
+              </p>
+            </div>
           </div>
 
-          <div className="card p-5 space-y-2">
-            <h3 className="text-sm font-semibold text-brand-ink">DC — format HYPERION</h3>
-            <a href={`/admin/consultants/${consultant.id}/export-word`} className="btn btn-accent">
-              Télécharger le DC (Word)
-            </a>
-            <p className="text-xs text-brand-gray">
-              Généré à partir des données du dossier (profil, compétences, formations, expériences).
-            </p>
+          <div className="card p-4">
+            <h3 className="mb-2 text-sm font-semibold text-brand-ink">
+              Fichiers enregistrés{" "}
+              {consultant.fichiers.length > 0 && `(${consultant.fichiers.length})`}
+            </h3>
+            {consultant.fichiers.length === 0 ? (
+              <p className="text-xs text-brand-gray">Aucun fichier pour le moment.</p>
+            ) : (
+              <ul className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
+                {consultant.fichiers.map((f) => (
+                  <li
+                    key={f.id}
+                    className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span
+                          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                            f.type === "CV"
+                              ? "bg-brand-blue-bg text-brand-blue-dark"
+                              : "bg-brand-green/10 text-brand-green"
+                          }`}
+                        >
+                          {f.type === "CV" ? "CV" : "DC"}
+                        </span>
+                        <a
+                          href={`/admin/consultants/${consultant.id}/fichiers/${f.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Aperçu"
+                          className="mt-1 block truncate font-medium text-brand-ink hover:text-brand-blue-dark hover:underline"
+                        >
+                          {f.nomOriginal}
+                        </a>
+                        <div className="mt-0.5 text-brand-gray">
+                          {new Date(f.createdAt).toLocaleDateString("fr-FR")}
+                        </div>
+                      </div>
+                      <a
+                        href={`/admin/consultants/${consultant.id}/fichiers/${f.id}?disposition=attachment`}
+                        title="Télécharger"
+                        className="shrink-0 link-underline text-brand-blue-dark"
+                      >
+                        ⬇️
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 

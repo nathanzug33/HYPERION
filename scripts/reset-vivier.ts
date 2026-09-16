@@ -1,22 +1,26 @@
 import { PrismaClient } from "@prisma/client";
-import { unlink } from "node:fs/promises";
-import path from "node:path";
+import { deleteCvFile } from "../src/lib/cv-storage";
+import { deleteDcFile } from "../src/lib/dc-storage";
 
 // Réinitialise le vivier ATS à zéro : supprime tous les dossiers candidats
-// (Consultant) et les CV stockés sur disque, ainsi que les missions qui
-// leur sont liées (une mission n'a pas de sens sans le consultant staffé).
-// Ne touche ni au CRM (entreprises/besoins/offres), ni aux comptes
-// utilisateurs — pour désactiver un accès BM, utiliser le bouton "Révoquer
-// l'accès" sur /admin/utilisateurs.
+// (Consultant) et leurs pièces jointes (CV/DC, stockage objet Supabase),
+// ainsi que les missions qui leur sont liées (une mission n'a pas de sens
+// sans le consultant staffé). Ne touche ni au CRM (entreprises/besoins/
+// offres), ni aux comptes utilisateurs — pour désactiver un accès BM,
+// utiliser le bouton "Révoquer l'accès" sur /admin/utilisateurs.
 //
 // Usage : npm run db:reset-vivier
 
 const prisma = new PrismaClient();
-const CV_DIR = path.join(process.cwd(), "storage", "cv");
 
 async function main() {
   const consultants = await prisma.consultant.findMany({
-    select: { id: true, cvFileUrl: true, prenom: true, nom: true },
+    select: {
+      id: true,
+      prenom: true,
+      nom: true,
+      fichiers: { select: { type: true, storedName: true } },
+    },
   });
 
   if (consultants.length === 0) {
@@ -34,19 +38,17 @@ async function main() {
     prisma.consultant.deleteMany({ where: { id: { in: consultantIds } } }),
   ]);
 
-  let cvSupprimes = 0;
+  let fichiersSupprimes = 0;
   for (const c of consultants) {
-    if (!c.cvFileUrl) continue;
-    try {
-      await unlink(path.join(CV_DIR, c.cvFileUrl));
-      cvSupprimes++;
-    } catch {
-      // Fichier déjà absent sur le disque : rien à faire.
+    for (const f of c.fichiers) {
+      if (f.type === "CV") await deleteCvFile(f.storedName);
+      else await deleteDcFile(f.storedName);
+      fichiersSupprimes++;
     }
   }
 
   console.log(
-    `\nTerminé : ${consultants.length} dossier(s) et ${cvSupprimes} fichier(s) CV supprimés.`
+    `\nTerminé : ${consultants.length} dossier(s) et ${fichiersSupprimes} fichier(s) (CV/DC) supprimés.`
   );
 }
 
