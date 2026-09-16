@@ -5,7 +5,23 @@
 // au chargement sur Vercel avec "ReferenceError: DOMMatrix is not defined"
 // — une dépendance de pdf-parse référence une API navigateur dès son
 // évaluation, incompatible avec l'environnement serverless.
+//
+// Même en appelant pdf-parse uniquement au bon moment, l'erreur persiste en
+// production (Vercel) : pdf-parse tente de fournir DOMMatrix lui-même via le
+// binaire natif @napi-rs/canvas, qui échoue silencieusement à charger sur
+// l'environnement serverless de Vercel (mismatch de plateforme). Comme on
+// n'a besoin que d'extraire du texte (jamais de rendu image), on fournit
+// nous-mêmes un DOMMatrix "shim" pur JS (aucun binaire natif, donc portable
+// partout) avant d'importer pdf-parse — s'il en existe déjà un (le binaire
+// natif a fonctionné), on ne le remplace pas.
+async function ensureDOMMatrixPolyfill(): Promise<void> {
+  if (typeof globalThis.DOMMatrix !== "undefined") return;
+  const { default: CSSMatrix } = await import("@thednp/dommatrix");
+  globalThis.DOMMatrix = CSSMatrix as unknown as typeof DOMMatrix;
+}
+
 export async function extractPdfText(buffer: Buffer): Promise<string> {
+  await ensureDOMMatrixPolyfill();
   const { PDFParse } = await import("pdf-parse");
   let parser: InstanceType<typeof PDFParse>;
   try {
