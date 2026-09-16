@@ -11,7 +11,7 @@ import { extractFileText, extractTextFromBuffer } from "@/lib/cv-text";
 import { saveCvFile, readCvFile } from "@/lib/cv-storage";
 import { saveDcFile, readDcFile } from "@/lib/dc-storage";
 import { saveTranscriptFile, saveTranscriptText, readTranscriptFile } from "@/lib/transcript-storage";
-import { buildDcDocx, dcConsultantInclude } from "@/lib/dc-docx";
+import { buildDcDocx, dcConsultantInclude, formatDcFilename } from "@/lib/dc-docx";
 import { findVille } from "@/lib/villes-france";
 import { findOrCreateByLabel, matchIds, deriveSeniorityId } from "@/lib/ai-dc-match";
 import { COMPETENCE_CATEGORIES } from "@/lib/constants";
@@ -525,9 +525,7 @@ export async function applyGenererDcIaAction(
     const updated = await prisma.consultant.findUnique({ where: { id }, include: dcConsultantInclude });
     if (updated) {
       const buffer = await buildDcDocx(updated);
-      const filename = `DC_HYPERION_${updated.referenceAnonyme}_${updated.nom}_${updated.prenom}.docx`
-        .replace(/\s+/g, "_")
-        .replace(/[^\w.-]/g, "");
+      const filename = formatDcFilename(updated.nom, updated.prenom);
       const savedDc = await saveDcFile(buffer, filename);
       await prisma.consultantFichier.create({
         data: {

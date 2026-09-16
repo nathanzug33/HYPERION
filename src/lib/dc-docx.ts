@@ -101,6 +101,41 @@ const DISPONIBILITE_FULL: Record<string, string> = {
 
 // --- 01 — Expériences clés (cellules dupliquées, 1 par expérience) --------
 
+/** Réajuste proportionnellement la position de la tabulation droite qui
+ * sépare l'année de la durée (ex. « [2025]  →  Depuis 8 mois ») à la
+ * nouvelle largeur de cellule. Sans ça, la position — calibrée pour la
+ * largeur d'origine du gabarit (3 colonnes fixes) — tombe hors de la
+ * cellule dès qu'il y a plus ou moins de 3 expériences (colonnes plus
+ * étroites ou plus larges), et la durée se retrouve collée à l'année au
+ * lieu d'être repoussée à droite. */
+function rescaleTabStop(cellXml: string, originalWidth: number, newWidth: number): string {
+  if (!originalWidth) return cellXml;
+  const scale = newWidth / originalWidth;
+  return cellXml.replace(
+    /(<w:tab\b[^>]*\bw:pos=")(\d+)(")/,
+    (_m, before: string, pos: string, after: string) => `${before}${Math.round(Number(pos) * scale)}${after}`
+  );
+}
+
+/** Réécrit le <w:tblGrid> (déclaration des largeurs de colonnes) qui précède
+ * `beforeIndex` pour qu'il déclare exactement `columnCount` colonnes. Le
+ * gabarit déclare un nombre de colonnes fixe (3, pour 3 expériences/langues
+ * "type") : dès que le nombre de cellules réellement généré diffère (plus ou
+ * moins de 3 éléments), la grille déclarée et le contenu réel de la ligne
+ * désynchronisent — Word "répare" cette incohérence en corrompant
+ * visuellement tout le document (jusqu'au pied de page). */
+function rewriteTblGridBefore(xml: string, beforeIndex: number, columnCount: number, colWidth: number): string {
+  const gridEnd = xml.lastIndexOf("</w:tblGrid>", beforeIndex);
+  if (gridEnd === -1) return xml;
+  const gridStart = xml.lastIndexOf("<w:tblGrid>", gridEnd);
+  if (gridStart === -1) return xml;
+  const gridCols = Array.from(
+    { length: columnCount },
+    () => `<w:gridCol w:w="${Math.round(colWidth)}"/>`
+  ).join("");
+  return xml.slice(0, gridStart) + `<w:tblGrid>${gridCols}</w:tblGrid>` + xml.slice(gridEnd + "</w:tblGrid>".length);
+}
+
 function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"]): string {
   const anchor = "[Depuis X mois]";
   const rows = extractTags(xml, "w:tr");
@@ -110,13 +145,24 @@ function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"
   const cells = extractTags(row.xml, "w:tc");
   if (cells.length === 0) return xml;
   const cellTemplate = cells[0].xml;
+  const originalCellWidthMatch = /<w:tcW\b[^>]*\bw:w="(\d+)"/.exec(cellTemplate);
+  const originalCellWidth = originalCellWidthMatch ? Number(originalCellWidthMatch[1]) : 0;
   const totalWidth = cells.reduce((sum, c) => {
     const m = /<w:tcW\b[^>]*\bw:w="(\d+)"/.exec(c.xml);
     return sum + (m ? Number(m[1]) : 0);
   }, 0);
 
   const items = experiences.slice(0, 12); // garde-fou raisonnable, pas de vraie limite métier
-  const width = items.length > 0 ? totalWidth / items.length : totalWidth;
+
+  if (items.length === 0) {
+    // Une <w:tr> sans aucune cellule est invalide (contrairement à un
+    // <w:tbl> sans ligne) et corrompt visuellement tout le document une
+    // fois ouvert dans Word (jusqu'au pied de page) — on retire la ligne
+    // entière plutôt que de la vider.
+    return xml.slice(0, row.start) + xml.slice(row.end);
+  }
+
+  const width = totalWidth / items.length;
 
   const newCells = items
     .map((exp) => {
@@ -127,12 +173,14 @@ function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"
         exp.missionTitre,
         exp.entreprise,
       ];
-      return setCellWidth(fillSequentialText(cellTemplate, values), width);
+      const filled = fillSequentialText(cellTemplate, values);
+      return setCellWidth(rescaleTabStop(filled, originalCellWidth, width), width);
     })
     .join("");
 
   const newRowXml = row.xml.slice(0, cells[0].start) + newCells + row.xml.slice(cells[cells.length - 1].end);
-  return xml.slice(0, row.start) + newRowXml + xml.slice(row.end);
+  const xmlWithRow = xml.slice(0, row.start) + newRowXml + xml.slice(row.end);
+  return rewriteTblGridBefore(xmlWithRow, row.start, items.length, width);
 }
 
 // --- 03 — Formations & certifications (lignes dupliquées) ------------------
@@ -173,7 +221,12 @@ function fillLanguesSection(xml: string, langues: DcConsultant["langues"]): stri
   }, 0);
 
   const items = langues.slice(0, 12);
-  const width = items.length > 0 ? totalWidth / items.length : totalWidth;
+  if (items.length === 0) {
+    // Même raison que pour les expériences clés : une <w:tr> sans cellule
+    // est invalide et corrompt le rendu du document dans Word.
+    return xml.slice(0, row.start) + xml.slice(row.end);
+  }
+  const width = totalWidth / items.length;
 
   const newCells = items
     .map((l) => {
@@ -183,7 +236,8 @@ function fillLanguesSection(xml: string, langues: DcConsultant["langues"]): stri
     .join("");
 
   const newRowXml = row.xml.slice(0, cells[0].start) + newCells + row.xml.slice(cells[cells.length - 1].end);
-  return xml.slice(0, row.start) + newRowXml + xml.slice(row.end);
+  const xmlWithRow = xml.slice(0, row.start) + newRowXml + xml.slice(row.end);
+  return rewriteTblGridBefore(xmlWithRow, row.start, items.length, width);
 }
 
 // --- 02 — Compétences (5 lignes fixes, mapping direct) ----------------------
@@ -314,9 +368,37 @@ function fillExperiencesDetailleesSection(
   return xml.slice(0, spanStart) + newBlocks + xml.slice(spanEnd);
 }
 
+// --- Identité anonymisée (trigramme) et nom de fichier interne ------------
+
+function stripDiacritics(s: string): string {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+/** Le DC ne porte jamais le nom/prénom en clair (il peut être envoyé tel
+ * quel à un client) : à la place, un trigramme — les deux premières lettres
+ * du nom + la première du prénom (ex. FLEHO Gabriel → FLG). */
+function computeTrigram(nom: string, prenom: string): string {
+  const nomLetters = stripDiacritics(nom).replace(/[^a-zA-Z]/g, "");
+  const prenomLetters = stripDiacritics(prenom).replace(/[^a-zA-Z]/g, "");
+  return `${nomLetters.slice(0, 2).toUpperCase()}${prenomLetters.slice(0, 1).toUpperCase()}`;
+}
+
+/** Nom de fichier interne (jamais envoyé au client tel quel) : nom en
+ * MAJUSCULES, prénom avec seulement l'initiale en majuscule — ex. « FLEHO
+ * Gabriel DC.docx ». Diacritiques neutralisées pour rester un nom de
+ * fichier sûr partout (en-têtes HTTP compris). */
+export function formatDcFilename(nom: string, prenom: string): string {
+  const nomPart = stripDiacritics(nom).trim().toUpperCase();
+  const prenomTrimmed = stripDiacritics(prenom).trim();
+  const prenomPart = prenomTrimmed
+    ? prenomTrimmed.charAt(0).toUpperCase() + prenomTrimmed.slice(1).toLowerCase()
+    : "";
+  return `${[nomPart, prenomPart, "DC"].filter(Boolean).join(" ")}.docx`;
+}
+
 // --- Header, statut, profil (placeholders simples, occurrence unique) ------
 
-function fillSimplePlaceholders(xml: string, c: DcConsultant, anonymize: boolean): string {
+function fillSimplePlaceholders(xml: string, c: DcConsultant): string {
   const anneesLabel = c.anneesExperience != null ? `${c.anneesExperience} ans d'expérience` : "";
   const compClesLabels = c.competences.filter((x) => x.estCle).map((x) => x.competence.label);
   const mobiliteLabel = [c.typesMobilite[0]?.typeMobilite.label, c.villeRattachement]
@@ -325,7 +407,7 @@ function fillSimplePlaceholders(xml: string, c: DcConsultant, anonymize: boolean
 
   const replacements: [string, string][] = [
     ["[Intitulé du poste / spécialité]", c.intitulePoste ?? ""],
-    ["[Prénom NOM]", anonymize ? c.referenceAnonyme : `${c.prenom} ${c.nom}`],
+    ["[Prénom NOM]", computeTrigram(c.nom, c.prenom)],
     ["[X] ans d'expérience", anneesLabel],
     ["[Disponible : immédiatement]", c.disponibilite ? DISPONIBILITE_FULL[c.disponibilite] ?? "" : ""],
     ["[Compétence clé 1]", compClesLabels[0] ?? ""],
@@ -345,11 +427,11 @@ function fillSimplePlaceholders(xml: string, c: DcConsultant, anonymize: boolean
   return xml;
 }
 
-/** anonymize: remplace le nom réel par la référence anonyme dans l'en-tête
- * du document — seule information identifiante présente dans le gabarit
- * (aucun autre placeholder ne porte nom/email/téléphone). Utilisé pour le
- * DC téléchargeable depuis la bibliothèque client. */
-export async function buildDcDocx(c: DcConsultant, opts?: { anonymize?: boolean }): Promise<Buffer> {
+/** Le nom/prénom du candidat n'apparaît jamais dans le document généré
+ * (seul un trigramme, voir computeTrigram) — un DC est prêt à être envoyé
+ * tel quel à un client dès sa génération, qu'il soit téléchargé en interne
+ * ou depuis la bibliothèque client. */
+export async function buildDcDocx(c: DcConsultant): Promise<Buffer> {
   const templateBuffer = await readFile(TEMPLATE_PATH);
   const zip = await JSZip.loadAsync(templateBuffer);
 
@@ -366,7 +448,7 @@ export async function buildDcDocx(c: DcConsultant, opts?: { anonymize?: boolean 
   xml = fillLanguesSection(xml, c.langues);
   xml = fillExperiencesDetailleesSection(xml, c.experiences);
   xml = fillCompetencesSection(xml, c.competenceCategories);
-  xml = fillSimplePlaceholders(xml, c, opts?.anonymize ?? false);
+  xml = fillSimplePlaceholders(xml, c);
 
   zip.file("word/document.xml", xml);
   return zip.generateAsync({ type: "nodebuffer" });

@@ -35,7 +35,7 @@ export async function GET(
     });
   }
 
-  const buffer = await buildDcDocx(consultant, { anonymize: true });
+  const buffer = await buildDcDocx(consultant);
   const filename = `DC_HYPERION_${consultant.referenceAnonyme}.docx`
     .replace(/\s+/g, "_")
     .replace(/[^\w.-]/g, "");
