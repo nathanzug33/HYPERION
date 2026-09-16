@@ -29,6 +29,7 @@
     "next": "16.3.4",
     "next-auth": "^5.0.0-beta.32",
     "otplib": "^13.5.0",
+    "path2d": "^0.3.4",
     "pdfjs-dist": "^5.4.296",
     "prisma": "^6.19.3",
     "qrcode": "^1.5.4",

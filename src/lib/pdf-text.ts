@@ -12,24 +12,50 @@
 // getTextContent() par page (sans jamais appeler page.render()), on évite
 // tout le code de rendu qui en dépend.
 //
-// Reste un problème : pdfjs-dist lui-même définit, dès l'IMPORT du module
-// (pas seulement au rendu), une constante de niveau module `new DOMMatrix()`
-// — il tente de se fournir cette globale via ce même binaire natif
+// Reste un problème : pdfjs-dist lui-même référence, dès l'IMPORT du module
+// (pas seulement au rendu), les globales navigateur DOMMatrix, ImageData et
+// Path2D — il tente de se les fournir via ce même binaire natif
 // @napi-rs/canvas, et se contente d'un avertissement s'il échoue plutôt que
-// de fournir un vrai remplaçant, d'où le crash au chargement. Comme on n'a
-// besoin d'aucune vraie transformation matricielle (juste que le module
-// s'importe sans planter), on fournit nous-mêmes un DOMMatrix "shim" pur JS
-// (@thednp/dommatrix, aucun binaire natif, donc portable partout) AVANT
-// d'importer pdfjs-dist — s'il en existe déjà un (le binaire natif a
-// fonctionné), on ne le remplace pas.
-async function ensureDOMMatrixPolyfill(): Promise<void> {
-  if (typeof globalThis.DOMMatrix !== "undefined") return;
-  const { default: CSSMatrix } = await import("@thednp/dommatrix");
-  globalThis.DOMMatrix = CSSMatrix as unknown as typeof DOMMatrix;
+// de fournir un vrai remplaçant, d'où des échecs au chargement puis pendant
+// l'analyse du document. Comme on n'a besoin d'aucun vrai rendu (juste que
+// le module s'importe et que le document s'ouvre sans planter), on fournit
+// nous-mêmes ces trois globales via des shims purs JS (aucun binaire natif,
+// donc portables partout) AVANT d'importer pdfjs-dist — si l'une existe déjà
+// (le binaire natif a fonctionné pour elle), on ne la remplace pas.
+class ImageDataPolyfill {
+  data: Uint8ClampedArray;
+  width: number;
+  height: number;
+  colorSpace = "srgb";
+  constructor(dataOrWidth: Uint8ClampedArray | number, widthOrHeight: number, height?: number) {
+    if (dataOrWidth instanceof Uint8ClampedArray) {
+      this.data = dataOrWidth;
+      this.width = widthOrHeight;
+      this.height = height!;
+    } else {
+      this.width = dataOrWidth;
+      this.height = widthOrHeight;
+      this.data = new Uint8ClampedArray(this.width * this.height * 4);
+    }
+  }
+}
+
+async function ensureBrowserGlobalsPolyfill(): Promise<void> {
+  if (typeof globalThis.DOMMatrix === "undefined") {
+    const { default: CSSMatrix } = await import("@thednp/dommatrix");
+    globalThis.DOMMatrix = CSSMatrix as unknown as typeof DOMMatrix;
+  }
+  if (typeof globalThis.ImageData === "undefined") {
+    globalThis.ImageData = ImageDataPolyfill as unknown as typeof ImageData;
+  }
+  if (typeof globalThis.Path2D === "undefined") {
+    const { Path2D: Path2DPolyfill } = await import("path2d");
+    globalThis.Path2D = Path2DPolyfill as unknown as typeof Path2D;
+  }
 }
 
 export async function extractPdfText(buffer: Buffer): Promise<string> {
-  await ensureDOMMatrixPolyfill();
+  await ensureBrowserGlobalsPolyfill();
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
   let doc;
