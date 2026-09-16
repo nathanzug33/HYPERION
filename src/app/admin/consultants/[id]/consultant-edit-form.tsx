@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type {
   CompetenceCategorie,
   Consultant,
@@ -25,9 +26,10 @@ import {
   TYPE_CONTRAT_LABELS,
   CIVILITE_LABELS,
 } from "@/lib/constants";
-import { updateConsultantAction } from "../actions";
+import { updateConsultantAction, deleteFichierAction } from "../actions";
 import { VILLES_FRANCE } from "@/lib/villes-france";
 import SuiviSection from "./suivi-section";
+import FichierPreviewModal from "./fichier-preview-modal";
 
 type ConsultantWithRelations = Consultant & {
   secteurs: ConsultantSecteur[];
@@ -94,7 +96,12 @@ export default function ConsultantEditForm({
   canReassignReferent: boolean;
   suivis: Suivi[];
 }) {
+  const router = useRouter();
   const [tab, setTab] = useState<TabKey>("info");
+  const [previewFichier, setPreviewFichier] = useState<{ id: string; nomOriginal: string } | null>(
+    null
+  );
+  const [deletingFichierId, setDeletingFichierId] = useState<string | null>(null);
 
   const fmtDate = (d: Date | null) =>
     d ? new Date(d).toISOString().slice(0, 10) : "";
@@ -494,26 +501,45 @@ export default function ConsultantEditForm({
                         >
                           {f.type === "CV" ? "CV" : f.type === "DC" ? "DC" : "Transcript"}
                         </span>
-                        <a
-                          href={`/admin/consultants/${consultant.id}/fichiers/${f.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => setPreviewFichier({ id: f.id, nomOriginal: f.nomOriginal })}
                           title="Aperçu"
-                          className="mt-1 block truncate font-medium text-brand-ink hover:text-brand-blue-dark hover:underline"
+                          className="mt-1 block max-w-full truncate text-left font-medium text-brand-ink hover:text-brand-blue-dark hover:underline"
                         >
                           {f.nomOriginal}
-                        </a>
+                        </button>
                         <div className="mt-0.5 text-brand-gray">
                           {new Date(f.createdAt).toLocaleDateString("fr-FR")}
                         </div>
                       </div>
-                      <a
-                        href={`/admin/consultants/${consultant.id}/fichiers/${f.id}?disposition=attachment`}
-                        title="Télécharger"
-                        className="shrink-0 link-underline text-brand-blue-dark"
-                      >
-                        ⬇️
-                      </a>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <a
+                          href={`/admin/consultants/${consultant.id}/fichiers/${f.id}?disposition=attachment`}
+                          title="Télécharger"
+                          className="link-underline text-brand-blue-dark"
+                        >
+                          ⬇️
+                        </a>
+                        <button
+                          type="button"
+                          disabled={deletingFichierId === f.id}
+                          onClick={async () => {
+                            if (!window.confirm(`Supprimer « ${f.nomOriginal} » ?`)) return;
+                            setDeletingFichierId(f.id);
+                            try {
+                              await deleteFichierAction(consultant.id, f.id, new FormData());
+                              router.refresh();
+                            } finally {
+                              setDeletingFichierId(null);
+                            }
+                          }}
+                          title="Supprimer"
+                          className="text-brand-gray hover:text-red-600 disabled:opacity-50"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   </li>
                 ))}
@@ -545,6 +571,12 @@ export default function ConsultantEditForm({
           compact={false}
         />
       </div>
+
+      <FichierPreviewModal
+        consultantId={consultant.id}
+        fichier={previewFichier}
+        onClose={() => setPreviewFichier(null)}
+      />
     </div>
   );
 }

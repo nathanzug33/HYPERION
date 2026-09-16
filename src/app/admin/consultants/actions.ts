@@ -442,14 +442,54 @@ export async function purgeConsultantAction(formData: FormData) {
   });
   await prisma.consultant.delete({ where: { id } });
   // La suppression en cascade retire les lignes ConsultantFichier, mais pas
-  // les fichiers eux-mêmes dans le stockage objet — à faire explicitement.
+  // les fichiers eux-mêmes dans le stockage objet — à faire explicitement,
+  // en best-effort : un échec de suppression du fichier réel (Supabase
+  // Storage indisponible, fichier déjà absent...) ne doit jamais empêcher
+  // la suppression du dossier — déjà faite ci-dessus — de s'afficher.
   if (consultant) {
     for (const f of consultant.fichiers) {
-      if (f.type === "CV") await deleteCvFile(f.storedName);
-      else if (f.type === "DC") await deleteDcFile(f.storedName);
-      else await deleteTranscriptFile(f.storedName);
+      try {
+        if (f.type === "CV") await deleteCvFile(f.storedName);
+        else if (f.type === "DC") await deleteDcFile(f.storedName);
+        else await deleteTranscriptFile(f.storedName);
+      } catch (err) {
+        console.error("[purgeConsultantAction] Échec de la suppression d'un fichier en stockage :", err);
+      }
     }
   }
   revalidatePath("/admin/consultants");
   redirect("/admin/consultants");
+}
+
+/** Supprime une seule pièce jointe (CV/DC/transcript) — contrairement à la
+ * purge RGPD, ne touche à rien d'autre sur le dossier. Utilisé depuis
+ * l'onglet "Pièces jointes" (bouton par ligne), appelé directement (pas via
+ * un <form>, imbriqué dans le <form> principal de la fiche donc invalide en
+ * HTML) puis suivi d'un router.refresh() côté client — la revalidation
+ * déclenchée par un Server Action appelé hors du <form> qui porte son
+ * `action` ne rafraîchit pas automatiquement l'arbre React côté client. */
+export async function deleteFichierAction(
+  consultantId: string,
+  fichierId: string,
+  _formData: FormData
+) {
+  await assertOwnership(consultantId);
+
+  const fichier = await prisma.consultantFichier.findUnique({ where: { id: fichierId } });
+  if (!fichier || fichier.consultantId !== consultantId) return;
+
+  await prisma.consultantFichier.delete({ where: { id: fichierId } });
+
+  // Best-effort : un échec de suppression du fichier réel dans le stockage
+  // objet ne doit jamais empêcher la suppression de la référence — déjà
+  // faite ci-dessus — de s'afficher côté utilisateur.
+  try {
+    if (fichier.type === "CV") await deleteCvFile(fichier.storedName);
+    else if (fichier.type === "DC") await deleteDcFile(fichier.storedName);
+    else await deleteTranscriptFile(fichier.storedName);
+  } catch (err) {
+    console.error("[deleteFichierAction] Échec de la suppression du fichier en stockage :", err);
+  }
+
+  revalidatePath(`/admin/consultants/${consultantId}`);
 }
