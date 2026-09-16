@@ -54,8 +54,25 @@ async function ensureBrowserGlobalsPolyfill(): Promise<void> {
   }
 }
 
+// pdfjs-dist n'a pas de vrai Worker navigateur en Node : il retombe sur un
+// "fake worker" qui, par défaut, importe pdf.worker.mjs via un chemin
+// calculé au runtime (relatif à son propre module) — une importation que
+// les outils de traçage de fichiers de Vercel ne détectent pas, d'où
+// "Cannot find module .../pdf.worker.mjs" une fois déployé (le fichier
+// n'est simplement pas inclus dans le bundle de la fonction serverless).
+// pdfjs-dist prévoit justement un mécanisme pour ce cas : s'il trouve déjà
+// `globalThis.pdfjsWorker.WorkerMessageHandler`, il l'utilise directement
+// et ne tente jamais l'import dynamique cassé. On importe donc nous-mêmes
+// ce module, avec un chemin littéral (donc bien détecté par le traçage).
+async function ensureWorkerPolyfill(): Promise<void> {
+  if ((globalThis as { pdfjsWorker?: unknown }).pdfjsWorker) return;
+  const pdfjsWorker = await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
+  (globalThis as { pdfjsWorker?: unknown }).pdfjsWorker = pdfjsWorker;
+}
+
 export async function extractPdfText(buffer: Buffer): Promise<string> {
   await ensureBrowserGlobalsPolyfill();
+  await ensureWorkerPolyfill();
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
   let doc;
