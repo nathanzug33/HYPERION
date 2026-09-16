@@ -3,6 +3,7 @@ import { requireStaff } from "@/lib/guards";
 import { canAccessConsultant } from "@/lib/consultant-access";
 import { readCvFile, mimeTypeFor } from "@/lib/cv-storage";
 import { readDcFile, mimeTypeForDc } from "@/lib/dc-storage";
+import { readTranscriptFile, mimeTypeForTranscript } from "@/lib/transcript-storage";
 
 export async function GET(
   req: Request,
@@ -28,13 +29,22 @@ export async function GET(
   }
 
   const buffer =
-    fichier.type === "CV" ? await readCvFile(fichier.storedName) : await readDcFile(fichier.storedName);
+    fichier.type === "CV"
+      ? await readCvFile(fichier.storedName)
+      : fichier.type === "DC"
+        ? await readDcFile(fichier.storedName)
+        : await readTranscriptFile(fichier.storedName);
   if (!buffer) {
     return new Response("Fichier introuvable sur le serveur", { status: 404 });
   }
 
   const filename = fichier.nomOriginal.replace(/[\r\n"]/g, "").trim();
-  const mimeType = fichier.type === "CV" ? mimeTypeFor(fichier.storedName) : mimeTypeForDc();
+  const mimeType =
+    fichier.type === "CV"
+      ? mimeTypeFor(fichier.storedName)
+      : fichier.type === "DC"
+        ? mimeTypeForDc()
+        : mimeTypeForTranscript(fichier.storedName);
 
   // Aperçu (nouvel onglet) par défaut pour les types que le navigateur sait
   // rendre nativement (PDF) ; téléchargement forcé sinon (?disposition=

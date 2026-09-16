@@ -240,6 +240,7 @@ export default async function ConsultantEditPage({
         propositions={propositions}
         suggestions={suggestionsClientsAvecScore}
         publicView={publicView}
+        fichiers={consultant.fichiers}
       />
 
       <ConsultantEditForm

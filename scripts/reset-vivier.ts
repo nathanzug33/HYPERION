@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { deleteCvFile } from "../src/lib/cv-storage";
 import { deleteDcFile } from "../src/lib/dc-storage";
+import { deleteTranscriptFile } from "../src/lib/transcript-storage";
 
 // Réinitialise le vivier ATS à zéro : supprime tous les dossiers candidats
 // (Consultant) et leurs pièces jointes (CV/DC, stockage objet Supabase),
@@ -42,13 +43,14 @@ async function main() {
   for (const c of consultants) {
     for (const f of c.fichiers) {
       if (f.type === "CV") await deleteCvFile(f.storedName);
-      else await deleteDcFile(f.storedName);
+      else if (f.type === "DC") await deleteDcFile(f.storedName);
+      else await deleteTranscriptFile(f.storedName);
       fichiersSupprimes++;
     }
   }
 
   console.log(
-    `\nTerminé : ${consultants.length} dossier(s) et ${fichiersSupprimes} fichier(s) (CV/DC) supprimés.`
+    `\nTerminé : ${consultants.length} dossier(s) et ${fichiersSupprimes} fichier(s) (CV/DC/transcript) supprimés.`
   );
 }
 

@@ -431,6 +431,31 @@ export default function ConsultantEditForm({
             </div>
 
             <div className="card p-5 space-y-2">
+              <h3 className="text-sm font-semibold text-brand-ink">Transcript d&apos;entretien</h3>
+              <Field label="Déposer un fichier">
+                <input
+                  type="file"
+                  name="transcriptFile"
+                  accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  className="block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-3 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
+                />
+              </Field>
+              <p className="text-xs text-brand-gray">ou collez directement des notes d&apos;entretien :</p>
+              <Field label="Notes tapées">
+                <textarea
+                  name="transcriptText"
+                  rows={4}
+                  placeholder="Notes prises pendant l'entretien..."
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </Field>
+              <p className="text-xs text-brand-gray">
+                Utilisé (avec un CV) comme source pour &laquo;&nbsp;Générer un DC via
+                l&apos;IA&nbsp;&raquo;. Nécessite d&apos;enregistrer les modifications.
+              </p>
+            </div>
+
+            <div className="card p-5 space-y-2">
               <h3 className="text-sm font-semibold text-brand-ink">DC — format HYPERION</h3>
               <a href={`/admin/consultants/${consultant.id}/export-word`} className="btn btn-accent">
                 Générer le DC (Word)
@@ -462,10 +487,12 @@ export default function ConsultantEditForm({
                           className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
                             f.type === "CV"
                               ? "bg-brand-blue-bg text-brand-blue-dark"
-                              : "bg-brand-green/10 text-brand-green"
+                              : f.type === "DC"
+                                ? "bg-brand-green/10 text-brand-green"
+                                : "bg-amber-100 text-amber-700"
                           }`}
                         >
-                          {f.type === "CV" ? "CV" : "DC"}
+                          {f.type === "CV" ? "CV" : f.type === "DC" ? "DC" : "Transcript"}
                         </span>
                         <a
                           href={`/admin/consultants/${consultant.id}/fichiers/${f.id}`}

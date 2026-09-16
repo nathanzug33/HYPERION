@@ -302,22 +302,26 @@ model Consultant {
   @@index([seniorityId])
 }
 
-// Pièces jointes d'un candidat — CV et DC (Word) générés, en plusieurs
-// versions au fil du temps (un profil peut avoir plusieurs CV successifs et
-// plusieurs DC régénérés) : jamais remplacées/écrasées, seulement
-// accumulées, pour garder l'historique visible depuis l'onglet "Pièces
-// jointes" de la fiche candidat.
+// Pièces jointes d'un candidat — CV, DC (Word) générés et transcripts
+// d'entretien, en plusieurs versions au fil du temps (un profil peut avoir
+// plusieurs CV successifs, plusieurs DC régénérés, un transcript par
+// entretien) : jamais remplacées/écrasées, seulement accumulées, pour
+// garder l'historique visible depuis l'onglet "Pièces jointes" de la fiche
+// candidat. Le CV et le transcript les plus récents servent de source par
+// défaut pour "Générer un DC via IA" (voir dc-actions.ts).
 model ConsultantFichier {
   id           String     @id @default(cuid())
   consultantId String
   consultant   Consultant @relation(fields: [consultantId], references: [id], onDelete: Cascade)
 
-  type String // CV | DC
+  type String // CV | DC | TRANSCRIPT
 
   // Même principe que les autres pièces jointes de l'appli : nom de fichier
   // aléatoire stocké (jamais servi directement), nom d'origine conservé
   // pour le Content-Disposition au téléchargement — voir src/lib/cv-storage.ts
-  // (CV) et src/lib/dc-storage.ts (DC).
+  // (CV), src/lib/dc-storage.ts (DC) et src/lib/transcript-storage.ts
+  // (TRANSCRIPT, éventuellement des notes tapées directement plutôt qu'un
+  // vrai fichier déposé).
   storedName  String
   nomOriginal String
 

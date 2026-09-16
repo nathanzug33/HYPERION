@@ -152,7 +152,7 @@ Réponds UNIQUEMENT avec un objet JSON valide respectant exactement ce schéma J
 ${jsonSchema}`;
 }
 
-function describeAnthropicError(err: unknown): string {
+export function describeAnthropicError(err: unknown): string {
   if (err instanceof Anthropic.AuthenticationError) {
     return "Clé ANTHROPIC_API_KEY invalide ou refusée. Vérifiez la valeur dans .env et relancez le serveur.";
   }
@@ -175,7 +175,7 @@ function describeAnthropicError(err: unknown): string {
   return "Erreur inconnue.";
 }
 
-function extractJsonObject(text: string): unknown {
+export function extractJsonObject(text: string): unknown {
   // Retire un éventuel bloc de code markdown (```json ... ``` ou ``` ... ```)
   const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text);
   const candidate = fenced ? fenced[1] : text;

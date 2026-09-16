@@ -16,6 +16,7 @@ import { findVille } from "@/lib/villes-france";
 import { canAccessConsultant } from "@/lib/consultant-access";
 import { saveCvFile, deleteCvFile } from "@/lib/cv-storage";
 import { deleteDcFile } from "@/lib/dc-storage";
+import { saveTranscriptFile, saveTranscriptText, deleteTranscriptFile } from "@/lib/transcript-storage";
 import { extractFileText } from "@/lib/cv-text";
 import { findConsultantDuplicates } from "@/lib/duplicate-detection";
 import { deriveSeniorityId } from "@/lib/ai-dc-match";
@@ -139,6 +140,21 @@ export async function updateConsultantAction(formData: FormData) {
     cvFile instanceof File && cvFile.size > 0 ? await saveCvFile(cvFile) : null;
   const cvText = savedCv ? await extractFileText(cvFile).catch(() => "") : "";
 
+  // Transcript d'entretien : soit un fichier déposé, soit des notes tapées
+  // directement (converties en .txt) — un entretien n'a pas toujours donné
+  // lieu à une vraie transcription.
+  const transcriptFile = formData.get("transcriptFile");
+  const transcriptTextRaw = String(formData.get("transcriptText") ?? "").trim();
+  const savedTranscript =
+    transcriptFile instanceof File && transcriptFile.size > 0
+      ? await saveTranscriptFile(transcriptFile)
+      : transcriptTextRaw
+        ? await saveTranscriptText(
+            transcriptTextRaw,
+            `Notes d'entretien ${new Date().toLocaleDateString("fr-FR")}`
+          )
+        : null;
+
   const anneesExperience = formData.get("anneesExperience")
     ? Number(formData.get("anneesExperience"))
     : null;
@@ -239,6 +255,19 @@ export async function updateConsultantAction(formData: FormData) {
               type: "CV",
               storedName: savedCv.storedName,
               nomOriginal: savedCv.originalName,
+              createdById: session.user.id,
+            },
+          }),
+        ]
+      : []),
+    ...(savedTranscript
+      ? [
+          prisma.consultantFichier.create({
+            data: {
+              consultantId: id,
+              type: "TRANSCRIPT",
+              storedName: savedTranscript.storedName,
+              nomOriginal: savedTranscript.originalName,
               createdById: session.user.id,
             },
           }),
@@ -417,7 +446,8 @@ export async function purgeConsultantAction(formData: FormData) {
   if (consultant) {
     for (const f of consultant.fichiers) {
       if (f.type === "CV") await deleteCvFile(f.storedName);
-      else await deleteDcFile(f.storedName);
+      else if (f.type === "DC") await deleteDcFile(f.storedName);
+      else await deleteTranscriptFile(f.storedName);
     }
   }
   revalidatePath("/admin/consultants");

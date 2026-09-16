@@ -9,6 +9,7 @@ import ConsultantBrief from "@/components/consultant/ConsultantBrief";
 import SuiviSection from "./suivi-section";
 import PushCandidatForm from "./push-candidat-form";
 import TaggingIaForm from "./tagging-ia-form";
+import GenererDcIaForm from "./generer-dc-ia-form";
 import {
   publishConsultantAction,
   unpublishConsultantAction,
@@ -42,11 +43,14 @@ type Proposition = {
 
 type Suggestion = { id: string; nom: string; match: MatchResult };
 
+type Fichier = { id: string; type: string; nomOriginal: string; createdAt: Date | string };
+
 const TABS = [
   { key: "action", label: "Action" },
   { key: "push", label: "Push" },
   { key: "apercu", label: "Aperçu" },
   { key: "tagging", label: "Tagging IA" },
+  { key: "generer-dc", label: "✨ Générer un DC via l'IA" },
 ] as const;
 type PopupKey = (typeof TABS)[number]["key"];
 
@@ -61,6 +65,7 @@ export default function CandidateActionsBar({
   propositions,
   suggestions,
   publicView,
+  fichiers,
 }: {
   consultantId: string;
   consultantEmail: string | null;
@@ -72,6 +77,7 @@ export default function CandidateActionsBar({
   propositions: Proposition[];
   suggestions: Suggestion[];
   publicView: ConsultantPublic | null;
+  fichiers: Fichier[];
 }) {
   const [open, setOpen] = useState<PopupKey | null>(null);
 
@@ -220,7 +226,11 @@ export default function CandidateActionsBar({
             </div>
           )}
 
-          {open === "tagging" && <TaggingIaForm consultantId={consultantId} />}
+          {open === "tagging" && <TaggingIaForm consultantId={consultantId} fichiers={fichiers} />}
+
+          {open === "generer-dc" && (
+            <GenererDcIaForm consultantId={consultantId} fichiers={fichiers} />
+          )}
         </div>
       )}
     </>
