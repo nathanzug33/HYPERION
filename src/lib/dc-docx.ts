@@ -189,6 +189,20 @@ function rewriteTblGridBefore(xml: string, beforeIndex: number, columnCount: num
   return xml.slice(0, span.start) + `<w:tblGrid>${gridCols}</w:tblGrid>` + xml.slice(span.end);
 }
 
+/** Insère une véritable tabulation (caractère, pas seulement le taquet
+ * déclaré dans le <w:pPr>) entre le 1ᵉʳ et le 2ᵉ run d'un fragment, si elle
+ * n'y est pas déjà — nécessaire avec le gabarit actuel (export Google Docs)
+ * qui déclare le taquet (`<w:tabs><w:tab w:pos="…"/></w:tabs>`) sans jamais
+ * insérer le caractère de tabulation lui-même, ce qui collerait sinon la
+ * durée juste après l'année au lieu de la repousser au taquet. */
+function ensureTabRun(fragment: string): string {
+  if (/<w:tab\/>/.test(fragment)) return fragment;
+  const firstRunEnd = fragment.indexOf("</w:r>");
+  if (firstRunEnd === -1) return fragment;
+  const insertAt = firstRunEnd + "</w:r>".length;
+  return fragment.slice(0, insertAt) + "<w:r><w:tab/></w:r>" + fragment.slice(insertAt);
+}
+
 function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"]): string {
   const anchor = "[Depuis X mois]";
   const rows = extractTags(xml, "w:tr");
@@ -197,7 +211,13 @@ function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"
 
   const cells = extractTags(row.xml, "w:tc");
   if (cells.length === 0) return xml;
-  const cellTemplate = cells[0].xml;
+  // Le gabarit ne contient qu'un texte « [2025] » (année), « [Depuis X mois] »
+  // (durée), « [Intitulé du poste] » et « [Entreprise cliente] » — 4 nœuds
+  // <w:t>, sans caractère de tabulation entre les deux premiers (voir
+  // ensureTabRun) : la valeur doit correspondre exactement à cet ordre, faute
+  // de quoi chaque valeur atterrit dans le mauvais texte et les placeholders
+  // suivants restent affichés tels quels entre crochets.
+  const cellTemplate = ensureTabRun(cells[0].xml);
   const { total: totalWidth, first: originalCellWidth } = readTblGridWidths(xml, row.start);
 
   const items = experiences.slice(0, 12); // garde-fou raisonnable, pas de vraie limite métier
@@ -216,7 +236,6 @@ function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"
     .map((exp) => {
       const values = [
         exp.dateDebut ? String(exp.dateDebut.getFullYear()) : "",
-        null, // tabulation
         formatDuree(exp.dateDebut, exp.dateFin),
         exp.missionTitre,
         exp.entreprise,
@@ -380,16 +399,19 @@ function fillExperiencesDetailleesSection(
     let block = blockTemplateXml.replace(realisationTemplateXml, " REALISATIONS ");
 
     // fillSequentialText opère sur l'ensemble du bloc (hors zone réalisations,
-    // neutralisée ci-dessus) : le nombre de <w:t> restants correspond à
-    // l'ordre entreprise/dateRange/duree/secteur/mission/contexte/« Réalisations »
-    // (libellé)/env — deux libellés fixes ("Réalisations" et "Environnement
-    // technique : ") occupent chacun leur propre nœud <w:t> juste avant la
-    // valeur d'environnement, d'où les deux `null` consécutifs en fin de liste.
+    // neutralisée ci-dessus) : le nombre et l'ordre des <w:t> restants
+    // correspondent EXACTEMENT à ceux du gabarit actuel — entreprise / « — »
+    // (séparateur statique) / dateRange / durée / « Secteur : » (libellé
+    // statique) / secteur / « Mission : » (libellé statique) / mission /
+    // « Contexte & objectif : » (libellé statique) / contexte / « Réalisations »
+    // (libellé statique) / « Environnement technique : » (libellé statique) /
+    // environnement — chaque libellé statique doit rester un `null` à sa
+    // place exacte, sinon la valeur suivante écrase le libellé au lieu du
+    // placeholder, qui reste alors affiché tel quel entre crochets.
     block = fillSequentialText(block, [
       exp.entreprise,
       null,
       `${formatMoisAnnee(exp.dateDebut)} à ${formatMoisAnnee(exp.dateFin)}`,
-      null,
       formatDuree(exp.dateDebut, exp.dateFin),
       null,
       exp.secteurActivite ?? "",
