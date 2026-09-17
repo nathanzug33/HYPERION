@@ -2,7 +2,9 @@
 
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/guards";
 import { sendAccountInvitationEmail } from "@/lib/mail";
@@ -119,4 +121,39 @@ export async function toggleUserActive(formData: FormData) {
   if (!id) return;
   await prisma.user.update({ where: { id }, data: { active: !active } });
   revalidatePath("/admin/utilisateurs");
+}
+
+/** Suppression définitive (contrairement à « Révoquer l'accès », qui ne
+ * fait que désactiver la connexion en conservant tout l'historique). Un
+ * compte qui est encore référent d'un dossier (candidat, entreprise,
+ * besoin…) ou qui a créé des éléments d'historique (suivis, pièces
+ * jointes…) ne peut pas être supprimé — la contrainte de clé étrangère de
+ * la base l'en empêche — il faut d'abord réassigner ses dossiers, ou se
+ * contenter de révoquer l'accès pour conserver cet historique. */
+export async function deleteUserAction(formData: FormData) {
+  const session = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  if (id === session.user.id) {
+    redirect(
+      `/admin/utilisateurs?error=${encodeURIComponent("Vous ne pouvez pas supprimer votre propre compte.")}`
+    );
+  }
+
+  try {
+    await prisma.user.delete({ where: { id } });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
+      redirect(
+        `/admin/utilisateurs?error=${encodeURIComponent(
+          "Impossible de supprimer ce compte : il est encore référent d'au moins un dossier (candidat, entreprise, besoin, mission…) ou a créé des éléments d'historique (suivis, pièces jointes…). Réassignez d'abord ses dossiers, ou utilisez « Révoquer l'accès » pour bloquer la connexion tout en conservant l'historique."
+        )}`
+      );
+    }
+    throw err;
+  }
+
+  revalidatePath("/admin/utilisateurs");
+  redirect(`/admin/utilisateurs?success=${encodeURIComponent("Compte supprimé.")}`);
 }

@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/guards";
 import { ROLE_LABELS } from "@/lib/constants";
 import { toggleUserActive, resendInvitationAction } from "./actions";
 import CreateUserForm from "./create-user-form";
+import DeleteUserButton from "./delete-user-button";
 import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
 import SortableHeader from "@/components/SortableHeader";
 
@@ -13,10 +14,10 @@ const SORT_KEYS = ["nom", "email", "role", "org", "connexion", "statut"] as cons
 export default async function UtilisateursPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string }>;
+  searchParams: Promise<{ sort?: string; error?: string; success?: string }>;
 }) {
-  await requireAdmin();
-  const { sort } = await searchParams;
+  const session = await requireAdmin();
+  const { sort, error, success } = await searchParams;
 
   const sortState = parseSort(sort, SORT_KEYS);
   const hrefFor = (key: string) => buildSortHref("/admin/utilisateurs", {}, nextSort(key, sortState));
@@ -50,6 +51,17 @@ export default async function UtilisateursPage({
       <div>
         <h1 className="text-2xl font-semibold text-brand-ink">Utilisateurs</h1>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800 shadow-sm">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="rounded-xl border border-brand-green/30 bg-brand-green/10 px-4 py-3.5 text-sm text-brand-green shadow-sm">
+          {success}
+        </div>
+      )}
 
       <CreateUserForm organizations={organizations} />
 
@@ -133,6 +145,7 @@ export default async function UtilisateursPage({
                         {u.active ? "Révoquer l'accès" : "Réactiver"}
                       </button>
                     </form>
+                    {u.id !== session.user.id && <DeleteUserButton id={u.id} name={u.name} />}
                   </div>
                 </td>
               </tr>
