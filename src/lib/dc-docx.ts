@@ -188,7 +188,12 @@ function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"
   const cellTemplate = cells[0].xml;
   const { total: totalWidth } = readTblGridWidths(xml, row.start);
 
-  const items = experiences.slice(0, 12); // garde-fou raisonnable, pas de vraie limite métier
+  // Sélection des expériences réellement représentatives (choisies par l'IA à
+  // la génération, cf. ai-dc.ts), jamais une simple troncature par récence —
+  // avec repli sur les plus récentes si aucune n'est marquée clé (dossier
+  // saisi/importé manuellement, ou généré avant l'introduction du champ).
+  const clesExperiences = experiences.filter((e) => e.estCle);
+  const items = (clesExperiences.length > 0 ? clesExperiences : experiences).slice(0, 12);
 
   if (items.length === 0) {
     // Une <w:tr> sans aucune cellule est invalide (contrairement à un
@@ -446,7 +451,12 @@ export function formatDcFilename(nom: string, prenom: string): string {
 function fillSimplePlaceholders(xml: string, c: DcConsultant): string {
   const anneesLabel =
     c.anneesExperience != null ? `${c.anneesExperience} an${c.anneesExperience === 1 ? "" : "s"} d'expérience` : "";
-  const compClesLabels = c.competences.filter((x) => x.estCle).map((x) => x.competence.label);
+  // Repli si aucune compétence n'est marquée clé (dossier saisi/importé avant
+  // l'introduction du champ, ou correspondance IA n'ayant rien pu résoudre) :
+  // les 3 premières plutôt qu'un en-tête vide.
+  const compClesLabels = c.competences.some((x) => x.estCle)
+    ? c.competences.filter((x) => x.estCle).map((x) => x.competence.label)
+    : c.competences.slice(0, 3).map((x) => x.competence.label);
   const mobiliteLabel = [c.typesMobilite[0]?.typeMobilite.label, c.villeRattachement]
     .filter(Boolean)
     .join(" / ");

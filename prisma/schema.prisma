@@ -861,7 +861,10 @@ model Formation {
   @@index([consultantId])
 }
 
-// "05 — Expériences détaillées" (missions), 01 se déduit des N premières.
+// "05 — Expériences détaillées" (missions) ; "01 — Expériences clés" affiche
+// celles marquées estCle (choisies par l'IA à la génération selon leur
+// pertinence, pas simplement les plus récentes — cf. ai-dc.ts), avec repli
+// sur les plus récentes si aucune n'est marquée (saisie manuelle).
 model Experience {
   id           String     @id @default(cuid())
   consultantId String
@@ -875,6 +878,7 @@ model Experience {
   contexteObjectif       String?
   realisations           String? // une réalisation par ligne
   environnementTechnique String?
+  estCle                 Boolean   @default(false)
   ordre                  Int       @default(0)
 
   createdAt DateTime @default(now())

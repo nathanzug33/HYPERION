@@ -15,6 +15,7 @@ import { buildDcDocx, dcConsultantInclude, formatDcFilename } from "@/lib/dc-doc
 import { findVille } from "@/lib/villes-france";
 import { findOrCreateByLabel, matchIds, deriveSeniorityId } from "@/lib/ai-dc-match";
 import { COMPETENCE_CATEGORIES } from "@/lib/constants";
+import { resolveCompetencesCles } from "@/lib/competences-cles";
 
 function parseMonthDate(value: string | null): Date | null {
   if (!value) return null;
@@ -118,7 +119,7 @@ export async function applyTaggingIaAction(
     prisma.competence,
     generated.competencesTechnologies
   );
-  const cles = new Set(generated.competencesCles.map((c) => c.toLowerCase()));
+  const cles = resolveCompetencesCles(generated.competencesTechnologies, generated.competencesCles);
 
   const savedUpload = hasUpload ? await saveCvFile(cvFileValue as File) : null;
 
@@ -149,7 +150,7 @@ export async function applyTaggingIaAction(
       data: generated.competencesTechnologies.map((label) => ({
         consultantId: id,
         competenceId: competenceIdByLabel.get(label)!,
-        estCle: cles.has(label.toLowerCase()),
+        estCle: cles.has(label),
       })),
     }),
     prisma.competenceCategorie.deleteMany({ where: { consultantId: id } }),
@@ -384,7 +385,7 @@ export async function applyGenererDcIaAction(
     generated.langues.map((l) => l.label)
   );
 
-  const cles = new Set(generated.competencesCles.map((c) => c.toLowerCase()));
+  const cles = resolveCompetencesCles(generated.competencesTechnologies, generated.competencesCles);
   const villeRef = generated.villeRattachement ? findVille(generated.villeRattachement) : null;
 
   await prisma.$transaction([
@@ -463,7 +464,7 @@ export async function applyGenererDcIaAction(
       data: generated.competencesTechnologies.map((label) => ({
         consultantId: id,
         competenceId: competenceIdByLabel.get(label)!,
-        estCle: cles.has(label.toLowerCase()),
+        estCle: cles.has(label),
       })),
     }),
     prisma.consultantLangue.deleteMany({ where: { consultantId: id } }),
@@ -513,6 +514,7 @@ export async function applyGenererDcIaAction(
         contexteObjectif: e.contexteObjectif,
         realisations: e.realisations.join("\n"),
         environnementTechnique: e.environnementTechnique,
+        estCle: e.estCle,
         ordre: i,
       })),
     }),

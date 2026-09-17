@@ -11,6 +11,7 @@ import { saveCvFile } from "@/lib/cv-storage";
 import { extractFileText } from "@/lib/cv-text";
 import { findConsultantDuplicates } from "@/lib/duplicate-detection";
 import { findOrCreateByLabel, matchIds, deriveSeniorityId } from "@/lib/ai-dc-match";
+import { resolveCompetencesCles } from "@/lib/competences-cles";
 
 export type GenerateIaState = { error?: string };
 
@@ -115,7 +116,7 @@ export async function generateConsultantFromAI(
 
   const reference = await generateNextReference();
   const dateCollecte = new Date();
-  const cles = new Set(generated.competencesCles.map((c) => c.toLowerCase()));
+  const cles = resolveCompetencesCles(generated.competencesTechnologies, generated.competencesCles);
 
   const savedCv =
     cvFileValue instanceof File && cvFileValue.size > 0
@@ -175,7 +176,7 @@ export async function generateConsultantFromAI(
       competences: {
         create: generated.competencesTechnologies.map((label) => ({
           competenceId: competenceIdByLabel.get(label)!,
-          estCle: cles.has(label.toLowerCase()),
+          estCle: cles.has(label),
         })),
       },
       langues: {
@@ -212,6 +213,7 @@ export async function generateConsultantFromAI(
           contexteObjectif: e.contexteObjectif,
           realisations: e.realisations.join("\n"),
           environnementTechnique: e.environnementTechnique,
+          estCle: e.estCle,
           ordre: i,
         })),
       },

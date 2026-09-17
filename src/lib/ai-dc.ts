@@ -123,6 +123,11 @@ const schema = z.object({
         contexteObjectif: z.string().nullable(),
         realisations: z.array(z.string()).describe("2 à 4 réalisations, action + résultat mesurable si possible"),
         environnementTechnique: z.string().nullable(),
+        estCle: z
+          .boolean()
+          .describe(
+            "true si cette expérience doit apparaître dans la frise « Expériences clés » de l'en-tête du DC. Pour un profil avec peu de missions (≤6), marque-les TOUTES true. Pour un profil senior avec de nombreuses missions, sélectionne les 4 à 6 les plus représentatives du profil recherché (envergure, secteur, pertinence) — jamais un simple tri par récence : une mission ancienne mais emblématique peut être plus clé qu'une mission récente mais mineure."
+          ),
       })
     )
     .describe(
