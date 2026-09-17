@@ -160,7 +160,11 @@ export default async function TableauDeBordCommercePage({
     where: {
       ...bmFilter,
       statutCandidatInterne: {
-        in: [STATUT_CANDIDAT_INTERNE.STAFFE, STATUT_CANDIDAT_INTERNE.INTERCONTRAT],
+        in: [
+          STATUT_CANDIDAT_INTERNE.STAFFE,
+          STATUT_CANDIDAT_INTERNE.INTERCONTRAT_A_VENIR,
+          STATUT_CANDIDAT_INTERNE.INTERCONTRAT,
+        ],
       },
     },
     _count: { _all: true },

@@ -60,6 +60,7 @@ export default async function AdminLayout({
             items={[
               { href: "/admin/consultants", label: "Tous les candidats" },
               { href: "/admin/consultants/recherche", label: "Recherche avancée" },
+              { href: "/admin/consultants/intercontrat", label: "Intercontrat / ED" },
               { href: "/admin/offres", label: "Offres" },
             ]}
           />
@@ -68,6 +69,7 @@ export default async function AdminLayout({
             href="/admin/crm"
             items={[
               { href: "/admin/crm", label: "Entreprises" },
+              { href: "/admin/crm/contacts", label: "Contacts" },
               { href: "/admin/crm/besoins", label: "Besoins" },
             ]}
           />
@@ -79,6 +81,8 @@ export default async function AdminLayout({
               { href: "/admin/missions", label: "Portefeuille missions" },
             ]}
           />
+          <SidebarLink href="/admin/listes">Listes</SidebarLink>
+          <SidebarLink href="/admin/rapports">Rapports</SidebarLink>
           <SidebarLink href="/admin/demandes">Demandes</SidebarLink>
           {isAdmin && (
             <>

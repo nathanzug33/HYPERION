@@ -7,8 +7,10 @@ import {
   STATUT_CANDIDAT_INTERNE_LABELS,
 } from "@/lib/constants";
 import { parseSort, nextSort } from "@/lib/sort";
+import { resolveWeekOffset } from "@/lib/periode";
 import SortableHeader from "@/components/SortableHeader";
 import FilterForm from "./filter-form";
+import SaveListButton from "@/components/SaveListButton";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +39,31 @@ export default async function RechercheAvanceePage({
   const seniorite = toArray(sp.seniorite);
   const disponibilite = toArray(sp.disponibilite);
   const statutCandidatInterne = toArray(sp.statutCandidatInterne);
+  const suiviType = typeof sp.suiviType === "string" ? sp.suiviType : "";
+  const suiviPeriode = typeof sp.suiviPeriode === "string" ? sp.suiviPeriode : "semaine";
+  const suiviDebut = typeof sp.suiviDebut === "string" ? sp.suiviDebut : "";
+  const suiviFin = typeof sp.suiviFin === "string" ? sp.suiviFin : "";
+
+  // Filtre "suivi réalisé" (ex. entretiens de la semaine, pour préparer la
+  // réunion du lundi) : dateProgrammee dans la période ET fait=true — même
+  // sémantique de "réalisé" que le score hebdomadaire du tableau de bord
+  // (jamais déduit du simple fait que la date soit passée).
+  function resolveSuiviRange(): { debut: Date; fin: Date } | null {
+    if (suiviPeriode === "custom") {
+      if (!suiviDebut || !suiviFin) return null;
+      return { debut: new Date(`${suiviDebut}T00:00:00`), fin: new Date(`${suiviFin}T23:59:59.999`) };
+    }
+    if (suiviPeriode === "semaine_derniere") return resolveWeekOffset(-1);
+    if (suiviPeriode === "mois") {
+      const now = new Date();
+      return {
+        debut: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0),
+        fin: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
+      };
+    }
+    return resolveWeekOffset(0);
+  }
+  const suiviRange = suiviType ? resolveSuiviRange() : null;
 
   // Tri par colonne — cycle A→Z / Z→A / tri par défaut (dernière mise à
   // jour) au clic sur l'en-tête ; les autres filtres (multi-valeurs) sont
@@ -79,6 +106,17 @@ export default async function RechercheAvanceePage({
       disponibilite.length ? { disponibilite: { in: disponibilite } } : {},
       statutCandidatInterne.length
         ? { statutCandidatInterne: { in: statutCandidatInterne } }
+        : {},
+      suiviType && suiviRange
+        ? {
+            suivis: {
+              some: {
+                type: suiviType,
+                dateProgrammee: { gte: suiviRange.debut, lte: suiviRange.fin },
+                fait: true,
+              },
+            },
+          }
         : {},
       q
         ? {
@@ -151,6 +189,10 @@ export default async function RechercheAvanceePage({
             seniorite,
             disponibilite,
             statutCandidatInterne,
+            suiviType,
+            suiviPeriode,
+            suiviDebut,
+            suiviFin,
           }}
         />
       </aside>
@@ -162,9 +204,12 @@ export default async function RechercheAvanceePage({
               Recherche avancée — base candidats (ATS)
             </h1>
           </div>
-          <span className="rounded-full bg-brand-blue-bg px-3 py-1 text-sm font-medium text-brand-blue-dark">
-            {consultants.length} candidat{consultants.length > 1 ? "s" : ""}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="rounded-full bg-brand-blue-bg px-3 py-1 text-sm font-medium text-brand-blue-dark">
+              {consultants.length} candidat{consultants.length > 1 ? "s" : ""}
+            </span>
+            <SaveListButton scope="ATS_CANDIDATS" />
+          </div>
         </div>
 
         {consultants.length === 0 ? (

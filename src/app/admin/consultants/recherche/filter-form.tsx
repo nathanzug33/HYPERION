@@ -1,8 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { DISPONIBILITE_LABELS, STATUT_CANDIDAT_INTERNE_LABELS } from "@/lib/constants";
+import {
+  DISPONIBILITE_LABELS,
+  STATUT_CANDIDAT_INTERNE_LABELS,
+  SUIVI_TYPE_SAISISSABLES,
+  SUIVI_TYPE_LABELS,
+} from "@/lib/constants";
 
 type Ref = { id: string; label: string };
 
@@ -31,9 +36,14 @@ export default function FilterForm({
     seniorite: string[];
     disponibilite: string[];
     statutCandidatInterne: string[];
+    suiviType: string;
+    suiviPeriode: string;
+    suiviDebut: string;
+    suiviFin: string;
   };
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [suiviType, setSuiviType] = useState(defaults.suiviType);
 
   function submitNow() {
     formRef.current?.requestSubmit();
@@ -110,6 +120,52 @@ export default function FilterForm({
         selected={defaults.statutCandidatInterne}
         onChange={submitNow}
       />
+
+      <div className="border-t border-slate-100 pt-3.5">
+        <span className="block text-xs font-semibold uppercase tracking-wide text-brand-blue-dark mb-1.5">
+          Suivi réalisé (ex. entretiens de la semaine)
+        </span>
+        <select
+          name="suiviType"
+          value={suiviType}
+          onChange={(e) => {
+            setSuiviType(e.target.value);
+            submitNow();
+          }}
+          className="input mb-2"
+        >
+          <option value="">Aucun filtre de suivi</option>
+          {SUIVI_TYPE_SAISISSABLES.map((t) => (
+            <option key={t} value={t}>
+              {SUIVI_TYPE_LABELS[t]}
+            </option>
+          ))}
+        </select>
+        {suiviType && (
+          <div className="space-y-1.5">
+            <select
+              name="suiviPeriode"
+              defaultValue={defaults.suiviPeriode || "semaine"}
+              onChange={submitNow}
+              className="input"
+            >
+              <option value="semaine">Cette semaine</option>
+              <option value="semaine_derniere">La semaine dernière</option>
+              <option value="mois">Ce mois-ci</option>
+              <option value="custom">Période personnalisée</option>
+            </select>
+            <div className="flex gap-1.5">
+              <input
+                type="date"
+                name="suiviDebut"
+                defaultValue={defaults.suiviDebut}
+                className="input"
+              />
+              <input type="date" name="suiviFin" defaultValue={defaults.suiviFin} className="input" />
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="flex gap-2">
         <button type="submit" className="btn btn-primary flex-1 py-2">

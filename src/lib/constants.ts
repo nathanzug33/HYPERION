@@ -73,10 +73,19 @@ export function formatStatutBibliotheque(statut: string): string {
 export const STATUT_CANDIDAT_INTERNE = {
   EN_COURS: "EN_COURS",
   STAFFE: "STAFFE",
+  // Mission en cours mais dont la fin est prévue prochainement : bascule
+  // manuelle (BM) pour anticiper le restaffing avant même la fin réelle de
+  // mission — distinct de INTERCONTRAT (coût réel, sans facturation en face).
+  INTERCONTRAT_A_VENIR: "INTERCONTRAT_A_VENIR",
   // Staffé auparavant, sans mission active actuellement : coûte sans
   // facturer en face. Basculé automatiquement à la fin d'une mission si
   // aucune autre mission active n'existe pour ce consultant (§ marge).
   INTERCONTRAT: "INTERCONTRAT",
+  // Embauché directement par le client (fin de la relation ESN pour ce
+  // consultant) — conservé dans le vivier à titre de suivi du pilotage
+  // (§ liste Intercontrat/ED), jamais un coût récurrent contrairement à
+  // INTERCONTRAT.
+  ED: "ED",
   INDISPONIBLE: "INDISPONIBLE",
   A_RECONTACTER: "A_RECONTACTER",
 } as const;
@@ -89,10 +98,20 @@ export const STATUT_CANDIDAT_INTERNE_LABELS: Record<
 > = {
   EN_COURS: "En cours",
   STAFFE: "Staffé",
+  INTERCONTRAT_A_VENIR: "Intercontrat à venir",
   INTERCONTRAT: "Intercontrat",
+  ED: "Embauche directe (ED)",
   INDISPONIBLE: "Indisponible",
   A_RECONTACTER: "À recontacter",
 };
+
+/** Statuts suivis dans le pilotage Intercontrat/ED (§ liste dédiée) — coût
+ * en cours (à venir ou réel) ou sortie du vivier par embauche directe. */
+export const STATUTS_IC_ED: StatutCandidatInterne[] = [
+  STATUT_CANDIDAT_INTERNE.INTERCONTRAT_A_VENIR,
+  STATUT_CANDIDAT_INTERNE.INTERCONTRAT,
+  STATUT_CANDIDAT_INTERNE.ED,
+];
 
 // Suivi ATS d'un candidat (§ étoffement ATS interne).
 export const SUIVI_TYPE = {
@@ -484,3 +503,27 @@ export const SESSION_IDLE_TIMEOUT_MINUTES = parseEnvInt(
 // consécutifs (protection brute-force sur le mot de passe).
 export const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 export const LOCKOUT_DURATION_MINUTES = 15;
+
+// Listes enregistrées (§ Listes) : portée fonctionnelle d'une recherche
+// filtrée sauvegardée — chaque valeur correspond à une page de recherche
+// existante (le "path" réel de la liste enregistrée), regroupées ici pour
+// l'affichage de la page /admin/listes.
+export const SAVED_LIST_SCOPE = {
+  ATS_CANDIDATS: "ATS_CANDIDATS",
+  CRM_ENTREPRISES: "CRM_ENTREPRISES",
+  CRM_CONTACTS: "CRM_CONTACTS",
+} as const;
+export type SavedListScope = (typeof SAVED_LIST_SCOPE)[keyof typeof SAVED_LIST_SCOPE];
+
+export const SAVED_LIST_SCOPE_LABELS: Record<SavedListScope, string> = {
+  ATS_CANDIDATS: "ATS — Candidats",
+  CRM_ENTREPRISES: "CRM — Entreprises",
+  CRM_CONTACTS: "CRM — Contacts",
+};
+
+export const SAVED_LIST_VISIBILITY = {
+  PRIVEE: "PRIVEE",
+  PARTAGEE: "PARTAGEE",
+} as const;
+export type SavedListVisibility =
+  (typeof SAVED_LIST_VISIBILITY)[keyof typeof SAVED_LIST_VISIBILITY];

@@ -80,6 +80,7 @@ model User {
   loginLogs                LoginLog[]
   consultationLogs         ConsultationLog[]
   resetTokens              PasswordResetToken[]
+  savedLists               SavedList[]
 
   @@index([role])
   @@index([clientOrganizationId])
@@ -104,6 +105,34 @@ model PasswordResetToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+}
+
+// Liste enregistrée (§ Listes) : une recherche filtrée sauvegardée sous un
+// nom, pour la rejouer en un clic — plutôt qu'un moteur de filtres généré
+// à part, on sauvegarde simplement l'URL (chemin + querystring) d'une des
+// pages de recherche déjà filtrables (recherche avancée candidats,
+// entreprises, contacts…), qui portent déjà toute la logique de filtrage.
+model SavedList {
+  id   String @id @default(cuid())
+  name String
+
+  // Portée fonctionnelle (pour le regroupement à l'affichage) — pas une
+  // contrainte technique, `path` fait foi pour l'exécution réelle.
+  scope String // ATS_CANDIDATS | CRM_ENTREPRISES | CRM_CONTACTS
+
+  path        String // ex. "/admin/consultants/recherche"
+  queryString String // querystring sauvegardée, sans le "?" (peut être vide)
+
+  visibility String @default("PRIVEE") // PRIVEE | PARTAGEE (visible par tout le staff)
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([scope])
 }
 
 // ---------------------------------------------------------------------------

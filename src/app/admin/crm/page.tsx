@@ -10,6 +10,7 @@ import {
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
 import SortableHeader from "@/components/SortableHeader";
+import SaveListButton from "@/components/SaveListButton";
 import type { Prisma } from "@prisma/client";
 
 const SORT_KEYS = ["nom", "secteur", "ville", "contacts", "bm", "statut", "maj"] as const;
@@ -149,6 +150,7 @@ export default async function CrmListPage({
         <button type="submit" className="btn btn-secondary">
           Filtrer
         </button>
+        <SaveListButton scope="CRM_ENTREPRISES" />
       </form>
 
       <div className="card overflow-x-auto">
