@@ -71,6 +71,24 @@ export function periodeToInputDefaults(p: Periode): { debut: string; fin: string
   return { debut: toIsoDate(p.debut), fin: toIsoDate(p.fin) };
 }
 
+/** Semaine (lundi-dimanche) décalée de `offset` semaines par rapport à la
+ * semaine en cours (0 = cette semaine, -1 = la semaine dernière, +1 = la
+ * semaine prochaine) — pour les scores hebdomadaires S-1 / S / S+1 CRM/ATS
+ * du tableau de bord. */
+export function resolveWeekOffset(offset: number): { debut: Date; fin: Date; label: string } {
+  const now = new Date();
+  const day = now.getDay(); // 0 = dimanche
+  const diffLundi = day === 0 ? -6 : 1 - day;
+  const debut = new Date(now);
+  debut.setDate(now.getDate() + diffLundi + offset * 7);
+  debut.setHours(0, 0, 0, 0);
+  const fin = new Date(debut);
+  fin.setDate(debut.getDate() + 6);
+  fin.setHours(23, 59, 59, 999);
+  const label = offset === 0 ? "S (cette semaine)" : offset > 0 ? `S+${offset}` : `S${offset}`;
+  return { debut, fin, label };
+}
+
 /** Filtre de date pour SuiviCommercial : une action programmée (RDV,
  * rappel) compte sur son échéance ; une action déjà réalisée (note, appel
  * passé, email, proposition, contrat signé…) compte sur sa date de saisie.

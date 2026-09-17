@@ -34,9 +34,9 @@ async function ConnexionContent({
 
   const copy = isInterne
     ? {
-        badge: "Accès interne",
+        badge: null,
         bibliothequeLabel: null,
-        pitch: "Outil de pilotage interne.",
+        pitch: null,
         mobileTitle: "KERVYO",
         mobileSubtitle: "Accès interne réservé et journalisé.",
         footer: null,
@@ -65,26 +65,26 @@ async function ConnexionContent({
 
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-12">
         <div className="grid w-full max-w-4xl gap-10 lg:grid-cols-[1fr_400px] lg:items-center">
-          <div className="hidden text-white lg:block animate-fade-in">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80 ring-1 ring-white/20">
-              {copy.badge}
-            </span>
-            <div className="mt-5">
-              {copy.bibliothequeLabel && (
-                <p className="mb-1.5 text-sm font-medium uppercase tracking-wide text-white/70">
-                  {copy.bibliothequeLabel}
-                </p>
-              )}
-              <Image
-                src="/kervyo-header-dark.png"
-                alt="KERVYO by Hyperion Group"
-                width={1520}
-                height={384}
-                className="h-12 w-auto xl:h-14"
-                priority
-              />
-            </div>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-white/70">{copy.pitch}</p>
+          <div className="hidden flex-col items-center justify-center text-center text-white lg:flex animate-fade-in">
+            {copy.badge && (
+              <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80 ring-1 ring-white/20">
+                {copy.badge}
+              </span>
+            )}
+            {copy.bibliothequeLabel && (
+              <p className="mb-1.5 text-sm font-medium uppercase tracking-wide text-white/70">
+                {copy.bibliothequeLabel}
+              </p>
+            )}
+            <Image
+              src="/kervyo-header-dark.png"
+              alt="KERVYO by Hyperion Group"
+              width={1520}
+              height={384}
+              className="h-12 w-auto xl:h-14"
+              priority
+            />
+            {copy.pitch && <p className="mt-4 max-w-sm text-sm leading-6 text-white/70">{copy.pitch}</p>}
           </div>
 
           <div className="animate-fade-in w-full rounded-2xl bg-white p-7 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.35)] sm:p-8">
@@ -94,9 +94,6 @@ async function ConnexionContent({
             </div>
             <div className="mb-6 hidden text-center lg:block">
               <h2 className="text-lg font-semibold text-brand-ink">Se connecter</h2>
-              <p className="mt-1 text-sm text-brand-gray">
-                Utilisez vos identifiants professionnels.
-              </p>
             </div>
             <LoginForm next={next} />
             {copy.footer && (

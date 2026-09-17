@@ -13,16 +13,18 @@ import {
 } from "@/lib/constants";
 import { consultantVisibilityWhere } from "@/lib/consultant-access";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
-import { resolvePeriode, suiviCommercialDateFilter } from "@/lib/periode";
+import { resolvePeriode, resolveWeekOffset, suiviCommercialDateFilter } from "@/lib/periode";
 import { getTaskCounts } from "@/lib/task-counts";
+import { computeAtsScore, computeCrmTypeScore } from "@/lib/dashboard-scores";
 import PeriodeSelector from "@/components/PeriodeSelector";
+import ScoreBarChart, { type ScoreBarDatum } from "@/components/ScoreBarChart";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periode?: string; debut?: string; fin?: string }>;
+  searchParams: Promise<{ periode?: string; debut?: string; fin?: string; scoreVue?: string }>;
 }) {
   const session = await requireStaff();
   const isAdmin = session.user.role === "ADMIN";
@@ -39,10 +41,74 @@ export default async function AdminDashboardPage({
   }`;
   const periodeCrmDate = suiviCommercialDateFilter(periode);
 
+  // --- Scores ATS/CRM (semaine S-1/S/S+1 ou période personnalisée) --------
+  const scoreVue: "semaine" | "periode" = sp.scoreVue === "periode" ? "periode" : "semaine";
+
+  let atsScoreData: ScoreBarDatum[];
+  let crmScoreSMoins1: ScoreBarDatum[] = [];
+  let crmScoreS: ScoreBarDatum[] = [];
+  let crmScoreSPlus1: { rdvAVenir: number; rtAVenir: number } = { rdvAVenir: 0, rtAVenir: 0 };
+  let crmScorePeriode: ScoreBarDatum[] = [];
+
+  if (scoreVue === "semaine") {
+    const sMoins1 = resolveWeekOffset(-1);
+    const s0 = resolveWeekOffset(0);
+    const sPlus1 = resolveWeekOffset(1);
+
+    const [atsSMoins1, atsS, atsSPlus1, rdvSMoins1, rdvS, rdvSPlus1, rtSMoins1, rtS, rtSPlus1] =
+      await Promise.all([
+        computeAtsScore(bmFilter, sMoins1),
+        computeAtsScore(bmFilter, s0),
+        computeAtsScore(bmFilter, sPlus1),
+        computeCrmTypeScore(entrepriseFilter, "RDV", sMoins1),
+        computeCrmTypeScore(entrepriseFilter, "RDV", s0),
+        computeCrmTypeScore(entrepriseFilter, "RDV", sPlus1),
+        computeCrmTypeScore(entrepriseFilter, "RDV_TECHNIQUE", sMoins1),
+        computeCrmTypeScore(entrepriseFilter, "RDV_TECHNIQUE", s0),
+        computeCrmTypeScore(entrepriseFilter, "RDV_TECHNIQUE", sPlus1),
+      ]);
+
+    atsScoreData = [
+      { name: "Pris (S)", value: atsS.pris, color: "#2563eb" },
+      { name: "Prévus (S)", value: atsS.prevus, color: "#60a5fa" },
+      { name: "Prévus (S+1)", value: atsSPlus1.prevus, color: "#16a34a" },
+      { name: "Réalisés (S-1)", value: atsSMoins1.realises, color: "#94a3b8" },
+    ];
+    crmScoreSMoins1 = [
+      { name: "RDV positionnées", value: rdvSMoins1.positionnees, color: "#cbd5e1" },
+      { name: "RDV réalisées", value: rdvSMoins1.realisees, color: "#94a3b8" },
+      { name: "RT positionnées", value: rtSMoins1.positionnees, color: "#a5b4fc" },
+      { name: "RT réalisées", value: rtSMoins1.realisees, color: "#818cf8" },
+    ];
+    crmScoreS = [
+      { name: "RDV positionnées", value: rdvS.positionnees, color: "#60a5fa" },
+      { name: "RDV réalisées", value: rdvS.realisees, color: "#2563eb" },
+      { name: "RT positionnées", value: rtS.positionnees, color: "#818cf8" },
+      { name: "RT réalisées", value: rtS.realisees, color: "#4f46e5" },
+    ];
+    crmScoreSPlus1 = { rdvAVenir: rdvSPlus1.aVenir, rtAVenir: rtSPlus1.aVenir };
+  } else {
+    const [atsP, rdvP, rtP] = await Promise.all([
+      computeAtsScore(bmFilter, periode),
+      computeCrmTypeScore(entrepriseFilter, "RDV", periode),
+      computeCrmTypeScore(entrepriseFilter, "RDV_TECHNIQUE", periode),
+    ]);
+    atsScoreData = [
+      { name: "Pris", value: atsP.pris, color: "#2563eb" },
+      { name: "Prévus", value: atsP.prevus, color: "#60a5fa" },
+      { name: "Réalisés", value: atsP.realises, color: "#16a34a" },
+    ];
+    crmScorePeriode = [
+      { name: "RDV positionnées", value: rdvP.positionnees, color: "#60a5fa" },
+      { name: "RDV réalisées", value: rdvP.realisees, color: "#2563eb" },
+      { name: "RT positionnées", value: rtP.positionnees, color: "#818cf8" },
+      { name: "RT réalisées", value: rtP.realisees, color: "#4f46e5" },
+    ];
+  }
+  const scoreVueQuery = (v: "semaine" | "periode") => `/admin?${periodeQuery}&scoreVue=${v}`;
+
   const [
-    total,
     publiees,
-    brouillons,
     aRafraichir,
     demandesNouvelles,
     demandesBesoinNouvelles,
@@ -59,12 +125,8 @@ export default async function AdminDashboardPage({
     besoinsGagnesPeriode,
     besoinsPerdusPeriode,
   ] = await Promise.all([
-    prisma.consultant.count({ where: bmFilter }),
     prisma.consultant.count({
       where: { ...bmFilter, statutPublication: STATUT_PUBLICATION.PUBLIEE },
-    }),
-    prisma.consultant.count({
-      where: { ...bmFilter, statutPublication: STATUT_PUBLICATION.BROUILLON },
     }),
     prisma.consultant.findMany({
       where: {
@@ -289,27 +351,13 @@ export default async function AdminDashboardPage({
           ATS — Candidats
         </h2>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-          <StatCard
-            label="Candidats suivis"
-            value={total}
-            accent="blue"
-            href="/admin/consultants"
-            icon={
-              <path d="M4 5.5C4 4.67 4.67 4 5.5 4H11a2 2 0 0 1 2 2v14a1.5 1.5 0 0 0-1.5-1.5H4V5.5ZM20 5.5c0-.83-.67-1.5-1.5-1.5H13a2 2 0 0 0-2 2v14a1.5 1.5 0 0 1 1.5-1.5H20V5.5Z" />
-            }
-          />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <StatCard
             label="Fiches publiées"
             value={publiees}
             accent="green"
+            href="/admin/consultants"
             icon={<path d="M9 12.5 11 14.5 15.5 9.5M12 3l7 3.5v5c0 4.5-3 8.5-7 9.5-4-1-7-5-7-9.5v-5L12 3Z" />}
-          />
-          <StatCard
-            label="Brouillons"
-            value={brouillons}
-            accent="gray"
-            icon={<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H15l5 5v8.5A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11ZM14 4v4a1 1 0 0 0 1 1h4M8 13h8M8 16.5h5" />}
           />
           <StatCard
             label="Demandes non traitées"
@@ -325,6 +373,29 @@ export default async function AdminDashboardPage({
             icon={<path d="M12 7v5l3.5 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />}
           />
         </div>
+
+        <section className="card p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-brand-ink">Score entretiens</h3>
+            <ScoreVueToggle current={scoreVue} scoreVueQuery={scoreVueQuery} />
+          </div>
+          {scoreVue === "semaine" ? (
+            <>
+              <p className="mb-2 text-xs text-brand-gray">
+                Pris et prévus sur la semaine en cours (S), prévus la semaine prochaine (S+1),
+                réalisés la semaine dernière (S-1).
+              </p>
+              <ScoreBarChart data={atsScoreData} />
+            </>
+          ) : (
+            <>
+              <div className="mb-3">
+                <PeriodeSelector basePath="/admin" current={periode} extraParams={{ scoreVue: "periode" }} />
+              </div>
+              <ScoreBarChart data={atsScoreData} />
+            </>
+          )}
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="card p-5">
@@ -458,6 +529,51 @@ export default async function AdminDashboardPage({
           </h2>
           <PeriodeSelector basePath="/admin" current={periode} />
         </div>
+
+        <section className="card p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-brand-ink">Score prospection commerciale</h3>
+            <ScoreVueToggle current={scoreVue} scoreVueQuery={scoreVueQuery} />
+          </div>
+          {scoreVue === "semaine" ? (
+            <>
+              <p className="mb-3 text-xs text-brand-gray">
+                RDV prospection et RT positionnés/réalisés sur S-1 et S, à venir sur S+1.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="mb-1.5 text-xs font-medium text-brand-gray">S-1 (semaine dernière)</p>
+                  <ScoreBarChart data={crmScoreSMoins1} height={180} />
+                </div>
+                <div>
+                  <p className="mb-1.5 text-xs font-medium text-brand-gray">S (cette semaine)</p>
+                  <ScoreBarChart data={crmScoreS} height={180} />
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                <StatCard
+                  label="RT à venir (S+1)"
+                  value={crmScoreSPlus1.rtAVenir}
+                  accent="blue"
+                  icon={<path d="M8 3v3M16 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />}
+                />
+                <StatCard
+                  label="RDV prospection à venir (S+1)"
+                  value={crmScoreSPlus1.rdvAVenir}
+                  accent="blue"
+                  icon={<path d="M8 3v3M16 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="mb-3 text-xs text-brand-gray">
+                Utilise la période sélectionnée ci-dessus ({periode.label}).
+              </p>
+              <ScoreBarChart data={crmScorePeriode} />
+            </>
+          )}
+        </section>
 
         <div>
           <p className="mb-2 text-xs font-medium text-brand-gray">Vivier (à date)</p>
@@ -653,6 +769,36 @@ export default async function AdminDashboardPage({
           </section>
         )}
       </section>
+    </div>
+  );
+}
+
+function ScoreVueToggle({
+  current,
+  scoreVueQuery,
+}: {
+  current: "semaine" | "periode";
+  scoreVueQuery: (v: "semaine" | "periode") => string;
+}) {
+  const options: { value: "semaine" | "periode"; label: string }[] = [
+    { value: "semaine", label: "Semaine (S-1 / S / S+1)" },
+    { value: "periode", label: "Période" },
+  ];
+  return (
+    <div className="flex gap-2">
+      {options.map((o) => (
+        <Link
+          key={o.value}
+          href={scoreVueQuery(o.value)}
+          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            current === o.value
+              ? "bg-brand-blue text-white"
+              : "bg-slate-100 text-brand-body hover:bg-brand-blue-bg-soft"
+          }`}
+        >
+          {o.label}
+        </Link>
+      ))}
     </div>
   );
 }
