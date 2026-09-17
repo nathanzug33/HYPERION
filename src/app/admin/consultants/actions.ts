@@ -221,6 +221,7 @@ export async function updateConsultantAction(formData: FormData) {
   const secteurIds = getMulti(formData, "secteurIds");
   const expertiseIds = getMulti(formData, "expertiseIds");
   const competenceIds = getMulti(formData, "competenceIds");
+  const competenceCleIds = new Set(getMulti(formData, "competenceCleIds"));
   const typeMobiliteIds = getMulti(formData, "typeMobiliteIds");
   const zoneIds = getMulti(formData, "zoneIds");
   const langueIds = getMulti(formData, "langueIds");
@@ -310,6 +311,7 @@ export async function updateConsultantAction(formData: FormData) {
       data: competenceIds.map((competenceId) => ({
         consultantId: id,
         competenceId,
+        estCle: competenceCleIds.has(competenceId),
       })),
     }),
     prisma.consultantTypeMobilite.deleteMany({ where: { consultantId: id } }),

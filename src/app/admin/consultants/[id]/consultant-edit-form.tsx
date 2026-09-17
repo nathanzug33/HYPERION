@@ -113,6 +113,9 @@ export default function ConsultantEditForm({
   const secteurIdsSelected = new Set(consultant.secteurs.map((s) => s.secteurId));
   const expertiseIdsSelected = new Set(consultant.expertises.map((e) => e.expertiseId));
   const competenceIdsSelected = new Set(consultant.competences.map((c) => c.competenceId));
+  const competenceCleIdsSelected = new Set(
+    consultant.competences.filter((c) => c.estCle).map((c) => c.competenceId)
+  );
 
   return (
     <div className="space-y-4">
@@ -373,18 +376,35 @@ export default function ConsultantEditForm({
 
         {/* --- Compétences ------------------------------------------------ */}
         <div hidden={tab !== "competences"} className="space-y-4">
+          <p className="text-xs text-brand-gray">
+            ★ = compétence clé, mise en avant dans l&apos;en-tête du dossier de compétences (jusqu&apos;à 3).
+          </p>
           <CategorieBlock
             title="IT"
             groups={[
               { label: "Expertises / domaines", name: "expertiseIds", items: expertisesSplit.it, selected: expertiseIdsSelected },
-              { label: "Compétences / technologies", name: "competenceIds", items: competencesSplit.it, selected: competenceIdsSelected },
+              {
+                label: "Compétences / technologies",
+                name: "competenceIds",
+                items: competencesSplit.it,
+                selected: competenceIdsSelected,
+                cleName: "competenceCleIds",
+                cleSelected: competenceCleIdsSelected,
+              },
             ]}
           />
           <CategorieBlock
             title="Industrie"
             groups={[
               { label: "Expertises / domaines", name: "expertiseIds", items: expertisesSplit.industrie, selected: expertiseIdsSelected },
-              { label: "Compétences / technologies", name: "competenceIds", items: competencesSplit.industrie, selected: competenceIdsSelected },
+              {
+                label: "Compétences / technologies",
+                name: "competenceIds",
+                items: competencesSplit.industrie,
+                selected: competenceIdsSelected,
+                cleName: "competenceCleIds",
+                cleSelected: competenceCleIdsSelected,
+              },
             ]}
           />
           {(expertisesSplit.nonClasse.length > 0 || competencesSplit.nonClasse.length > 0) && (
@@ -393,7 +413,14 @@ export default function ConsultantEditForm({
               subtitle="À catégoriser IT / Industrie depuis /admin/referentiels."
               groups={[
                 { label: "Expertises / domaines", name: "expertiseIds", items: expertisesSplit.nonClasse, selected: expertiseIdsSelected },
-                { label: "Compétences / technologies", name: "competenceIds", items: competencesSplit.nonClasse, selected: competenceIdsSelected },
+                {
+                  label: "Compétences / technologies",
+                  name: "competenceIds",
+                  items: competencesSplit.nonClasse,
+                  selected: competenceIdsSelected,
+                  cleName: "competenceCleIds",
+                  cleSelected: competenceCleIdsSelected,
+                },
               ]}
             />
           )}
@@ -588,7 +615,14 @@ function CategorieBlock({
 }: {
   title: string;
   subtitle?: string;
-  groups: { label: string; name: string; items: Referential[]; selected: Set<string> }[];
+  groups: {
+    label: string;
+    name: string;
+    items: Referential[];
+    selected: Set<string>;
+    cleName?: string;
+    cleSelected?: Set<string>;
+  }[];
 }) {
   return (
     <fieldset className="card p-5 space-y-3">
@@ -598,7 +632,13 @@ function CategorieBlock({
       {subtitle && <p className="-mt-1 text-xs text-brand-gray">{subtitle}</p>}
       {groups.map((g) => (
         <Field key={g.name} label={g.label}>
-          <CheckboxGroup name={g.name} options={g.items} selectedIds={g.selected} />
+          <CheckboxGroup
+            name={g.name}
+            options={g.items}
+            selectedIds={g.selected}
+            cleName={g.cleName}
+            cleSelectedIds={g.cleSelected}
+          />
         </Field>
       ))}
     </fieldset>
