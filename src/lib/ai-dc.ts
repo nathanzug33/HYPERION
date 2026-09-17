@@ -115,7 +115,7 @@ const schema = z.object({
       z.object({
         entreprise: z
           .string()
-          .describe("Nom générique si NDA/confidentiel, ex. 'Entreprise cliente — secteur X'"),
+          .describe("Nom RÉEL de l'entreprise cliente, tel qu'indiqué dans le CV/la transcription — jamais une formulation générique"),
         secteurActivite: z.string().nullable(),
         missionTitre: z.string(),
         dateDebut: z.string().nullable().describe("Format AAAA-MM"),
@@ -141,7 +141,7 @@ Ta tâche : à partir d'un CV (ou d'un dossier de compétences existant, éventu
 Règles impératives :
 - N'invente aucune information. Si une donnée n'est pas déductible des documents fournis, laisse le champ vide (null ou tableau vide) plutôt que d'halluciner.
 - Aucune transcription d'entretien n'est fournie ? Base-toi uniquement sur le CV/dossier existant ; c'est une situation normale (candidat déjà rencontré, dossier reçu tel quel).
-- Le résumé de contexte, la présentation courte et les expériences détaillées ne doivent contenir AUCUNE information identifiante (pas de nom de personne, pas de nom d'entreprise cliente réel si un NDA est mentionné — utilise alors une formulation générique comme "Entreprise cliente du secteur X").
+- Le résumé de contexte et la présentation courte ne doivent contenir AUCUNE information identifiante sur le candidat (pas de nom de personne). En revanche, le nom des entreprises clientes (champ "entreprise" de chaque expérience) doit TOUJOURS être le nom réel tel qu'il figure sur le CV/la transcription — ne jamais le remplacer par une formulation générique, même si le poste ou le secteur semble sensible.
 - Pour les champs contraints par un référentiel (secteurs, expertises, mobilité, zones), choisis EXCLUSIVEMENT parmi les valeurs listées dans les référentiels fournis dans le message utilisateur — n'en invente pas de nouvelles, respecte l'orthographe exacte.
 - Le niveau des compétences/langues doit être cohérent avec les années d'expérience et les informations disponibles.
 - Sois factuel et concis, dans un français professionnel.

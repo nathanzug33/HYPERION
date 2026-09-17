@@ -101,22 +101,6 @@ const DISPONIBILITE_FULL: Record<string, string> = {
 
 // --- 01 — Expériences clés (cellules dupliquées, 1 par expérience) --------
 
-/** Réajuste proportionnellement la position de la tabulation droite qui
- * sépare l'année de la durée (ex. « [2025]  →  Depuis 8 mois ») à la
- * nouvelle largeur de cellule. Sans ça, la position — calibrée pour la
- * largeur d'origine du gabarit (3 colonnes fixes) — tombe hors de la
- * cellule dès qu'il y a plus ou moins de 3 expériences (colonnes plus
- * étroites ou plus larges), et la durée se retrouve collée à l'année au
- * lieu d'être repoussée à droite. */
-function rescaleTabStop(cellXml: string, originalWidth: number, newWidth: number): string {
-  if (!originalWidth) return cellXml;
-  const scale = newWidth / originalWidth;
-  return cellXml.replace(
-    /(<w:tab\b[^>]*\bw:pos=")(\d+)(")/,
-    (_m, before: string, pos: string, after: string) => `${before}${Math.round(Number(pos) * scale)}${after}`
-  );
-}
-
 /** Localise le <w:tblGrid> RÉELLEMENT actif (celui qui régit l'affichage) du
  * tableau juste avant `beforeIndex`, en tenant compte du niveau d'imbrication.
  * Certains exports (Google Docs notamment) enveloppent un <w:tblGridChange>
@@ -189,20 +173,6 @@ function rewriteTblGridBefore(xml: string, beforeIndex: number, columnCount: num
   return xml.slice(0, span.start) + `<w:tblGrid>${gridCols}</w:tblGrid>` + xml.slice(span.end);
 }
 
-/** Insère une véritable tabulation (caractère, pas seulement le taquet
- * déclaré dans le <w:pPr>) entre le 1ᵉʳ et le 2ᵉ run d'un fragment, si elle
- * n'y est pas déjà — nécessaire avec le gabarit actuel (export Google Docs)
- * qui déclare le taquet (`<w:tabs><w:tab w:pos="…"/></w:tabs>`) sans jamais
- * insérer le caractère de tabulation lui-même, ce qui collerait sinon la
- * durée juste après l'année au lieu de la repousser au taquet. */
-function ensureTabRun(fragment: string): string {
-  if (/<w:tab\/>/.test(fragment)) return fragment;
-  const firstRunEnd = fragment.indexOf("</w:r>");
-  if (firstRunEnd === -1) return fragment;
-  const insertAt = firstRunEnd + "</w:r>".length;
-  return fragment.slice(0, insertAt) + "<w:r><w:tab/></w:r>" + fragment.slice(insertAt);
-}
-
 function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"]): string {
   const anchor = "[Depuis X mois]";
   const rows = extractTags(xml, "w:tr");
@@ -211,14 +181,12 @@ function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"
 
   const cells = extractTags(row.xml, "w:tc");
   if (cells.length === 0) return xml;
-  // Le gabarit ne contient qu'un texte « [2025] » (année), « [Depuis X mois] »
-  // (durée), « [Intitulé du poste] » et « [Entreprise cliente] » — 4 nœuds
-  // <w:t>, sans caractère de tabulation entre les deux premiers (voir
-  // ensureTabRun) : la valeur doit correspondre exactement à cet ordre, faute
-  // de quoi chaque valeur atterrit dans le mauvais texte et les placeholders
-  // suivants restent affichés tels quels entre crochets.
-  const cellTemplate = ensureTabRun(cells[0].xml);
-  const { total: totalWidth, first: originalCellWidth } = readTblGridWidths(xml, row.start);
+  // Le gabarit contient « [2025] » (année), « [Depuis X mois] » (durée —
+  // retirée de la frise : seule l'année reste visible, cf. valeurs
+  // ci-dessous), « [Intitulé du poste] » et « [Entreprise cliente] » — 4
+  // nœuds <w:t>, dans cet ordre exact.
+  const cellTemplate = cells[0].xml;
+  const { total: totalWidth } = readTblGridWidths(xml, row.start);
 
   const items = experiences.slice(0, 12); // garde-fou raisonnable, pas de vraie limite métier
 
@@ -236,12 +204,12 @@ function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"
     .map((exp) => {
       const values = [
         exp.dateDebut ? String(exp.dateDebut.getFullYear()) : "",
-        formatDuree(exp.dateDebut, exp.dateFin),
+        "", // durée retirée : seule l'année reste visible sur la frise
         exp.missionTitre,
         exp.entreprise,
       ];
       const filled = fillSequentialText(cellTemplate, values);
-      return setCellWidth(rescaleTabStop(filled, originalCellWidth, width), width);
+      return setCellWidth(filled, width);
     })
     .join("");
 
@@ -386,6 +354,10 @@ function fillExperiencesDetailleesSection(
   const blockTemplateParas = firstBlockParas.filter((_, i) => !skip.has(i));
   const blockTemplateXml = blockTemplateParas.map((p) => p.xml).join("");
   const realisationTemplateXml = firstBlockParas[realisationTemplateIdx]?.xml ?? "";
+  // Dernier paragraphe du bloc modèle : le libellé "Environnement technique : "
+  // et sa valeur, dans le MÊME paragraphe — retiré en bloc (pas seulement vidé)
+  // quand l'information est absente, pour ne pas afficher un libellé suivi de rien.
+  const envTechTemplateXml = blockTemplateParas[blockTemplateParas.length - 1]?.xml ?? "";
 
   function fillBlock(exp: DcConsultant["experiences"][number]): string {
     const realisations = (exp.realisations ?? "").split("\n").filter(Boolean);
@@ -398,20 +370,27 @@ function fillExperiencesDetailleesSection(
 
     let block = blockTemplateXml.replace(realisationTemplateXml, " REALISATIONS ");
 
-    // fillSequentialText opère sur l'ensemble du bloc (hors zone réalisations,
-    // neutralisée ci-dessus) : le nombre et l'ordre des <w:t> restants
-    // correspondent EXACTEMENT à ceux du gabarit actuel — entreprise / « — »
-    // (séparateur statique) / dateRange / durée / « Secteur : » (libellé
-    // statique) / secteur / « Mission : » (libellé statique) / mission /
-    // « Contexte & objectif : » (libellé statique) / contexte / « Réalisations »
-    // (libellé statique) / « Environnement technique : » (libellé statique) /
-    // environnement — chaque libellé statique doit rester un `null` à sa
+    const hasEnvTech = Boolean(exp.environnementTechnique?.trim());
+    if (!hasEnvTech) block = block.replace(envTechTemplateXml, "");
+
+    // fillSequentialText opère sur l'ensemble du bloc (hors zone réalisations
+    // et environnement technique, neutralisées ci-dessus) : le nombre et
+    // l'ordre des <w:t> restants correspondent EXACTEMENT à ceux du gabarit
+    // actuel — entreprise / « — » (séparateur statique) / dateRange / durée /
+    // « Secteur : » (libellé statique) / secteur / « Mission : » (libellé
+    // statique) / mission / « Contexte & objectif : » (libellé statique) /
+    // contexte / « Réalisations » (libellé statique) / [« Environnement
+    // technique : » (libellé statique) / environnement, si le paragraphe n'a
+    // pas été retiré] — chaque libellé statique doit rester un `null` à sa
     // place exacte, sinon la valeur suivante écrase le libellé au lieu du
-    // placeholder, qui reste alors affiché tel quel entre crochets.
+    // placeholder, qui reste alors affiché tel quel entre crochets. Un espace
+    // final est ajouté à la plage de dates : on écrase tout le contenu du
+    // <w:t> (y compris l'espace de séparation du gabarit), il faut donc le
+    // restituer nous-mêmes avant la durée qui suit sans séparateur.
     block = fillSequentialText(block, [
       exp.entreprise,
       null,
-      `${formatMoisAnnee(exp.dateDebut)} à ${formatMoisAnnee(exp.dateFin)}`,
+      `${formatMoisAnnee(exp.dateDebut)} à ${formatMoisAnnee(exp.dateFin)} `,
       formatDuree(exp.dateDebut, exp.dateFin),
       null,
       exp.secteurActivite ?? "",
@@ -420,8 +399,7 @@ function fillExperiencesDetailleesSection(
       null,
       exp.contexteObjectif ?? "",
       null,
-      null,
-      exp.environnementTechnique ?? "",
+      ...(hasEnvTech ? [null, exp.environnementTechnique ?? ""] : []),
     ]);
 
     return block.replace(" REALISATIONS ", realisationsXml);
@@ -466,11 +444,18 @@ export function formatDcFilename(nom: string, prenom: string): string {
 // --- Header, statut, profil (placeholders simples, occurrence unique) ------
 
 function fillSimplePlaceholders(xml: string, c: DcConsultant): string {
-  const anneesLabel = c.anneesExperience != null ? `${c.anneesExperience} ans d'expérience` : "";
+  const anneesLabel =
+    c.anneesExperience != null ? `${c.anneesExperience} an${c.anneesExperience === 1 ? "" : "s"} d'expérience` : "";
   const compClesLabels = c.competences.filter((x) => x.estCle).map((x) => x.competence.label);
   const mobiliteLabel = [c.typesMobilite[0]?.typeMobilite.label, c.villeRattachement]
     .filter(Boolean)
     .join(" / ");
+
+  // "PROFILNIVEAU" : les deux libellés du gabarit sont collés sans séparateur
+  // (export Google Docs — le taquet de tabulation est déclaré mais le
+  // caractère de tabulation lui-même a été perdu, même défaut que sur la
+  // frise « Expériences clés »).
+  xml = xml.replace("PROFILNIVEAU", "PROFIL NIVEAU");
 
   const replacements: [string, string][] = [
     ["[Intitulé du poste / spécialité]", c.intitulePoste ?? ""],
