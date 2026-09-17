@@ -45,9 +45,15 @@ export default async function AdminLayout({
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-4">
-          <SidebarLink href="/admin" exact badge={taskCounts.enRetard}>
-            Tableau de bord
-          </SidebarLink>
+          <SidebarGroup
+            label="Tableau de bord"
+            href="/admin/tableau-de-bord/recrutement"
+            badge={taskCounts.enRetard}
+            items={[
+              { href: "/admin/tableau-de-bord/recrutement", label: "Recrutement" },
+              { href: "/admin/tableau-de-bord/commerce", label: "Commerce" },
+            ]}
+          />
           <SidebarGroup
             label="ATS"
             href="/admin/consultants"

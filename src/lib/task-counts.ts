@@ -13,7 +13,9 @@ export type TaskCounts = {
   aVenir: number;
 };
 
-export async function getTaskCounts(user: SessionUser): Promise<TaskCounts> {
+export type TaskCountsByDomain = { ats: TaskCounts; crm: TaskCounts };
+
+export async function getTaskCountsByDomain(user: SessionUser): Promise<TaskCountsByDomain> {
   const now = new Date();
   const dans7Jours = new Date(now);
   dans7Jours.setDate(now.getDate() + 7);
@@ -57,7 +59,15 @@ export async function getTaskCounts(user: SessionUser): Promise<TaskCounts> {
   ]);
 
   return {
-    enRetard: atsEnRetard + crmEnRetard,
-    aVenir: atsAVenir + crmAVenir,
+    ats: { enRetard: atsEnRetard, aVenir: atsAVenir },
+    crm: { enRetard: crmEnRetard, aVenir: crmAVenir },
+  };
+}
+
+export async function getTaskCounts(user: SessionUser): Promise<TaskCounts> {
+  const { ats, crm } = await getTaskCountsByDomain(user);
+  return {
+    enRetard: ats.enRetard + crm.enRetard,
+    aVenir: ats.aVenir + crm.aVenir,
   };
 }
