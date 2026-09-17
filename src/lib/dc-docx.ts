@@ -117,23 +117,76 @@ function rescaleTabStop(cellXml: string, originalWidth: number, newWidth: number
   );
 }
 
-/** Réécrit le <w:tblGrid> (déclaration des largeurs de colonnes) qui précède
- * `beforeIndex` pour qu'il déclare exactement `columnCount` colonnes. Le
- * gabarit déclare un nombre de colonnes fixe (3, pour 3 expériences/langues
- * "type") : dès que le nombre de cellules réellement généré diffère (plus ou
- * moins de 3 éléments), la grille déclarée et le contenu réel de la ligne
- * désynchronisent — Word "répare" cette incohérence en corrompant
- * visuellement tout le document (jusqu'au pied de page). */
+/** Localise le <w:tblGrid> RÉELLEMENT actif (celui qui régit l'affichage) du
+ * tableau juste avant `beforeIndex`, en tenant compte du niveau d'imbrication.
+ * Certains exports (Google Docs notamment) enveloppent un <w:tblGridChange>
+ * — historique de révision — DANS le <w:tblGrid> actif, et ce
+ * <w:tblGridChange> contient lui-même sa propre copie complète de
+ * <w:tblGrid> : un simple lastIndexOf("</w:tblGrid>") trouve alors cette
+ * copie imbriquée (inerte, jamais utilisée pour le rendu) au lieu de la
+ * grille active, et une réécriture ne modifierait que l'historique sans
+ * effet visuel — la grille réellement affichée resterait sur son ancien
+ * nombre de colonnes. */
+function findActiveTblGrid(xml: string, beforeIndex: number): { start: number; end: number } | null {
+  const tblStart = xml.lastIndexOf("<w:tbl>", beforeIndex);
+  if (tblStart === -1) return null;
+  const start = xml.indexOf("<w:tblGrid>", tblStart);
+  if (start === -1 || start > beforeIndex) return null;
+
+  let depth = 1;
+  let pos = start + "<w:tblGrid>".length;
+  while (depth > 0) {
+    const nextOpen = xml.indexOf("<w:tblGrid>", pos);
+    const nextClose = xml.indexOf("</w:tblGrid>", pos);
+    if (nextClose === -1) return null;
+    if (nextOpen !== -1 && nextOpen < nextClose) {
+      depth++;
+      pos = nextOpen + "<w:tblGrid>".length;
+    } else {
+      depth--;
+      pos = nextClose + "</w:tblGrid>".length;
+    }
+  }
+  return { start, end: pos };
+}
+
+/** Lit la largeur totale (et celle de la 1ʳᵉ colonne) déclarée par les
+ * colonnes de premier niveau du <w:tblGrid> actif — jamais celles d'un
+ * éventuel <w:tblGridChange> imbriqué (historique). C'est la source à
+ * privilégier pour la largeur des colonnes : Word l'exige toujours, alors
+ * que la largeur par cellule (<w:tcW>) est redondante et parfois absente
+ * selon l'outil qui a produit le .docx (l'export Google Docs ne l'écrit
+ * pas du tout, ne s'appuyant que sur le tblGrid). */
+function readTblGridWidths(xml: string, beforeIndex: number): { total: number; first: number } {
+  const span = findActiveTblGrid(xml, beforeIndex);
+  if (!span) return { total: 0, first: 0 };
+  const gridXml = xml.slice(span.start, span.end);
+  const changeIdx = gridXml.indexOf("<w:tblGridChange");
+  const liveXml = changeIdx === -1 ? gridXml : gridXml.slice(0, changeIdx);
+  const widths = Array.from(liveXml.matchAll(/<w:gridCol\b[^>]*\bw:w="([\d.]+)"/g)).map((m) =>
+    Number(m[1])
+  );
+  return { total: widths.reduce((sum, w) => sum + w, 0), first: widths[0] ?? 0 };
+}
+
+/** Réécrit le <w:tblGrid> actif (déclaration des largeurs de colonnes) qui
+ * précède `beforeIndex` pour qu'il déclare exactement `columnCount`
+ * colonnes — en repartant de zéro (un éventuel <w:tblGridChange> imbriqué
+ * est purement informatif et n'a plus de sens une fois le nombre de
+ * colonnes changé, il n'est pas reconduit). Le gabarit déclare un nombre de
+ * colonnes fixe (3, pour 3 expériences/langues "type") : dès que le nombre
+ * de cellules réellement généré diffère (plus ou moins de 3 éléments), la
+ * grille déclarée et le contenu réel de la ligne désynchronisent — Word
+ * "répare" cette incohérence en corrompant visuellement tout le document
+ * (jusqu'au pied de page). */
 function rewriteTblGridBefore(xml: string, beforeIndex: number, columnCount: number, colWidth: number): string {
-  const gridEnd = xml.lastIndexOf("</w:tblGrid>", beforeIndex);
-  if (gridEnd === -1) return xml;
-  const gridStart = xml.lastIndexOf("<w:tblGrid>", gridEnd);
-  if (gridStart === -1) return xml;
+  const span = findActiveTblGrid(xml, beforeIndex);
+  if (!span) return xml;
   const gridCols = Array.from(
     { length: columnCount },
     () => `<w:gridCol w:w="${Math.round(colWidth)}"/>`
   ).join("");
-  return xml.slice(0, gridStart) + `<w:tblGrid>${gridCols}</w:tblGrid>` + xml.slice(gridEnd + "</w:tblGrid>".length);
+  return xml.slice(0, span.start) + `<w:tblGrid>${gridCols}</w:tblGrid>` + xml.slice(span.end);
 }
 
 function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"]): string {
@@ -145,12 +198,7 @@ function fillExpClesSection(xml: string, experiences: DcConsultant["experiences"
   const cells = extractTags(row.xml, "w:tc");
   if (cells.length === 0) return xml;
   const cellTemplate = cells[0].xml;
-  const originalCellWidthMatch = /<w:tcW\b[^>]*\bw:w="(\d+)"/.exec(cellTemplate);
-  const originalCellWidth = originalCellWidthMatch ? Number(originalCellWidthMatch[1]) : 0;
-  const totalWidth = cells.reduce((sum, c) => {
-    const m = /<w:tcW\b[^>]*\bw:w="(\d+)"/.exec(c.xml);
-    return sum + (m ? Number(m[1]) : 0);
-  }, 0);
+  const { total: totalWidth, first: originalCellWidth } = readTblGridWidths(xml, row.start);
 
   const items = experiences.slice(0, 12); // garde-fou raisonnable, pas de vraie limite métier
 
@@ -215,10 +263,7 @@ function fillLanguesSection(xml: string, langues: DcConsultant["langues"]): stri
   const cells = extractTags(row.xml, "w:tc");
   if (cells.length === 0) return xml;
   const cellTemplate = cells[0].xml;
-  const totalWidth = cells.reduce((sum, c) => {
-    const m = /<w:tcW\b[^>]*\bw:w="(\d+)"/.exec(c.xml);
-    return sum + (m ? Number(m[1]) : 0);
-  }, 0);
+  const { total: totalWidth } = readTblGridWidths(xml, row.start);
 
   const items = langues.slice(0, 12);
   if (items.length === 0) {
