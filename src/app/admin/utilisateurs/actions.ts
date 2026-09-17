@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/guards";
 import { sendAccountInvitationEmail } from "@/lib/mail";
+import { getBaseUrl } from "@/lib/base-url";
 import { ROLES, ROLE_LABELS, type Role } from "@/lib/constants";
 
 export type CreateUserState = { error?: string; success?: string };
@@ -62,7 +63,7 @@ export async function createUserAction(
       expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
     },
   });
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   await sendAccountInvitationEmail(
     email,
     {
@@ -97,7 +98,7 @@ export async function resendInvitationAction(formData: FormData) {
       expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
     },
   });
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const base = getBaseUrl();
   await sendAccountInvitationEmail(
     user.email,
     {
