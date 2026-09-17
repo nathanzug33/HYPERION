@@ -18,6 +18,31 @@ const nextConfig: NextConfig = {
   // ("Cannot find module '.../pdf.worker.mjs'"). On exclut le paquet du
   // bundle pour qu'il soit résolu normalement par Node au runtime.
   serverExternalPackages: ["pdfjs-dist", "mammoth"],
+  // En-têtes de sécurité de base, sur toutes les routes. Pas de
+  // Content-Security-Policy ici : le risque de casser silencieusement une
+  // page (recharts, QR code en data: URI, OAuth Google...) sans les
+  // vérifier une à une en conditions réelles dépasse le bénéfice à ce
+  // stade — à traiter séparément, avec des tests dédiés.
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

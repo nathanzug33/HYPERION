@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/guards";
-import { ROLE_LABELS } from "@/lib/constants";
-import { toggleUserActive, resendInvitationAction } from "./actions";
+import { ROLE_LABELS, ROLES } from "@/lib/constants";
+import { toggleUserActive, resendInvitationAction, resetTwoFactorAction } from "./actions";
 import CreateUserForm from "./create-user-form";
 import DeleteUserButton from "./delete-user-button";
 import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
@@ -92,6 +92,7 @@ export default async function UtilisateursPage({
               <th className="px-4 py-2">
                 <SortableHeader label="Statut" sortKey="statut" current={sortState} href={hrefFor("statut")} />
               </th>
+              <th className="px-4 py-2">2FA</th>
               <th className="px-4 py-2"></th>
             </tr>
           </thead>
@@ -122,6 +123,21 @@ export default async function UtilisateursPage({
                     {u.active ? "Actif" : "Désactivé"}
                   </span>
                 </td>
+                <td className="px-4 py-2">
+                  {u.role === ROLES.CLIENT ? (
+                    <span className="text-brand-gray">—</span>
+                  ) : (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        u.twoFactorEnabled
+                          ? "bg-brand-green/10 text-brand-green"
+                          : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {u.twoFactorEnabled ? "Activée" : "Non activée"}
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-2 text-right">
                   <div className="flex items-center justify-end gap-3">
                     {!u.lastLoginAt && (
@@ -145,6 +161,18 @@ export default async function UtilisateursPage({
                         {u.active ? "Révoquer l'accès" : "Réactiver"}
                       </button>
                     </form>
+                    {u.role !== ROLES.CLIENT && u.twoFactorEnabled && (
+                      <form action={resetTwoFactorAction}>
+                        <input type="hidden" name="id" value={u.id} />
+                        <button
+                          type="submit"
+                          title="À utiliser si l'utilisateur a perdu l'accès à son application d'authentification — il devra en reconfigurer une à sa prochaine connexion."
+                          className="link-underline text-xs text-brand-gray hover:text-brand-ink"
+                        >
+                          Réinitialiser 2FA
+                        </button>
+                      </form>
+                    )}
                     {u.id !== session.user.id && <DeleteUserButton id={u.id} name={u.name} />}
                   </div>
                 </td>

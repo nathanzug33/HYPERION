@@ -123,6 +123,23 @@ export async function toggleUserActive(formData: FormData) {
   revalidatePath("/admin/utilisateurs");
 }
 
+/** La 2FA étant désormais obligatoire (voir requireTwoFactorEnabled dans
+ * guards.ts), un utilisateur qui perd son appareil (téléphone perdu/changé)
+ * ne peut plus produire de code valide et se retrouve bloqué avant même
+ * d'atteindre une page où se désinscrire lui-même — seul un admin peut le
+ * débloquer. La réinitialisation le renvoie vers /securite-2fa dès sa
+ * prochaine requête, où il ré-enrôle un nouvel appareil. */
+export async function resetTwoFactorAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await prisma.user.update({
+    where: { id },
+    data: { twoFactorEnabled: false, twoFactorSecret: null },
+  });
+  revalidatePath("/admin/utilisateurs");
+}
+
 /** Suppression définitive (contrairement à « Révoquer l'accès », qui ne
  * fait que désactiver la connexion en conservant tout l'historique). Un
  * compte qui est encore référent d'un dossier (candidat, entreprise,

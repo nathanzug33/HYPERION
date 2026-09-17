@@ -257,10 +257,15 @@ projection anonymisée habituelle. Route :
   d'URL** (sinon erreur intermittente `prepared statement ... already
   exists`, Prisma utilisant par défaut des requêtes préparées incompatibles
   avec ce pooler) — et `DIRECT_URL` en mode **"Direct connection"** (port
-  5432, sans ce paramètre, utilisée uniquement par `npx prisma migrate
-  deploy` : le pooler ne supporte pas les verrous nécessaires aux
-  migrations — sans `DIRECT_URL`, la commande reste bloquée indéfiniment
-  sans erreur).
+  5432, sans ce paramètre). Les deux doivent être renseignées comme
+  variables d'environnement Vercel (pas seulement en local) : le script de
+  build (`npm run build`) lance désormais `prisma migrate deploy` avant
+  `next build`, qui a besoin de `DIRECT_URL` (le pooler ne supporte pas les
+  verrous nécessaires aux migrations — sans elle, la commande reste
+  bloquée indéfiniment sans erreur). Les migrations ne sont donc plus à
+  lancer à la main après un déploiement — chaque déploiement Vercel les
+  applique automatiquement ; un échec de migration fait échouer le build
+  plutôt que de déployer une app désynchronisée du schéma de la base.
 - **Stockage des pièces jointes** : créer un bucket **privé** nommé
   `hyperion-storage` dans Supabase Storage (Project Settings → Storage),
   puis renseigner `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` (Project
