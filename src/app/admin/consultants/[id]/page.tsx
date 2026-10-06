@@ -10,6 +10,7 @@ import { canAccessConsultant } from "@/lib/consultant-access";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { computeMatchScore } from "@/lib/matching";
 import { buildCandidateKeywords, scoreFonctionMatch } from "@/lib/poste-match";
+import { formatLocalisation } from "@/lib/push-format";
 import CandidateActionsBar from "./candidate-actions-bar";
 
 export const dynamic = "force-dynamic";
@@ -258,6 +259,8 @@ export default async function ConsultantEditPage({
         entreprisesPourPush={entreprisesPourPush}
         propositions={propositions}
         suggestionsContacts={suggestionsContacts}
+        disponibilite={consultant.disponibilite}
+        localisation={formatLocalisation(consultant.villeRattachement, consultant.rayonKm)}
         publicView={publicView}
         fichiers={consultant.fichiers}
       />

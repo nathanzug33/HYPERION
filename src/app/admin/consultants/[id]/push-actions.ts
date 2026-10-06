@@ -6,7 +6,18 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { canAccessEntreprise } from "@/lib/crm-access";
 import { getValidAccessToken } from "@/lib/google-oauth";
-import { buildDcForConsultant, sendPushEmailAndLog } from "@/lib/push-core";
+import { DISPONIBILITE_LABELS, type Disponibilite } from "@/lib/constants";
+import { buildDcForConsultant, resolveSenderInfo, sendPushEmailAndLog } from "@/lib/push-core";
+import { competencesKeywords } from "@/lib/push-format";
+
+function readDisponibilite(formData: FormData): string | null {
+  const code = String(formData.get("disponibilite") ?? "");
+  return code ? (DISPONIBILITE_LABELS[code as Disponibilite] ?? null) : null;
+}
+
+function readLocalisation(formData: FormData): string | null {
+  return String(formData.get("localisation") ?? "").trim() || null;
+}
 
 /** Propose un candidat (DC) à un contact CRM : trace visible sur la fiche
  * candidat ET sur la fiche du contact (même ligne, un SuiviCommercial
@@ -18,6 +29,8 @@ export async function pushCandidatToClientAction(formData: FormData) {
   const entrepriseId = String(formData.get("entrepriseId") ?? "");
   const contactId = String(formData.get("contactId") ?? "");
   const message = String(formData.get("message") ?? "").trim() || null;
+  const disponibilite = readDisponibilite(formData);
+  const localisation = readLocalisation(formData);
 
   if (!consultantId || !entrepriseId || !contactId) return;
 
@@ -32,7 +45,10 @@ export async function pushCandidatToClientAction(formData: FormData) {
   const dc = await buildDcForConsultant(consultantId);
   if (!dc) return;
 
-  const googleAccessToken = await getValidAccessToken(session.user.id);
+  const [googleAccessToken, sender] = await Promise.all([
+    getValidAccessToken(session.user.id),
+    resolveSenderInfo(session.user.id),
+  ]);
 
   await sendPushEmailAndLog({
     consultant: dc.consultant,
@@ -40,9 +56,12 @@ export async function pushCandidatToClientAction(formData: FormData) {
     docxFilename: dc.docxFilename,
     entrepriseId,
     contact,
+    disponibilite,
+    localisation,
+    competences: competencesKeywords(dc.consultant.competences),
     message,
     bmUserId: session.user.id,
-    bmName: session.user.name || "Votre contact HYPERION",
+    sender,
     googleAccessToken,
   });
 
@@ -56,12 +75,15 @@ export async function pushCandidatToClientAction(formData: FormData) {
 /** Push en masse : un candidat vers plusieurs contacts CRM sélectionnés
  * (typiquement depuis les suggestions par poste/secteur/expertise de la
  * fiche candidat). Le DC est généré une seule fois et réutilisé pour tous
- * les envois. */
+ * les envois ; disponibilité/localisation sont saisies une fois et
+ * appliquées à tous les contacts sélectionnés (un seul candidat poussé). */
 export async function pushCandidatToManyAction(formData: FormData) {
   const session = await requireStaff();
 
   const consultantId = String(formData.get("consultantId") ?? "");
   const message = String(formData.get("message") ?? "").trim() || null;
+  const disponibilite = readDisponibilite(formData);
+  const localisation = readLocalisation(formData);
   const contactIds = formData.getAll("contactIds").map(String).filter(Boolean);
 
   if (!consultantId || contactIds.length === 0) return;
@@ -74,7 +96,11 @@ export async function pushCandidatToManyAction(formData: FormData) {
     include: { entreprise: true },
   });
 
-  const googleAccessToken = await getValidAccessToken(session.user.id);
+  const [googleAccessToken, sender] = await Promise.all([
+    getValidAccessToken(session.user.id),
+    resolveSenderInfo(session.user.id),
+  ]);
+  const competences = competencesKeywords(dc.consultant.competences);
   const touchedEntrepriseIds = new Set<string>();
   let sent = 0;
 
@@ -86,9 +112,12 @@ export async function pushCandidatToManyAction(formData: FormData) {
       docxFilename: dc.docxFilename,
       entrepriseId: contact.entrepriseId,
       contact,
+      disponibilite,
+      localisation,
+      competences,
       message,
       bmUserId: session.user.id,
-      bmName: session.user.name || "Votre contact HYPERION",
+      sender,
       googleAccessToken,
     });
     if (ok) {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { pushCandidatToClientAction } from "./push-actions";
+import PushDispoLocalisationFields from "./push-dispo-localisation-fields";
 
 type Contact = { id: string; prenom: string; nom: string; email: string | null };
 type EntrepriseOption = { id: string; nom: string; contacts: Contact[] };
@@ -9,9 +10,13 @@ type EntrepriseOption = { id: string; nom: string; contacts: Contact[] };
 export default function PushCandidatForm({
   consultantId,
   entreprises,
+  disponibilite,
+  localisation,
 }: {
   consultantId: string;
   entreprises: EntrepriseOption[];
+  disponibilite: string | null;
+  localisation: string | null;
 }) {
   const [entrepriseId, setEntrepriseId] = useState("");
   const selected = entreprises.find((e) => e.id === entrepriseId);
@@ -47,6 +52,7 @@ export default function PushCandidatForm({
           Aucun interlocuteur avec email pour cette entreprise.
         </p>
       )}
+      <PushDispoLocalisationFields disponibilite={disponibilite} localisation={localisation} />
       <textarea
         name="message"
         rows={2}

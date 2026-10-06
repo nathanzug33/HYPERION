@@ -16,21 +16,38 @@ export async function sendPushEmailAndLog(params: {
   docxFilename: string;
   entrepriseId: string;
   contact: { id: string; civilite?: string | null; prenom: string; nom: string; email: string | null };
+  disponibilite: string | null;
+  localisation: string | null;
+  competences: string[];
   message: string | null;
   bmUserId: string;
-  bmName: string;
+  sender: { name: string; poste: string | null; email: string; telephone: string | null };
   googleAccessToken: string | null;
 }): Promise<boolean> {
-  const { consultant, docxBuffer, docxFilename, entrepriseId, contact, message, bmUserId, bmName, googleAccessToken } =
-    params;
+  const {
+    consultant,
+    docxBuffer,
+    docxFilename,
+    entrepriseId,
+    contact,
+    disponibilite,
+    localisation,
+    competences,
+    message,
+    bmUserId,
+    sender,
+    googleAccessToken,
+  } = params;
   if (!contact.email) return false;
 
   const propositionParams = {
     contactName: formatSalutationNom(contact),
-    bmName,
-    reference: consultant.referenceAnonyme,
-    intitulePoste: consultant.intitulePoste,
+    profilTitre: consultant.intitulePoste || consultant.referenceAnonyme,
+    disponibilite,
+    localisation,
+    competences,
     message,
+    sender,
     docxBuffer,
     docxFilename,
   };
@@ -87,4 +104,22 @@ export async function buildDcForConsultant(consultantId: string) {
     .replace(/\s+/g, "_")
     .replace(/[^\w.-]/g, "");
   return { consultant, docxBuffer, docxFilename };
+}
+
+/** Coordonnées de l'expéditeur pour la signature de l'email de proposition
+ * (§ pas de signature Gmail automatique, voir mail.ts) — lues depuis la
+ * fiche BM (page Mon compte), pas depuis le JWT de session. */
+export async function resolveSenderInfo(
+  userId: string
+): Promise<{ name: string; poste: string | null; email: string; telephone: string | null }> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true, poste: true, email: true, telephone: true },
+  });
+  return {
+    name: user?.name || "Votre contact HYPERION",
+    poste: user?.poste ?? null,
+    email: user?.email ?? "",
+    telephone: user?.telephone ?? null,
+  };
 }

@@ -204,6 +204,7 @@ export default function ConsultantEditForm({
                 name="zoneIds"
                 options={referentials.zones}
                 selectedIds={new Set(consultant.zonesGeographiques.map((z) => z.zoneGeographiqueId))}
+                selectAllLabel="France entière"
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">

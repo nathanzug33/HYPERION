@@ -15,12 +15,14 @@ export async function updateOwnProfileAction(formData: FormData) {
   const session = await requireStaff();
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const poste = String(formData.get("poste") ?? "").trim() || null;
+  const telephone = String(formData.get("telephone") ?? "").trim() || null;
   if (!name || !email || !email.includes("@")) return;
 
   try {
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { name, email },
+      data: { name, email, poste, telephone },
     });
   } catch {
     redirect("/admin/profil?error=email_pris");

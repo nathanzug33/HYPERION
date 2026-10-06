@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { MatchResult } from "@/lib/matching";
 import MatchBadges from "@/components/MatchBadges";
 import { pushCandidatToManyAction } from "./push-actions";
+import PushDispoLocalisationFields from "./push-dispo-localisation-fields";
 
 export type ContactSuggestion = {
   contactId: string;
@@ -21,9 +22,13 @@ export type ContactSuggestion = {
 export default function PushSuggestionsForm({
   consultantId,
   suggestions,
+  disponibilite,
+  localisation,
 }: {
   consultantId: string;
   suggestions: ContactSuggestion[];
+  disponibilite: string | null;
+  localisation: string | null;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -93,6 +98,7 @@ export default function PushSuggestionsForm({
         ))}
       </ul>
 
+      <PushDispoLocalisationFields disponibilite={disponibilite} localisation={localisation} />
       <textarea
         name="message"
         rows={2}

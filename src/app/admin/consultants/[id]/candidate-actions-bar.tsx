@@ -61,6 +61,8 @@ export default function CandidateActionsBar({
   entreprisesPourPush,
   propositions,
   suggestionsContacts,
+  disponibilite,
+  localisation,
   publicView,
   fichiers,
 }: {
@@ -73,6 +75,8 @@ export default function CandidateActionsBar({
   entreprisesPourPush: EntrepriseOption[];
   propositions: Proposition[];
   suggestionsContacts: ContactSuggestion[];
+  disponibilite: string | null;
+  localisation: string | null;
   publicView: ConsultantPublic | null;
   fichiers: Fichier[];
 }) {
@@ -155,7 +159,12 @@ export default function CandidateActionsBar({
                   Aucune entreprise CRM accessible pour l&apos;instant.
                 </p>
               ) : (
-                <PushCandidatForm consultantId={consultantId} entreprises={entreprisesPourPush} />
+                <PushCandidatForm
+                  consultantId={consultantId}
+                  entreprises={entreprisesPourPush}
+                  disponibilite={disponibilite}
+                  localisation={localisation}
+                />
               )}
               {propositions.length > 0 && (
                 <ul className="space-y-1.5 border-t border-slate-100 pt-3 text-xs">
@@ -182,7 +191,12 @@ export default function CandidateActionsBar({
               )}
               {suggestionsContacts.length > 0 && (
                 <div className="border-t border-slate-100 pt-3">
-                  <PushSuggestionsForm consultantId={consultantId} suggestions={suggestionsContacts} />
+                  <PushSuggestionsForm
+                    consultantId={consultantId}
+                    suggestions={suggestionsContacts}
+                    disponibilite={disponibilite}
+                    localisation={localisation}
+                  />
                 </div>
               )}
             </div>
