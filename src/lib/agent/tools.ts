@@ -18,6 +18,13 @@ import {
 
 type SessionUser = { id: string; role: string };
 
+// La référence anonyme (IND-xxx) n'a de sens que pour les documents destinés
+// aux clients (DC, exports) — en interne, le staff connaît déjà le candidat
+// et veut son nom, avec un lien direct vers sa fiche.
+function lienCandidat(id: string): string {
+  return `/admin/consultants/${id}`;
+}
+
 // ---------------------------------------------------------------------------
 // Scoring de candidats par mots-clés libres — utilisé à la fois pour la
 // recherche directe ("Python AWS data engineer") et pour le sourcing à
@@ -42,12 +49,12 @@ async function scoreCandidats(
     },
     select: {
       id: true,
-      referenceAnonyme: true,
+      nom: true,
+      prenom: true,
       intitulePoste: true,
       disponibilite: true,
       villeRattachement: true,
       rayonKm: true,
-      statutPublication: true,
       secteurs: { select: { secteur: { select: { label: true } } } },
       expertises: { select: { expertise: { select: { label: true } } } },
       competences: { select: { competence: { select: { label: true } } } },
@@ -88,7 +95,9 @@ async function scoreCandidats(
   return {
     total_correspondant: filtres.length,
     resultats: top.map(({ c, competenceLabels, score, motsTrouves }) => ({
-      reference: c.referenceAnonyme,
+      id: c.id,
+      nom_complet: `${c.prenom} ${c.nom}`,
+      lien: lienCandidat(c.id),
       poste: c.intitulePoste,
       disponibilite: c.disponibilite
         ? (DISPONIBILITE_LABELS[c.disponibilite as Disponibilite] ?? c.disponibilite)
@@ -96,7 +105,6 @@ async function scoreCandidats(
       ville: c.villeRattachement,
       rayon_km: c.rayonKm,
       competences: competenceLabels.slice(0, 10),
-      statut_publication: c.statutPublication,
       mots_cles_trouves: motsTrouves,
       score,
     })),
@@ -134,7 +142,7 @@ async function recapRdvAVenir(input: { jours?: number }, user: SessionUser) {
         dateProgrammee: { gte: now, lte: fin },
       },
       orderBy: { dateProgrammee: "asc" },
-      include: { consultant: { select: { referenceAnonyme: true, prenom: true, nom: true } } },
+      include: { consultant: { select: { id: true, prenom: true, nom: true } } },
       take: 50,
     }),
     prisma.suiviCommercial.findMany({
@@ -155,7 +163,8 @@ async function recapRdvAVenir(input: { jours?: number }, user: SessionUser) {
     rdv_candidats: rdvCandidats.map((r) => ({
       type: SUIVI_TYPE_LABELS[r.type as SuiviType] ?? r.type,
       date: r.dateProgrammee,
-      candidat: `${r.consultant.prenom} ${r.consultant.nom} (${r.consultant.referenceAnonyme})`,
+      candidat: `${r.consultant.prenom} ${r.consultant.nom}`,
+      candidat_lien: lienCandidat(r.consultant.id),
       titre: r.titre,
     })),
     rdv_commerciaux: rdvCommerciaux.map((r) => ({
@@ -177,7 +186,7 @@ async function relancesPushSansReponse(user: SessionUser) {
       createdAt: true,
       entreprise: { select: { nom: true } },
       contact: { select: { prenom: true, nom: true } },
-      consultant: { select: { referenceAnonyme: true } },
+      consultant: { select: { id: true, prenom: true, nom: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 300,
@@ -189,7 +198,8 @@ async function relancesPushSansReponse(user: SessionUser) {
   return {
     total: aRelancer.length,
     a_relancer: aRelancer.map((p) => ({
-      candidat: p.consultant?.referenceAnonyme ?? null,
+      candidat: p.consultant ? `${p.consultant.prenom} ${p.consultant.nom}` : null,
+      candidat_lien: p.consultant ? lienCandidat(p.consultant.id) : null,
       entreprise: p.entreprise.nom,
       contact: p.contact ? `${p.contact.prenom} ${p.contact.nom}` : null,
       jours_depuis_envoi: Math.floor((Date.now() - p.createdAt.getTime()) / 86400000),
@@ -207,7 +217,7 @@ async function relancesAppelsSansReponse(user: SessionUser) {
       id: true,
       consultantId: true,
       createdAt: true,
-      consultant: { select: { referenceAnonyme: true, prenom: true, nom: true, telephone: true } },
+      consultant: { select: { id: true, prenom: true, nom: true, telephone: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 300,
@@ -231,7 +241,8 @@ async function relancesAppelsSansReponse(user: SessionUser) {
   return {
     total: aRelancer.length,
     a_relancer: aRelancer.map((a) => ({
-      candidat: `${a.consultant.prenom} ${a.consultant.nom} (${a.consultant.referenceAnonyme})`,
+      candidat: `${a.consultant.prenom} ${a.consultant.nom}`,
+      candidat_lien: lienCandidat(a.consultant.id),
       telephone: a.consultant.telephone,
       jours_depuis_appel: Math.floor((now - a.createdAt.getTime()) / 86400000),
     })),
@@ -245,18 +256,38 @@ async function relancesAppelsSansReponse(user: SessionUser) {
 // ---------------------------------------------------------------------------
 
 async function preparerPushCandidat(
-  input: { candidat_reference: string; entreprise_nom: string; contact_nom?: string; message?: string },
+  input: { candidat_id?: string; candidat_nom?: string; entreprise_nom: string; contact_nom?: string; message?: string },
   user: SessionUser
 ) {
-  const consultant = await prisma.consultant.findFirst({
-    where: {
-      ...consultantVisibilityWhere(user),
-      referenceAnonyme: { contains: input.candidat_reference, mode: "insensitive" },
-    },
-    select: { id: true, referenceAnonyme: true, intitulePoste: true },
-  });
-  if (!consultant) {
-    return { ok: false, erreur: `Aucun candidat trouvé pour la référence "${input.candidat_reference}".` };
+  let consultant: { id: string; nom: string; prenom: string; intitulePoste: string | null } | null = null;
+
+  if (input.candidat_id) {
+    consultant = await prisma.consultant.findFirst({
+      where: { ...consultantVisibilityWhere(user), id: input.candidat_id },
+      select: { id: true, nom: true, prenom: true, intitulePoste: true },
+    });
+    if (!consultant) return { ok: false, erreur: "Candidat introuvable (id invalide)." };
+  } else if (input.candidat_nom) {
+    const q = input.candidat_nom.toLowerCase();
+    const candidats = await prisma.consultant.findMany({
+      where: { ...consultantVisibilityWhere(user) },
+      select: { id: true, nom: true, prenom: true, intitulePoste: true },
+    });
+    const matches = candidats.filter((c) => `${c.prenom} ${c.nom}`.toLowerCase().includes(q));
+    if (matches.length === 0) {
+      return { ok: false, erreur: `Aucun candidat trouvé pour "${input.candidat_nom}".` };
+    }
+    if (matches.length > 1) {
+      return {
+        ok: false,
+        erreur: `Plusieurs candidats correspondent à "${input.candidat_nom}" : ${matches
+          .map((m) => `${m.prenom} ${m.nom}`)
+          .join(", ")}. Précise lequel (ou utilise l'id d'une recherche précédente).`,
+      };
+    }
+    consultant = matches[0];
+  } else {
+    return { ok: false, erreur: "candidat_id ou candidat_nom requis." };
   }
 
   const entreprises = await prisma.entreprise.findMany({
@@ -318,7 +349,8 @@ async function preparerPushCandidat(
   return {
     ok: true,
     consultant_id: consultant.id,
-    consultant_reference: consultant.referenceAnonyme,
+    consultant_nom: `${consultant.prenom} ${consultant.nom}`,
+    consultant_lien: lienCandidat(consultant.id),
     consultant_poste: consultant.intitulePoste,
     entreprise_id: entreprise.id,
     entreprise_nom: entreprise.nom,
@@ -390,11 +422,19 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
   {
     name: "preparer_push_candidat",
     description:
-      "Résout et valide une proposition de push d'un candidat vers un interlocuteur d'une entreprise cliente (par leurs noms), SANS envoyer quoi que ce soit. Utilise cet outil quand l'utilisateur demande de pousser/proposer un candidat à un client précis. L'envoi réel n'a lieu que si l'utilisateur confirme ensuite explicitement via le bouton affiché dans l'interface.",
+      "Résout et valide une proposition de push d'un candidat vers un interlocuteur d'une entreprise cliente, SANS envoyer quoi que ce soit. Utilise cet outil quand l'utilisateur demande de pousser/proposer un candidat à un client précis. L'envoi réel n'a lieu que si l'utilisateur confirme ensuite explicitement via le bouton affiché dans l'interface.",
     input_schema: {
       type: "object",
       properties: {
-        candidat_reference: { type: "string", description: "Référence anonyme du candidat (ex. IND-017) ou fragment" },
+        candidat_id: {
+          type: "string",
+          description:
+            "Id du candidat (champ 'id' renvoyé par une recherche précédente) — à privilégier si disponible, c'est exact.",
+        },
+        candidat_nom: {
+          type: "string",
+          description: "Nom (ou prénom + nom) du candidat, si son id n'est pas connu",
+        },
         entreprise_nom: { type: "string", description: "Nom (ou fragment du nom) de l'entreprise cliente" },
         contact_nom: {
           type: "string",
@@ -402,7 +442,7 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
         },
         message: { type: "string", description: "Message d'accompagnement optionnel pour l'email de proposition" },
       },
-      required: ["candidat_reference", "entreprise_nom"],
+      required: ["entreprise_nom"],
     },
   },
 ];
@@ -438,12 +478,13 @@ export async function executeAgentTool(name: string, input: unknown, user: Sessi
     case "relances_appels_sans_reponse":
       return relancesAppelsSansReponse(user);
     case "preparer_push_candidat":
-      if (typeof params.candidat_reference !== "string" || typeof params.entreprise_nom !== "string") {
-        return { ok: false, erreur: "candidat_reference et entreprise_nom sont requis." };
+      if (typeof params.entreprise_nom !== "string") {
+        return { ok: false, erreur: "entreprise_nom requis." };
       }
       return preparerPushCandidat(
         {
-          candidat_reference: params.candidat_reference,
+          candidat_id: typeof params.candidat_id === "string" ? params.candidat_id : undefined,
+          candidat_nom: typeof params.candidat_nom === "string" ? params.candidat_nom : undefined,
           entreprise_nom: params.entreprise_nom,
           contact_nom: typeof params.contact_nom === "string" ? params.contact_nom : undefined,
           message: typeof params.message === "string" ? params.message : undefined,

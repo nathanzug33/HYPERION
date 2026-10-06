@@ -8,7 +8,8 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 type PendingPush = {
   type: "push_candidat";
   consultant_id: string;
-  consultant_reference: string;
+  consultant_nom: string;
+  consultant_lien: string;
   consultant_poste: string | null;
   entreprise_id: string;
   entreprise_nom: string;
@@ -22,6 +23,34 @@ const QUICK_PROMPTS = [
   "Relances à faire suite à des push",
   "Relances à faire suite à des appels sans réponse",
 ];
+
+// Rendu minimal des liens Markdown [texte](/chemin) générés par l'agent —
+// uniquement des chemins internes relatifs (/admin/...), jamais une URL
+// externe arbitraire venant d'un texte généré par le modèle.
+function renderMessageContent(content: string) {
+  const parts: React.ReactNode[] = [];
+  const linkPattern = /\[([^\]]+)\]\((\/[^\s)]+)\)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+  while ((match = linkPattern.exec(content)) !== null) {
+    if (match.index > lastIndex) parts.push(content.slice(lastIndex, match.index));
+    parts.push(
+      <a
+        key={key++}
+        href={match[2]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-medium text-brand-blue-dark underline hover:text-brand-ink"
+      >
+        {match[1]}
+      </a>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < content.length) parts.push(content.slice(lastIndex));
+  return parts;
+}
 
 export default function AgentChatWidget() {
   const [open, setOpen] = useState(false);
@@ -142,7 +171,7 @@ export default function AgentChatWidget() {
                       : "bg-slate-100 text-brand-body"
                   }`}
                 >
-                  {m.content}
+                  {m.role === "assistant" ? renderMessageContent(m.content) : m.content}
                 </div>
               </div>
             ))}
@@ -164,7 +193,15 @@ export default function AgentChatWidget() {
             {pendingAction && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
                 <p className="mb-2 font-medium">
-                  Proposition prête : {pendingAction.consultant_reference}
+                  Proposition prête :{" "}
+                  <a
+                    href={pendingAction.consultant_lien}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    {pendingAction.consultant_nom}
+                  </a>
                   {pendingAction.consultant_poste ? ` — ${pendingAction.consultant_poste}` : ""} →{" "}
                   {pendingAction.contact_nom} ({pendingAction.entreprise_nom})
                 </p>
