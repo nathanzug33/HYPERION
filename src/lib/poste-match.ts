@@ -21,7 +21,11 @@ function normalize(s: string): string {
     .replace(/[^a-z0-9\s]/g, " ");
 }
 
-function extractKeywords(s: string | null | undefined): string[] {
+/** Normalise et découpe un texte libre en mots-clés (sans accent, sans
+ * ponctuation, mots courts/vides filtrés) — exporté pour être réutilisé
+ * ailleurs qu'ici (ex. agent IA : recherche libre, sourcing sur fiche de
+ * poste) sans dupliquer la logique de normalisation. */
+export function extractKeywords(s: string | null | undefined): string[] {
   if (!s) return [];
   const words = normalize(s)
     .split(/\s+/)

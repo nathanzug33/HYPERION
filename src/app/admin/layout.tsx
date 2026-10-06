@@ -7,6 +7,7 @@ import LogoutButton from "@/components/LogoutButton";
 import SidebarLink from "@/components/SidebarLink";
 import SidebarGroup from "@/components/SidebarGroup";
 import GlobalSearch from "@/components/GlobalSearch";
+import AgentChatWidget from "@/components/agent/AgentChatWidget";
 
 export default async function AdminLayout({
   children,
@@ -115,6 +116,7 @@ export default async function AdminLayout({
       </aside>
 
       <main className="animate-fade-in min-w-0 flex-1 px-4 py-8 pb-24 sm:px-6">{children}</main>
+      <AgentChatWidget />
     </div>
   );
 }
