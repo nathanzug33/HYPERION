@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { STATUT_PUBLICATION } from "@/lib/constants";
 import { generateDCFromCvAndTranscript, isAiGenerationConfigured } from "@/lib/ai-dc";
-import { generateNextReference } from "@/lib/reference-generator";
 import { findVille } from "@/lib/villes-france";
 import { saveCvFile } from "@/lib/cv-storage";
 import { extractFileText } from "@/lib/cv-text";
@@ -114,7 +113,6 @@ export async function generateConsultantFromAI(
     generated.langues.map((l) => l.label)
   );
 
-  const reference = await generateNextReference();
   const dateCollecte = new Date();
   const cles = resolveCompetencesCles(generated.competencesTechnologies, generated.competencesCles);
 
@@ -136,7 +134,6 @@ export async function generateConsultantFromAI(
       dureeConservationMois: 24,
       dateConservationLimite: computeRetentionDate(dateCollecte, 24),
 
-      referenceAnonyme: reference,
       intitulePoste: generated.intitulePoste,
       seniorityId,
       anneesExperience: generated.anneesExperience,

@@ -240,8 +240,8 @@ export default function ConsultantEditForm({
               <Field label="Référence anonyme">
                 <input
                   name="referenceAnonyme"
-                  defaultValue={consultant.referenceAnonyme}
-                  required
+                  defaultValue={consultant.referenceAnonyme ?? ""}
+                  placeholder="Générée automatiquement si besoin (DC, publication)"
                   className="input font-mono"
                 />
               </Field>

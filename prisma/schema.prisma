@@ -268,7 +268,11 @@ model Consultant {
   dateConservationLimite  DateTime?
 
   // --- Champs exposables (projection anonymisée) --------------------------
-  referenceAnonyme         String     @unique // ex. IND-017, ne doit pas trahir l'identité
+  // Nulle par défaut : plus de génération automatique à la création (§ nettoyage
+  // UI interne) — générée à la volée (voir ensureReferenceAnonyme) uniquement
+  // quand un usage anonymisé en a réellement besoin (DC envoyé/exporté,
+  // publication dans la bibliothèque client).
+  referenceAnonyme         String?    @unique // ex. IND-017, ne doit pas trahir l'identité
   intitulePoste            String?
   // Séniorité déduite automatiquement de anneesExperience via les bornes du
   // référentiel Seniorite (plus de sélection manuelle) — voir deriveSeniorityId.

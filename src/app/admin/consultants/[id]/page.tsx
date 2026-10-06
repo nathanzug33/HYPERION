@@ -36,7 +36,7 @@ export default async function ConsultantEditPage({
   const doublonsCandidats = doublons
     ? await prisma.consultant.findMany({
         where: { id: { in: doublons.split(",") } },
-        select: { id: true, referenceAnonyme: true, nom: true, prenom: true },
+        select: { id: true, nom: true, prenom: true },
       })
     : [];
 
@@ -172,10 +172,7 @@ export default async function ConsultantEditPage({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-brand-ink">
-            {consultant.prenom} {consultant.nom}{" "}
-            <span className="font-mono text-base font-normal text-brand-gray">
-              — {consultant.referenceAnonyme}
-            </span>
+            {consultant.prenom} {consultant.nom}
           </h1>
           <p className="mt-1 text-sm text-brand-gray">
             {formatStatutBibliotheque(consultant.statutPublication) && (
@@ -241,7 +238,7 @@ export default async function ConsultantEditPage({
             {doublonsCandidats.map((d) => (
               <li key={d.id}>
                 <Link href={`/admin/consultants/${d.id}`} className="link-underline font-medium">
-                  {d.referenceAnonyme} — {d.prenom} {d.nom}
+                  {d.prenom} {d.nom}
                 </Link>
               </li>
             ))}

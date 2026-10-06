@@ -44,7 +44,7 @@ export default async function ContactDetailPage({
     // technique (RT) — voir suivi-section.tsx.
     prisma.consultant.findMany({
       orderBy: { nom: "asc" },
-      select: { id: true, prenom: true, nom: true, referenceAnonyme: true },
+      select: { id: true, prenom: true, nom: true },
     }),
     prisma.secteur.findMany({ where: { active: true }, select: { id: true, label: true } }),
     prisma.expertise.findMany({ where: { active: true }, select: { id: true, label: true } }),
@@ -54,7 +54,8 @@ export default async function ContactDetailPage({
       where: { statutPublication: "PUBLIEE" },
       select: {
         id: true,
-        referenceAnonyme: true,
+        nom: true,
+        prenom: true,
         intitulePoste: true,
         villeLat: true,
         villeLng: true,
@@ -98,7 +99,7 @@ export default async function ContactDetailPage({
       const fonctionMatch = scoreFonctionMatch(contact.fonction, candidateKeywords);
       return {
         consultantId: c.id,
-        referenceAnonyme: c.referenceAnonyme,
+        nomComplet: `${c.prenom} ${c.nom}`,
         intitulePoste: c.intitulePoste,
         totalScore: match.score + fonctionMatch.score,
         match,

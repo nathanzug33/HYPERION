@@ -3,6 +3,7 @@ import { requireStaff } from "@/lib/guards";
 import { buildDcDocx, dcConsultantInclude, formatDcFilename } from "@/lib/dc-docx";
 import { canAccessConsultant } from "@/lib/consultant-access";
 import { saveDcFile } from "@/lib/dc-storage";
+import { ensureReferenceAnonyme } from "@/lib/reference-generator";
 
 export async function GET(
   _req: Request,
@@ -11,16 +12,21 @@ export async function GET(
   const session = await requireStaff();
   const { id } = await params;
 
+  const existing = await prisma.consultant.findUnique({ where: { id }, select: { businessManagerId: true } });
+  if (!existing) {
+    return new Response("Introuvable", { status: 404 });
+  }
+  if (!(await canAccessConsultant(session.user, { id, businessManagerId: existing.businessManagerId }))) {
+    return new Response("Interdit", { status: 403 });
+  }
+
+  await ensureReferenceAnonyme(id);
   const consultant = await prisma.consultant.findUnique({
     where: { id },
     include: dcConsultantInclude,
   });
-
   if (!consultant) {
     return new Response("Introuvable", { status: 404 });
-  }
-  if (!(await canAccessConsultant(session.user, consultant))) {
-    return new Response("Interdit", { status: 403 });
   }
 
   const buffer = await buildDcDocx(consultant);

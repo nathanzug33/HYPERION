@@ -8,7 +8,7 @@ import { pushCandidatsToContactAction } from "./push-actions";
 
 export type CandidatSuggestion = {
   consultantId: string;
-  referenceAnonyme: string;
+  nomComplet: string;
   intitulePoste: string | null;
   totalScore: number;
   match: MatchResult;
@@ -78,12 +78,12 @@ export default function PushCandidatsForm({
                     <Link
                       href={`/admin/consultants/${s.consultantId}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="font-mono text-[11px] text-brand-gray hover:text-brand-blue-dark hover:underline"
+                      className="font-medium text-brand-ink hover:text-brand-blue-dark hover:underline"
                     >
-                      {s.referenceAnonyme}
+                      {s.nomComplet}
                     </Link>
                     {s.intitulePoste && (
-                      <span className="ml-2 font-medium text-brand-ink">{s.intitulePoste}</span>
+                      <span className="ml-2 text-brand-gray">{s.intitulePoste}</span>
                     )}
                   </span>
                   <span className="mt-1 block">

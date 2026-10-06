@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireStaff, requireAdmin } from "@/lib/guards";
-import { generateNextReference } from "@/lib/reference-generator";
 import {
   STATUT_PUBLICATION,
   STATUT_CANDIDAT_INTERNE_LABELS,
@@ -20,6 +19,7 @@ import { saveTranscriptFile, saveTranscriptText, deleteTranscriptFile } from "@/
 import { extractFileText } from "@/lib/cv-text";
 import { findConsultantDuplicates } from "@/lib/duplicate-detection";
 import { deriveSeniorityId } from "@/lib/ai-dc-match";
+import { ensureReferenceAnonyme } from "@/lib/reference-generator";
 
 function getMulti(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
@@ -69,7 +69,6 @@ export async function createConsultantAction(formData: FormData) {
 
   if (!nom || !prenom) return;
 
-  const reference = await generateNextReference();
   const dateCollecte = new Date();
 
   const cvFile = formData.get("cvFile");
@@ -96,7 +95,6 @@ export async function createConsultantAction(formData: FormData) {
       telephone: String(formData.get("telephone") ?? "") || null,
       businessManagerId,
       dateRencontre: dateCollecte,
-      referenceAnonyme: reference,
       dateCollecte,
       dateConservationLimite: computeRetentionDate(dateCollecte, 24),
       statutPublication: STATUT_PUBLICATION.BROUILLON,
@@ -414,6 +412,11 @@ export async function publishConsultantAction(formData: FormData) {
       )}`
     );
   }
+
+  // La référence anonyme sert d'identifiant dans l'URL publique
+  // (/bibliotheque/dossiers/<référence>) — plus générée à la création,
+  // on s'assure qu'elle existe au moment où elle devient réellement utile.
+  await ensureReferenceAnonyme(id);
 
   await prisma.consultant.update({
     where: { id },

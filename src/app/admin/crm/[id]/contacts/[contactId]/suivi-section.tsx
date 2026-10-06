@@ -31,7 +31,7 @@ type Suivi = {
   createdBy: { name: string };
 };
 
-type CandidatOption = { id: string; prenom: string; nom: string; referenceAnonyme: string };
+type CandidatOption = { id: string; prenom: string; nom: string };
 
 const TYPE_STYLES: Record<string, string> = {
   NOTE: "bg-slate-100 text-brand-body",
@@ -46,7 +46,7 @@ const TYPE_STYLES: Record<string, string> = {
 };
 
 function candidatLabel(c: CandidatOption): string {
-  return `${c.prenom} ${c.nom} (${c.referenceAnonyme})`;
+  return `${c.prenom} ${c.nom}`;
 }
 
 export default function SuiviSection({
@@ -88,7 +88,7 @@ export default function SuiviSection({
 
   useEffect(() => {
     if (estRt && candidatSelectionne && !titre) {
-      setTitre(`RT ${candidatSelectionne.referenceAnonyme} x ${entrepriseNom ?? "client"}`);
+      setTitre(`RT ${candidatLabel(candidatSelectionne)} x ${entrepriseNom ?? "client"}`);
     }
   }, [estRt, candidatSelectionne, titre, entrepriseNom]);
 

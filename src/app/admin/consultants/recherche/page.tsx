@@ -2,10 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import { consultantVisibilityWhere } from "@/lib/consultant-access";
-import {
-  STATUT_PUBLICATION_LABELS,
-  STATUT_CANDIDAT_INTERNE_LABELS,
-} from "@/lib/constants";
+import { STATUT_CANDIDAT_INTERNE_LABELS } from "@/lib/constants";
 import { parseSort, nextSort } from "@/lib/sort";
 import { resolveWeekOffset } from "@/lib/periode";
 import SortableHeader from "@/components/SortableHeader";
@@ -15,7 +12,7 @@ import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-const SORT_KEYS = ["ref", "nom", "poste", "seniorite", "bm", "statutCandidat", "publication"] as const;
+const SORT_KEYS = ["nom", "poste", "seniorite", "bm", "statutCandidat"] as const;
 
 function toArray(v: string | string[] | undefined): string[] {
   if (!v) return [];
@@ -144,21 +141,17 @@ export default async function RechercheAvanceePage({
       prisma.consultant.findMany({
         where,
         orderBy:
-          sortState.key === "ref"
-            ? { referenceAnonyme: sortState.dir }
-            : sortState.key === "nom"
-              ? [{ nom: sortState.dir }, { prenom: sortState.dir }]
-              : sortState.key === "poste"
-                ? { intitulePoste: sortState.dir }
-                : sortState.key === "seniorite"
-                  ? { seniority: { ordre: sortState.dir } }
-                  : sortState.key === "bm"
-                    ? { businessManager: { name: sortState.dir } }
-                    : sortState.key === "statutCandidat"
-                      ? { statutCandidatInterne: sortState.dir }
-                      : sortState.key === "publication"
-                        ? { statutPublication: sortState.dir }
-                        : { updatedAt: "desc" },
+          sortState.key === "nom"
+            ? [{ nom: sortState.dir }, { prenom: sortState.dir }]
+            : sortState.key === "poste"
+              ? { intitulePoste: sortState.dir }
+              : sortState.key === "seniorite"
+                ? { seniority: { ordre: sortState.dir } }
+                : sortState.key === "bm"
+                  ? { businessManager: { name: sortState.dir } }
+                  : sortState.key === "statutCandidat"
+                    ? { statutCandidatInterne: sortState.dir }
+                    : { updatedAt: "desc" },
         include: { businessManager: true, seniority: true },
       }),
       prisma.competence.findMany({ where: { active: true }, orderBy: { label: "asc" } }),
@@ -229,9 +222,6 @@ export default async function RechercheAvanceePage({
               <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
                 <tr>
                   <th className="px-4 py-3">
-                    <SortableHeader label="Référence" sortKey="ref" current={sortState} href={hrefFor("ref")} />
-                  </th>
-                  <th className="px-4 py-3">
                     <SortableHeader label="Nom" sortKey="nom" current={sortState} href={hrefFor("nom")} />
                   </th>
                   <th className="px-4 py-3">
@@ -256,14 +246,6 @@ export default async function RechercheAvanceePage({
                       href={hrefFor("statutCandidat")}
                     />
                   </th>
-                  <th className="px-4 py-3">
-                    <SortableHeader
-                      label="Publication"
-                      sortKey="publication"
-                      current={sortState}
-                      href={hrefFor("publication")}
-                    />
-                  </th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -273,13 +255,10 @@ export default async function RechercheAvanceePage({
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/consultants/${c.id}`}
-                        className="font-mono text-sm font-medium text-brand-ink hover:text-brand-blue-dark"
+                        className="font-medium text-brand-ink hover:text-brand-blue-dark hover:underline"
                       >
-                        {c.referenceAnonyme}
+                        {c.prenom} {c.nom}
                       </Link>
-                    </td>
-                    <td className="px-4 py-3 text-brand-body">
-                      {c.prenom} {c.nom}
                     </td>
                     <td className="px-4 py-3 text-brand-body">{c.intitulePoste ?? "—"}</td>
                     <td className="px-4 py-3 text-brand-body">{c.seniority?.label ?? "—"}</td>
@@ -288,11 +267,6 @@ export default async function RechercheAvanceePage({
                       {STATUT_CANDIDAT_INTERNE_LABELS[
                         c.statutCandidatInterne as keyof typeof STATUT_CANDIDAT_INTERNE_LABELS
                       ] ?? c.statutCandidatInterne}
-                    </td>
-                    <td className="px-4 py-3 text-brand-body">
-                      {STATUT_PUBLICATION_LABELS[
-                        c.statutPublication as keyof typeof STATUT_PUBLICATION_LABELS
-                      ] ?? c.statutPublication}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
                       <Link

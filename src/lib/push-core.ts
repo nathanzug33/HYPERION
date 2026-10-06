@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ensureReferenceAnonyme } from "@/lib/reference-generator";
 import { buildDcDocx, dcConsultantInclude, type DcConsultant } from "@/lib/dc-docx";
 import { sendCandidatPropositionEmail, buildCandidatPropositionEmail } from "@/lib/mail";
 import { sendViaGmail } from "@/lib/gmail-send";
@@ -42,7 +43,7 @@ export async function sendPushEmailAndLog(params: {
 
   const propositionParams = {
     contactName: formatSalutationNom(contact),
-    profilTitre: consultant.intitulePoste || consultant.referenceAnonyme,
+    profilTitre: consultant.intitulePoste || consultant.referenceAnonyme || "ce profil",
     disponibilite,
     localisation,
     competences,
@@ -94,6 +95,7 @@ export async function sendPushEmailAndLog(params: {
 }
 
 export async function buildDcForConsultant(consultantId: string) {
+  await ensureReferenceAnonyme(consultantId);
   const consultant = await prisma.consultant.findUnique({
     where: { id: consultantId },
     include: dcConsultantInclude,
