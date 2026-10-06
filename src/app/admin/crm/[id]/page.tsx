@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES, STATUT_ENTREPRISE_LABELS, canReassignReferent } from "@/lib/constants";
+import { ROLES, ROLES_REFERENT, STATUT_ENTREPRISE_LABELS, canReassignReferent } from "@/lib/constants";
 import { canAccessEntreprise } from "@/lib/crm-access";
 import { computeMatchScore } from "@/lib/matching";
 import EntrepriseEditForm from "./entreprise-edit-form";
@@ -54,7 +54,7 @@ export default async function EntrepriseDetailPage({
       orderBy: [{ principal: "desc" }, { createdAt: "asc" }],
     }),
     canReassignReferent(session.user)
-      ? prisma.user.findMany({ where: { role: ROLES.BM, active: true }, orderBy: { name: "asc" } })
+      ? prisma.user.findMany({ where: { role: { in: [...ROLES_REFERENT] }, active: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
     prisma.secteur.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.expertise.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES, canReassignReferent } from "@/lib/constants";
+import { ROLES_REFERENT, canReassignReferent } from "@/lib/constants";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { coutJournalier, margeJournaliere, margeMensuelle } from "@/lib/marge";
 import { setJoursTravaillesAction, setJoursTravaillesLotAction } from "../actions";
@@ -76,7 +76,7 @@ export default async function MargePage({
       orderBy: { dateDebut: "desc" },
     }),
     peutFiltrerParBm
-      ? prisma.user.findMany({ where: { role: ROLES.BM, active: true }, orderBy: { name: "asc" } })
+      ? prisma.user.findMany({ where: { role: { in: [...ROLES_REFERENT] }, active: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
   ]);
 

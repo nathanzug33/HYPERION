@@ -173,7 +173,16 @@ export default async function UtilisateursPage({
                         </button>
                       </form>
                     )}
-                    {u.id !== session.user.id && <DeleteUserButton id={u.id} name={u.name} />}
+                    {u.id !== session.user.id && (
+                      <DeleteUserButton
+                        id={u.id}
+                        name={u.name}
+                        isClient={u.role === ROLES.CLIENT}
+                        admins={users
+                          .filter((a) => a.role === ROLES.ADMIN && a.id !== u.id)
+                          .map((a) => ({ id: a.id, name: a.name }))}
+                      />
+                    )}
                   </div>
                 </td>
               </tr>

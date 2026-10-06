@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES, STATUT_BESOIN, STATUT_BESOIN_LABELS, canReassignReferent, type StatutBesoin } from "@/lib/constants";
+import {
+  ROLES_REFERENT,
+  STATUT_BESOIN,
+  STATUT_BESOIN_LABELS,
+  canReassignReferent,
+  type StatutBesoin,
+} from "@/lib/constants";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
 import SortableHeader from "@/components/SortableHeader";
@@ -63,7 +69,7 @@ export default async function BesoinsBibliothequePage({
       },
     }),
     peutFiltrerParBm
-      ? prisma.user.findMany({ where: { role: ROLES.BM, active: true }, orderBy: { name: "asc" } })
+      ? prisma.user.findMany({ where: { role: { in: [...ROLES_REFERENT] }, active: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
   ]);
 

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES } from "@/lib/constants";
+import { ROLES, ROLES_REFERENT } from "@/lib/constants";
 import { consultantPublicSelect } from "@/lib/consultant-view";
 import ConsultantEditForm from "./consultant-edit-form";
 import { formatStatutBibliotheque, canReassignReferent } from "@/lib/constants";
@@ -80,7 +80,7 @@ export default async function ConsultantEditPage({
     prisma.competence.findMany({ where: { active: true }, orderBy: { label: "asc" } }),
     prisma.langue.findMany({ where: { active: true }, orderBy: { label: "asc" } }),
     canReassignReferent(session.user)
-      ? prisma.user.findMany({ where: { role: ROLES.BM, active: true }, orderBy: { name: "asc" } })
+      ? prisma.user.findMany({ where: { role: { in: [...ROLES_REFERENT] }, active: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
     prisma.consultant.findUnique({ where: { id }, select: consultantPublicSelect }),
   ]);
