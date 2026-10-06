@@ -3,11 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { ConsultantPublic } from "@/lib/consultant-view";
-import type { MatchResult } from "@/lib/matching";
-import MatchBadges from "@/components/MatchBadges";
 import ConsultantBrief from "@/components/consultant/ConsultantBrief";
 import SuiviSection from "./suivi-section";
 import PushCandidatForm from "./push-candidat-form";
+import PushSuggestionsForm, { type ContactSuggestion } from "./push-suggestions-form";
 import TaggingIaForm from "./tagging-ia-form";
 import GenererDcIaForm from "./generer-dc-ia-form";
 import {
@@ -41,8 +40,6 @@ type Proposition = {
   contact: { prenom: string; nom: string } | null;
 };
 
-type Suggestion = { id: string; nom: string; match: MatchResult };
-
 type Fichier = { id: string; type: string; nomOriginal: string; createdAt: Date | string };
 
 const TABS = [
@@ -63,7 +60,7 @@ export default function CandidateActionsBar({
   suivis,
   entreprisesPourPush,
   propositions,
-  suggestions,
+  suggestionsContacts,
   publicView,
   fichiers,
 }: {
@@ -75,7 +72,7 @@ export default function CandidateActionsBar({
   suivis: Suivi[];
   entreprisesPourPush: EntrepriseOption[];
   propositions: Proposition[];
-  suggestions: Suggestion[];
+  suggestionsContacts: ContactSuggestion[];
   publicView: ConsultantPublic | null;
   fichiers: Fichier[];
 }) {
@@ -183,27 +180,9 @@ export default function CandidateActionsBar({
                   ))}
                 </ul>
               )}
-              {suggestions.length > 0 && (
+              {suggestionsContacts.length > 0 && (
                 <div className="border-t border-slate-100 pt-3">
-                  <h3 className="mb-1 text-xs font-semibold text-brand-ink">
-                    Clients potentiellement intéressés
-                  </h3>
-                  <p className="mb-2 text-[11px] text-brand-gray">
-                    Secteurs / expertises recherchés correspondant à ce profil.
-                  </p>
-                  <ul className="space-y-1.5">
-                    {suggestions.map((e) => (
-                      <li key={e.id}>
-                        <Link
-                          href={`/admin/crm/${e.id}`}
-                          className="flex flex-col gap-1 rounded-lg border border-slate-100 px-2.5 py-1.5 text-xs hover:border-brand-blue-light hover:bg-brand-blue-bg-soft"
-                        >
-                          <span className="font-medium text-brand-ink">{e.nom}</span>
-                          <MatchBadges match={e.match} />
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                  <PushSuggestionsForm consultantId={consultantId} suggestions={suggestionsContacts} />
                 </div>
               )}
             </div>

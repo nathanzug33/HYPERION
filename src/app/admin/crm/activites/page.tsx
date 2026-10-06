@@ -9,6 +9,7 @@ import {
   type ModaliteRdv,
 } from "@/lib/constants";
 import { resolvePeriode, suiviCommercialDateFilter } from "@/lib/periode";
+import { computeRelanceFlags } from "@/lib/relance";
 import PeriodeSelector from "@/components/PeriodeSelector";
 import { parseSort, nextSort, buildSortHref } from "@/lib/sort";
 import SortableHeader from "@/components/SortableHeader";
@@ -93,6 +94,12 @@ export default async function CrmActivitesPage({
     },
     take: 300,
   });
+
+  const relanceFlags = await computeRelanceFlags(
+    activites
+      .filter((a) => a.type === "PROPOSITION_ENVOYEE")
+      .map((a) => ({ id: a.id, contactId: a.contact?.id ?? null, createdAt: a.createdAt }))
+  );
 
   const now = new Date();
   const title = type
@@ -201,6 +208,8 @@ export default async function CrmActivitesPage({
           <tbody className="divide-y divide-slate-100">
             {activites.map((a) => {
               const overdue = a.dateProgrammee != null && !a.fait && a.dateProgrammee < now;
+              const aRelancer = relanceFlags.get(a.id) ?? false;
+              const joursDepuisEnvoi = Math.floor((now.getTime() - a.createdAt.getTime()) / 86400000);
               return (
                 <tr key={a.id} className="transition-colors hover:bg-brand-blue-bg-soft">
                   <td className="px-4 py-3">
@@ -213,6 +222,14 @@ export default async function CrmActivitesPage({
                       {a.modalite && (
                         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-brand-body">
                           {MODALITE_RDV_LABELS[a.modalite as ModaliteRdv] ?? a.modalite}
+                        </span>
+                      )}
+                      {aRelancer && (
+                        <span
+                          className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700"
+                          title="Aucun suivi enregistré depuis l'envoi de cette proposition."
+                        >
+                          ⏰ À relancer ({joursDepuisEnvoi}j)
                         </span>
                       )}
                     </div>
@@ -280,7 +297,11 @@ export default async function CrmActivitesPage({
                   <td className="px-4 py-3 text-brand-gray">{a.createdBy.name}</td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
                     <Link
-                      href={`/admin/crm/${a.entreprise.id}`}
+                      href={
+                        a.contact
+                          ? `/admin/crm/${a.entreprise.id}/contacts/${a.contact.id}`
+                          : `/admin/crm/${a.entreprise.id}`
+                      }
                       className="link-underline text-sm text-brand-blue-dark"
                     >
                       Ouvrir
