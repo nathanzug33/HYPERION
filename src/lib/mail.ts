@@ -117,38 +117,62 @@ export async function sendDemandeBesoinNotification(
 
 type CandidatPropositionParams = {
   contactName: string;
-  bmName: string;
-  reference: string;
-  intitulePoste: string | null;
+  /** Intitulé de poste du candidat, affiché en clair (ex. "Data Analyst") —
+   * à défaut, repli sur la référence anonyme pour qu'il reste toujours un
+   * identifiant dans l'objet/le corps. */
+  profilTitre: string;
+  disponibilite: string | null;
+  localisation: string | null;
+  competences: string[];
   message: string | null;
+  sender: {
+    name: string;
+    poste: string | null;
+    email: string;
+    telephone: string | null;
+  };
   docxBuffer: Buffer;
   docxFilename: string;
 };
 
 /** Sujet + corps du texte de proposition — exposé séparément pour être
  * réutilisé par l'envoi via Gmail (compte du BM) en plus du repli générique
- * ci-dessous (voir src/app/admin/consultants/[id]/push-actions.ts). */
+ * ci-dessous (voir src/lib/push-core.ts). Pas de signature Gmail automatique
+ * (l'envoi passe par l'API en mode brut, pas par la fenêtre de rédaction) :
+ * la signature est donc reconstruite ici à partir des coordonnées saisies
+ * par le BM sur sa page profil (poste/téléphone). */
 export function buildCandidatPropositionEmail(params: CandidatPropositionParams) {
-  const lignesIntro = [
+  const lignes = [
     `Bonjour ${params.contactName},`,
     "",
-    `${params.bmName} vous propose le profil ${params.reference}${
-      params.intitulePoste ? ` — ${params.intitulePoste}` : ""
-    }.`,
+    "Hyperion Group est un cabinet de conseil en assistance technique et de recrutement, spécialisé industrie & IT.",
+    `Nous vous proposons un profil ${params.profilTitre}.`,
   ];
-  if (params.message) {
-    lignesIntro.push("", params.message);
-  }
-  lignesIntro.push(
+
+  const details: string[] = [];
+  if (params.disponibilite) details.push(`Disponibilité : ${params.disponibilite}`);
+  if (params.localisation) details.push(`Localisation : ${params.localisation}`);
+  if (params.competences.length > 0) details.push(`Compétences : ${params.competences.join(", ")}`);
+  if (details.length > 0) lignes.push("", ...details);
+
+  if (params.message) lignes.push("", params.message);
+
+  lignes.push(
     "",
-    "Vous trouverez le dossier de compétences complet (anonymisé) en pièce jointe.",
+    "Vous trouverez le dossier de compétences complet en pièce jointe. Si vous souhaitez en " +
+      "savoir davantage, n'hésitez pas à revenir vers moi.",
     "",
-    `${params.bmName} — HYPERION`
+    "Cordialement,",
+    params.sender.name
   );
+  if (params.sender.poste) lignes.push(params.sender.poste);
+  lignes.push("Hyperion Group");
+  if (params.sender.telephone) lignes.push(params.sender.telephone);
+  lignes.push(params.sender.email);
 
   return {
-    subject: `Proposition de profil — ${params.reference}`,
-    text: lignesIntro.join("\n"),
+    subject: `${params.profilTitre} - Profil Hyperion Group`,
+    text: lignes.join("\n"),
   };
 }
 

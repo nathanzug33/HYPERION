@@ -12,6 +12,7 @@ import { consultantVisibilityWhere } from "@/lib/consultant-access";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { resolvePeriode, resolveWeekOffset, suiviCommercialDateFilter } from "@/lib/periode";
 import { getTaskCountsByDomain } from "@/lib/task-counts";
+import { computeRelanceFlags } from "@/lib/relance";
 import { computeCrmTypeScore } from "@/lib/dashboard-scores";
 import PeriodeSelector from "@/components/PeriodeSelector";
 import ScoreBarChart, { type ScoreBarDatum } from "@/components/ScoreBarChart";
@@ -146,6 +147,13 @@ export default async function TableauDeBordCommercePage({
     }),
     getTaskCountsByDomain(session.user),
   ]);
+
+  const propositionsEnvoyees = await prisma.suiviCommercial.findMany({
+    where: { type: "PROPOSITION_ENVOYEE", entreprise: entrepriseFilter },
+    select: { id: true, contactId: true, createdAt: true },
+  });
+  const relanceFlags = await computeRelanceFlags(propositionsEnvoyees);
+  const propositionsARelancer = [...relanceFlags.values()].filter(Boolean).length;
 
   const pipelineParStatut = await prisma.entreprise.groupBy({
     by: ["statutCommercial"],
@@ -336,6 +344,13 @@ export default async function TableauDeBordCommercePage({
             value={relancesCommercialesEnRetard}
             accent={relancesCommercialesEnRetard > 0 ? "amber" : "gray"}
             icon={<path d="M18.364 5.636 5.636 18.364M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" />}
+          />
+          <StatCard
+            label="Propositions à relancer"
+            value={propositionsARelancer}
+            accent={propositionsARelancer > 0 ? "amber" : "gray"}
+            href="/admin/crm/activites?type=PROPOSITION_ENVOYEE"
+            icon={<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h9L20 9.5V18.5A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-13ZM13.5 4v5h5.5M8 13h8M8 16.5h5" />}
           />
         </div>
       </div>

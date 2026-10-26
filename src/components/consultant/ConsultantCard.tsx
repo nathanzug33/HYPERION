@@ -64,7 +64,7 @@ export default function ConsultantCard({
         {canContact && (
           <ContactRequestButton
             consultantId={consultant.id}
-            reference={consultant.referenceAnonyme}
+            reference={consultant.referenceAnonyme ?? ""}
             compact
           />
         )}

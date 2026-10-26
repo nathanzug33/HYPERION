@@ -31,7 +31,7 @@ type Suivi = {
   createdBy: { name: string };
 };
 
-type CandidatOption = { id: string; prenom: string; nom: string; referenceAnonyme: string };
+type CandidatOption = { id: string; prenom: string; nom: string };
 
 const TYPE_STYLES: Record<string, string> = {
   NOTE: "bg-slate-100 text-brand-body",
@@ -46,7 +46,7 @@ const TYPE_STYLES: Record<string, string> = {
 };
 
 function candidatLabel(c: CandidatOption): string {
-  return `${c.prenom} ${c.nom} (${c.referenceAnonyme})`;
+  return `${c.prenom} ${c.nom}`;
 }
 
 export default function SuiviSection({
@@ -85,7 +85,7 @@ export default function SuiviSection({
     const rt = nextType === SUIVI_COMMERCIAL_TYPE.RDV_TECHNIQUE;
     if (rt) {
       const c = candidats.find((c) => c.id === nextConsultantId);
-      if (c) setTitre(`RT ${c.referenceAnonyme} x ${entrepriseNom ?? "client"}`);
+      if (c) setTitre(`RT ${candidatLabel(c)} x ${entrepriseNom ?? "client"}`);
       return;
     }
     const rdvOuRt = nextType === SUIVI_COMMERCIAL_TYPE.RDV || rt;

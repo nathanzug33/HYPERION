@@ -11,7 +11,7 @@ export async function findConsultantDuplicates(
   prenom: string,
   email: string | null,
   excludeId: string
-): Promise<{ id: string; referenceAnonyme: string; nom: string; prenom: string }[]> {
+): Promise<{ id: string; nom: string; prenom: string }[]> {
   return prisma.consultant.findMany({
     where: {
       id: { not: excludeId },
@@ -25,7 +25,7 @@ export async function findConsultantDuplicates(
         ...(email ? [{ email: { equals: email, mode: "insensitive" as const } }] : []),
       ],
     },
-    select: { id: true, referenceAnonyme: true, nom: true, prenom: true },
+    select: { id: true, nom: true, prenom: true },
     take: 5,
   });
 }

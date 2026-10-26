@@ -14,7 +14,7 @@ import ConsultantQuickEditPopover from "./quick-edit-popover";
 
 export const dynamic = "force-dynamic";
 
-const SORT_KEYS = ["ref", "nom", "poste", "bm", "bibliotheque", "completude", "maj"] as const;
+const SORT_KEYS = ["nom", "poste", "bm", "bibliotheque", "completude", "maj"] as const;
 
 export default async function ConsultantsListPage({
   searchParams,
@@ -57,19 +57,17 @@ export default async function ConsultantsListPage({
       ],
     },
     orderBy:
-      sortState.key === "ref"
-        ? { referenceAnonyme: sortState.dir }
-        : sortState.key === "nom"
-          ? [{ nom: sortState.dir }, { prenom: sortState.dir }]
-          : sortState.key === "poste"
-            ? { intitulePoste: sortState.dir }
-            : sortState.key === "bm"
-              ? { businessManager: { name: sortState.dir } }
-              : sortState.key === "bibliotheque"
-                ? { statutPublication: sortState.dir }
-                : sortState.key === "maj"
-                  ? { updatedAt: sortState.dir }
-                  : { updatedAt: "desc" },
+      sortState.key === "nom"
+        ? [{ nom: sortState.dir }, { prenom: sortState.dir }]
+        : sortState.key === "poste"
+          ? { intitulePoste: sortState.dir }
+          : sortState.key === "bm"
+            ? { businessManager: { name: sortState.dir } }
+            : sortState.key === "bibliotheque"
+              ? { statutPublication: sortState.dir }
+              : sortState.key === "maj"
+                ? { updatedAt: sortState.dir }
+                : { updatedAt: "desc" },
     include: {
       businessManager: true,
       _count: {
@@ -125,7 +123,7 @@ export default async function ConsultantsListPage({
           type="text"
           name="q"
           defaultValue={q}
-          placeholder="Rechercher (nom, référence, poste, contenu du CV…)"
+          placeholder="Rechercher (nom, poste, contenu du CV…)"
           className="input w-64"
         />
         <select name="statut" defaultValue={statut ?? ""} className="input w-auto">
@@ -145,9 +143,6 @@ export default async function ConsultantsListPage({
         <table className="w-full text-sm">
           <thead className="border-b border-slate-100 bg-brand-blue-bg-soft text-left text-xs font-semibold uppercase tracking-wide text-brand-gray">
             <tr>
-              <th className="px-4 py-3">
-                <SortableHeader label="Référence" sortKey="ref" current={sortState} href={hrefFor("ref")} />
-              </th>
               <th className="px-4 py-3">
                 <SortableHeader label="Nom" sortKey="nom" current={sortState} href={hrefFor("nom")} />
               </th>
@@ -188,13 +183,10 @@ export default async function ConsultantsListPage({
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/consultants/${c.id}`}
-                      className="font-mono text-sm font-medium text-brand-ink hover:text-brand-blue-dark"
+                      className="font-medium text-brand-ink hover:text-brand-blue-dark hover:underline"
                     >
-                      {c.referenceAnonyme}
+                      {c.prenom} {c.nom}
                     </Link>
-                  </td>
-                  <td className="px-4 py-3 text-brand-body">
-                    {c.prenom} {c.nom}
                   </td>
                   <td className="px-4 py-3 text-brand-body">
                     {c.intitulePoste ?? "—"}
@@ -235,7 +227,7 @@ export default async function ConsultantsListPage({
             })}
             {consultants.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-brand-gray">
+                <td colSpan={7} className="px-4 py-10 text-center text-brand-gray">
                   Aucun dossier trouvé.
                 </td>
               </tr>

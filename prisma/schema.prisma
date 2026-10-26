@@ -55,7 +55,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Renseigné uniquement pour les comptes CLIENT (auto-déclaratif, page profil).
+  // Auto-déclaratif (page profil). Pour un compte CLIENT, informatif. Pour un
+  // membre du staff, repris comme coordonnées de l'expéditeur dans la
+  // signature des propositions de candidats envoyées aux clients (§ push).
   poste     String?
   telephone String?
 
@@ -266,7 +268,11 @@ model Consultant {
   dateConservationLimite  DateTime?
 
   // --- Champs exposables (projection anonymisée) --------------------------
-  referenceAnonyme         String     @unique // ex. IND-017, ne doit pas trahir l'identité
+  // Nulle par défaut : plus de génération automatique à la création (§ nettoyage
+  // UI interne) — générée à la volée (voir ensureReferenceAnonyme) uniquement
+  // quand un usage anonymisé en a réellement besoin (DC envoyé/exporté,
+  // publication dans la bibliothèque client).
+  referenceAnonyme         String?    @unique // ex. IND-017, ne doit pas trahir l'identité
   intitulePoste            String?
   // Séniorité déduite automatiquement de anneesExperience via les bornes du
   // référentiel Seniorite (plus de sélection manuelle) — voir deriveSeniorityId.

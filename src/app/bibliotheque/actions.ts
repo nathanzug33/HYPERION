@@ -46,7 +46,7 @@ export async function submitContactRequest(
   if (consultant.businessManager.email) {
     await sendContactRequestNotification(consultant.businessManager.email, {
       clientName: session.user.name ?? session.user.email ?? "Un client",
-      reference: consultant.referenceAnonyme,
+      reference: consultant.referenceAnonyme ?? "",
       besoin,
     });
   }

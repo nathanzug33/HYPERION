@@ -2,13 +2,15 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES } from "@/lib/constants";
+import { ROLES, ROLES_REFERENT } from "@/lib/constants";
 import { consultantPublicSelect } from "@/lib/consultant-view";
 import ConsultantEditForm from "./consultant-edit-form";
 import { formatStatutBibliotheque, canReassignReferent } from "@/lib/constants";
 import { canAccessConsultant } from "@/lib/consultant-access";
 import { entrepriseVisibilityWhere } from "@/lib/crm-access";
 import { computeMatchScore } from "@/lib/matching";
+import { buildCandidateKeywords, scoreFonctionMatch } from "@/lib/poste-match";
+import { formatLocalisation } from "@/lib/push-format";
 import CandidateActionsBar from "./candidate-actions-bar";
 
 export const dynamic = "force-dynamic";
@@ -23,17 +25,18 @@ export default async function ConsultantEditPage({
     ia?: string;
     doublons?: string;
     propose?: string;
+    pushedMany?: string;
     dcRegenerated?: string;
   }>;
 }) {
   const session = await requireStaff();
   const { id } = await params;
-  const { error, ia, doublons, propose, dcRegenerated } = await searchParams;
+  const { error, ia, doublons, propose, pushedMany, dcRegenerated } = await searchParams;
 
   const doublonsCandidats = doublons
     ? await prisma.consultant.findMany({
         where: { id: { in: doublons.split(",") } },
-        select: { id: true, referenceAnonyme: true, nom: true, prenom: true },
+        select: { id: true, nom: true, prenom: true },
       })
     : [];
 
@@ -77,7 +80,7 @@ export default async function ConsultantEditPage({
     prisma.competence.findMany({ where: { active: true }, orderBy: { label: "asc" } }),
     prisma.langue.findMany({ where: { active: true }, orderBy: { label: "asc" } }),
     canReassignReferent(session.user)
-      ? prisma.user.findMany({ where: { role: ROLES.BM, active: true }, orderBy: { name: "asc" } })
+      ? prisma.user.findMany({ where: { role: { in: [...ROLES_REFERENT] }, active: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
     prisma.consultant.findUnique({ where: { id }, select: consultantPublicSelect }),
   ]);
@@ -88,13 +91,16 @@ export default async function ConsultantEditPage({
     include: { createdBy: { select: { name: true } } },
   });
 
-  const [entreprisesPourPush, propositions] = await Promise.all([
+  const [entreprisesAvecContacts, propositions] = await Promise.all([
     prisma.entreprise.findMany({
       where: entrepriseVisibilityWhere(session.user),
       select: {
         id: true,
         nom: true,
-        contacts: { select: { id: true, prenom: true, nom: true, email: true } },
+        ville: true,
+        contacts: { select: { id: true, prenom: true, nom: true, email: true, fonction: true } },
+        secteursRecherches: { select: { secteurId: true } },
+        expertisesRecherchees: { select: { expertiseId: true } },
       },
       orderBy: { nom: "asc" },
     }),
@@ -108,38 +114,28 @@ export default async function ConsultantEditPage({
     }),
   ]);
 
+  const entreprisesPourPush = entreprisesAvecContacts;
+
   const consultantSecteurIds = consultant.secteurs.map((s) => s.secteurId);
   const consultantExpertiseIds = consultant.expertises.map((e) => e.expertiseId);
+  const secteurLabelById = new Map(secteurs.map((s) => [s.id, s.label]));
+  const expertiseLabelById = new Map(expertises.map((e) => [e.id, e.label]));
+  const candidateKeywords = buildCandidateKeywords({
+    intitulePoste: consultant.intitulePoste,
+    secteurLabels: consultantSecteurIds
+      .map((sid) => secteurLabelById.get(sid))
+      .filter((l): l is string => Boolean(l)),
+    expertiseLabels: consultantExpertiseIds
+      .map((eid) => expertiseLabelById.get(eid))
+      .filter((l): l is string => Boolean(l)),
+  });
 
-  const entreprisesInteressees =
-    consultantSecteurIds.length > 0 || consultantExpertiseIds.length > 0
-      ? await prisma.entreprise.findMany({
-          where: {
-            ...entrepriseVisibilityWhere(session.user),
-            OR: [
-              consultantSecteurIds.length > 0
-                ? { secteursRecherches: { some: { secteurId: { in: consultantSecteurIds } } } }
-                : undefined,
-              consultantExpertiseIds.length > 0
-                ? { expertisesRecherchees: { some: { expertiseId: { in: consultantExpertiseIds } } } }
-                : undefined,
-            ].filter((c): c is NonNullable<typeof c> => Boolean(c)),
-          },
-          select: {
-            id: true,
-            nom: true,
-            ville: true,
-            secteursRecherches: { select: { secteurId: true } },
-            expertisesRecherchees: { select: { expertiseId: true } },
-          },
-        })
-      : [];
-
-  const suggestionsClientsAvecScore = entreprisesInteressees
-    .map((e) => ({
-      id: e.id,
-      nom: e.nom,
-      match: computeMatchScore({
+  // Suggestions au niveau du contact (pas de l'entreprise) : un prospect peut
+  // matcher par le poste de son interlocuteur même si l'entreprise n'a
+  // renseigné aucun secteur/expertise recherché (§ push en masse).
+  const suggestionsContacts = entreprisesAvecContacts
+    .flatMap((e) => {
+      const match = computeMatchScore({
         candidatSecteurIds: consultantSecteurIds,
         candidatExpertiseIds: consultantExpertiseIds,
         candidatVilleLat: consultant.villeLat,
@@ -149,20 +145,34 @@ export default async function ConsultantEditPage({
         entrepriseSecteurIds: e.secteursRecherches.map((s) => s.secteurId),
         entrepriseExpertiseIds: e.expertisesRecherchees.map((x) => x.expertiseId),
         entrepriseVille: e.ville,
-      }),
-    }))
-    .sort((a, b) => b.match.score - a.match.score)
-    .slice(0, 8);
+      });
+      return e.contacts
+        .filter((c) => c.email)
+        .map((c) => {
+          const fonctionMatch = scoreFonctionMatch(c.fonction, candidateKeywords);
+          return {
+            contactId: c.id,
+            contactNom: c.nom,
+            contactPrenom: c.prenom,
+            contactFonction: c.fonction,
+            entrepriseId: e.id,
+            entrepriseNom: e.nom,
+            totalScore: match.score + fonctionMatch.score,
+            match,
+            fonctionMots: fonctionMatch.mots,
+          };
+        });
+    })
+    .filter((s) => s.totalScore > 0)
+    .sort((a, b) => b.totalScore - a.totalScore)
+    .slice(0, 20);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-brand-ink">
-            {consultant.prenom} {consultant.nom}{" "}
-            <span className="font-mono text-base font-normal text-brand-gray">
-              — {consultant.referenceAnonyme}
-            </span>
+            {consultant.prenom} {consultant.nom}
           </h1>
           <p className="mt-1 text-sm text-brand-gray">
             {formatStatutBibliotheque(consultant.statutPublication) && (
@@ -205,6 +215,13 @@ export default async function ConsultantEditPage({
         </div>
       )}
 
+      {pushedMany && (
+        <div className="rounded-xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-brand-green">
+          ✅ Proposition envoyée à {pushedMany} contact{pushedMany !== "1" ? "s" : ""} — DC
+          transmis par email, avec une trace dans l&apos;historique de chaque contact côté CRM.
+        </div>
+      )}
+
       {dcRegenerated && (
         <div className="rounded-xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-brand-green">
           ✅ DC régénéré à partir du CV{consultant.sourceTranscriptTexte ? " et de la transcription" : ""}
@@ -221,7 +238,7 @@ export default async function ConsultantEditPage({
             {doublonsCandidats.map((d) => (
               <li key={d.id}>
                 <Link href={`/admin/consultants/${d.id}`} className="link-underline font-medium">
-                  {d.referenceAnonyme} — {d.prenom} {d.nom}
+                  {d.prenom} {d.nom}
                 </Link>
               </li>
             ))}
@@ -238,7 +255,9 @@ export default async function ConsultantEditPage({
         suivis={suivis}
         entreprisesPourPush={entreprisesPourPush}
         propositions={propositions}
-        suggestions={suggestionsClientsAvecScore}
+        suggestionsContacts={suggestionsContacts}
+        disponibilite={consultant.disponibilite}
+        localisation={formatLocalisation(consultant.villeRattachement, consultant.rayonKm)}
         publicView={publicView}
         fichiers={consultant.fichiers}
       />

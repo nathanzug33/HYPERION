@@ -12,6 +12,7 @@ import {
   formatSalutationNom,
 } from "@/lib/constants";
 import { saveCrmFile, deleteCrmFile } from "@/lib/crm-storage";
+import { ensureReferenceAnonyme } from "@/lib/reference-generator";
 import { getValidAccessToken } from "@/lib/google-oauth";
 import { createCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
 import { sendGmailMessage, buildMeetInviteHtml } from "@/lib/google-gmail";
@@ -66,7 +67,7 @@ export async function createSuiviCommercialAction(formData: FormData) {
   // Rendez-vous technique (RT) : rencontre client/candidat, nécessite donc
   // un candidat du vivier ATS associé (recherché côté formulaire, voir
   // suivi-section.tsx) — sans lui, le RT n'a pas de sens.
-  let consultant: { id: string; referenceAnonyme: string; intitulePoste: string | null; prenom: string; nom: string; civilite: string | null; email: string | null } | null = null;
+  let consultant: { id: string; referenceAnonyme: string | null; intitulePoste: string | null; prenom: string; nom: string; civilite: string | null; email: string | null } | null = null;
   if (type === SUIVI_COMMERCIAL_TYPE.RDV_TECHNIQUE) {
     const consultantIdRaw = String(formData.get("consultantId") ?? "");
     if (!consultantIdRaw || !modalite) return;
@@ -83,6 +84,11 @@ export async function createSuiviCommercialAction(formData: FormData) {
       },
     });
     if (!consultant) return;
+    // L'email de confirmation envoyé au client cite la référence anonyme du
+    // candidat — plus générée à la création, on s'assure qu'elle existe ici.
+    if (!consultant.referenceAnonyme) {
+      consultant.referenceAnonyme = await ensureReferenceAnonyme(consultant.id);
+    }
   }
   const consultantId = consultant?.id ?? null;
 
@@ -171,7 +177,7 @@ export async function createSuiviCommercialAction(formData: FormData) {
           {
             destinataire: formatSalutationNom(contact),
             date: dateProgrammee,
-            candidatReference: consultant.referenceAnonyme,
+            candidatReference: consultant.referenceAnonyme ?? "",
             candidatPoste: consultant.intitulePoste,
             lieu,
             auteur,

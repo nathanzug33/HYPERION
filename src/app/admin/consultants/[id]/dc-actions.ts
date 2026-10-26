@@ -12,6 +12,7 @@ import { saveCvFile, readCvFile } from "@/lib/cv-storage";
 import { saveDcFile, readDcFile } from "@/lib/dc-storage";
 import { saveTranscriptFile, saveTranscriptText, readTranscriptFile } from "@/lib/transcript-storage";
 import { buildDcDocx, dcConsultantInclude, formatDcFilename } from "@/lib/dc-docx";
+import { ensureReferenceAnonyme } from "@/lib/reference-generator";
 import { findVille } from "@/lib/villes-france";
 import { findOrCreateByLabel, matchIds, deriveSeniorityId } from "@/lib/ai-dc-match";
 import { COMPETENCE_CATEGORIES } from "@/lib/constants";
@@ -524,6 +525,7 @@ export async function applyGenererDcIaAction(
   // un échec de génération/stockage ne doit jamais faire perdre le reste des
   // données déjà appliquées ci-dessus.
   try {
+    await ensureReferenceAnonyme(id);
     const updated = await prisma.consultant.findUnique({ where: { id }, include: dcConsultantInclude });
     if (updated) {
       const buffer = await buildDcDocx(updated);

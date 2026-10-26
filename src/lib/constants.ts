@@ -39,10 +39,16 @@ export const ROLE_LABELS: Record<Role, string> = {
 export const ROLES_VUE_GLOBALE = [ROLES.ADMIN, ROLES.DIRECTEUR_BU] as const;
 
 /** Admin ou Directeur de BU : peut voir tous les comptes (CRM) et réassigner
- * le BM référent d'un dossier (candidat ou entreprise). */
+ * le référent d'un dossier (candidat ou entreprise). */
 export function canReassignReferent(user: { role: string }): boolean {
   return (ROLES_VUE_GLOBALE as readonly string[]).includes(user.role);
 }
+
+/** Rôles éligibles comme référent d'un dossier (candidat, entreprise, besoin,
+ * mission, offre) — tout le staff, pas seulement les BM : un admin ou un
+ * directeur de BU peut très bien être lui-même le référent d'un dossier
+ * qu'il a créé ou repris, pas uniquement un relais vers un BM. */
+export const ROLES_REFERENT = [ROLES.ADMIN, ROLES.DIRECTEUR_BU, ROLES.BM] as const;
 
 export const STATUT_PUBLICATION = {
   BROUILLON: "BROUILLON",

@@ -54,7 +54,7 @@ export default async function ConsultantDetailPage({
               <div className="mt-4">
                 <ContactRequestButton
                   consultantId={consultant.id}
-                  reference={consultant.referenceAnonyme}
+                  reference={consultant.referenceAnonyme ?? ""}
                 />
               </div>
             ) : (

@@ -204,6 +204,7 @@ export default function ConsultantEditForm({
                 name="zoneIds"
                 options={referentials.zones}
                 selectedIds={new Set(consultant.zonesGeographiques.map((z) => z.zoneGeographiqueId))}
+                selectAllLabel="France entière"
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
@@ -239,8 +240,8 @@ export default function ConsultantEditForm({
               <Field label="Référence anonyme">
                 <input
                   name="referenceAnonyme"
-                  defaultValue={consultant.referenceAnonyme}
-                  required
+                  defaultValue={consultant.referenceAnonyme ?? ""}
+                  placeholder="Générée automatiquement si besoin (DC, publication)"
                   className="input font-mono"
                 />
               </Field>

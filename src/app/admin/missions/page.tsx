@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import {
-  ROLES,
+  ROLES_REFERENT,
   STATUT_MISSION,
   STATUT_MISSION_LABELS,
   MISSION_ALERTE_FIN_JOURS,
@@ -72,7 +72,7 @@ export default async function MissionsPage({
       include: { entreprise: true, consultant: true, businessManager: true },
     }),
     peutFiltrerParBm
-      ? prisma.user.findMany({ where: { role: ROLES.BM, active: true }, orderBy: { name: "asc" } })
+      ? prisma.user.findMany({ where: { role: { in: [...ROLES_REFERENT] }, active: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
   ]);
 

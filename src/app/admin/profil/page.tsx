@@ -77,6 +77,21 @@ export default async function StaffProfilPage({
               className="input mt-1.5"
             />
           </div>
+          <div>
+            <label className="block text-xs font-medium text-brand-body">
+              Fonction <span className="font-normal text-brand-gray">(ex. Business Manager)</span>
+            </label>
+            <input name="poste" defaultValue={user.poste ?? ""} className="input mt-1.5" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-brand-body">Téléphone</label>
+            <input
+              type="tel"
+              name="telephone"
+              defaultValue={user.telephone ?? ""}
+              className="input mt-1.5"
+            />
+          </div>
           <ReadOnlyField
             label="Rôle"
             value={ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] ?? user.role}
@@ -92,7 +107,8 @@ export default async function StaffProfilPage({
         </div>
         <div className="flex items-center justify-between">
           <p className="text-xs text-brand-gray">
-            Le rôle n&apos;est modifiable que par un administrateur, depuis Utilisateurs.
+            Fonction et téléphone apparaissent en signature des propositions de candidats
+            envoyées aux clients (§ push).
           </p>
           <button type="submit" className="btn btn-primary">
             Enregistrer

@@ -141,15 +141,18 @@ export async function resetTwoFactorAction(formData: FormData) {
 }
 
 /** Suppression définitive (contrairement à « Révoquer l'accès », qui ne
- * fait que désactiver la connexion en conservant tout l'historique). Un
- * compte qui est encore référent d'un dossier (candidat, entreprise,
- * besoin…) ou qui a créé des éléments d'historique (suivis, pièces
- * jointes…) ne peut pas être supprimé — la contrainte de clé étrangère de
- * la base l'en empêche — il faut d'abord réassigner ses dossiers, ou se
- * contenter de révoquer l'accès pour conserver cet historique. */
+ * fait que désactiver la connexion en conservant tout l'historique). Pour
+ * un compte staff (ADMIN/DIRECTEUR_BU/BM), tous les dossiers dont il est
+ * référent (candidat, entreprise, besoin, mission, offre) et les éléments
+ * d'historique qu'il a créés (suivis, pièces jointes…) sont d'abord
+ * réattribués à un administrateur — automatiquement s'il n'y en a qu'un,
+ * sinon celui choisi dans le formulaire — plutôt que de bloquer la
+ * suppression. Les comptes CLIENT ne sont pas concernés (leurs demandes leur
+ * sont propres) : la contrainte de clé étrangère continue de protéger ce cas. */
 export async function deleteUserAction(formData: FormData) {
   const session = await requireAdmin();
   const id = String(formData.get("id") ?? "");
+  const reassignToId = String(formData.get("reassignToId") ?? "") || null;
   if (!id) return;
 
   if (id === session.user.id) {
@@ -158,13 +161,53 @@ export async function deleteUserAction(formData: FormData) {
     );
   }
 
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target) return;
+
+  if (target.role !== ROLES.CLIENT) {
+    const admins = await prisma.user.findMany({
+      where: { role: ROLES.ADMIN, id: { not: id } },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+    if (admins.length === 0) {
+      redirect(
+        `/admin/utilisateurs?error=${encodeURIComponent(
+          "Impossible de supprimer ce compte : aucun autre compte administrateur n'existe pour reprendre ses dossiers. Créez-en un d'abord."
+        )}`
+      );
+    }
+    const reassignTo =
+      (reassignToId && admins.find((a) => a.id === reassignToId)) ||
+      (admins.length === 1 ? admins[0] : null);
+    if (!reassignTo) {
+      redirect(
+        `/admin/utilisateurs?error=${encodeURIComponent(
+          "Plusieurs administrateurs existent : choisissez à qui réattribuer les dossiers avant de supprimer ce compte."
+        )}`
+      );
+    }
+
+    await prisma.$transaction([
+      prisma.consultant.updateMany({ where: { businessManagerId: id }, data: { businessManagerId: reassignTo.id } }),
+      prisma.consultantFichier.updateMany({ where: { createdById: id }, data: { createdById: reassignTo.id } }),
+      prisma.suiviCandidat.updateMany({ where: { createdById: id }, data: { createdById: reassignTo.id } }),
+      prisma.entreprise.updateMany({ where: { businessManagerId: id }, data: { businessManagerId: reassignTo.id } }),
+      prisma.suiviCommercial.updateMany({ where: { createdById: id }, data: { createdById: reassignTo.id } }),
+      prisma.besoin.updateMany({ where: { businessManagerId: id }, data: { businessManagerId: reassignTo.id } }),
+      prisma.besoinCandidat.updateMany({ where: { createdById: id }, data: { createdById: reassignTo.id } }),
+      prisma.mission.updateMany({ where: { businessManagerId: id }, data: { businessManagerId: reassignTo.id } }),
+      prisma.offre.updateMany({ where: { businessManagerId: id }, data: { businessManagerId: reassignTo.id } }),
+    ]);
+  }
+
   try {
     await prisma.user.delete({ where: { id } });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
       redirect(
         `/admin/utilisateurs?error=${encodeURIComponent(
-          "Impossible de supprimer ce compte : il est encore référent d'au moins un dossier (candidat, entreprise, besoin, mission…) ou a créé des éléments d'historique (suivis, pièces jointes…). Réassignez d'abord ses dossiers, ou utilisez « Révoquer l'accès » pour bloquer la connexion tout en conservant l'historique."
+          "Impossible de supprimer ce compte : il a encore des éléments liés que la réattribution automatique ne couvre pas (ex. demandes d'un compte client). Utilisez « Révoquer l'accès » pour bloquer la connexion tout en conservant l'historique."
         )}`
       );
     }

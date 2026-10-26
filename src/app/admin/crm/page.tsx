@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
 import {
-  ROLES,
+  ROLES_REFERENT,
   STATUT_ENTREPRISE_LABELS,
   canReassignReferent,
   formatSecteurActivite,
@@ -86,7 +86,7 @@ export default async function CrmListPage({
       },
     }),
     peutFiltrerParBm
-      ? prisma.user.findMany({ where: { role: ROLES.BM, active: true }, orderBy: { name: "asc" } })
+      ? prisma.user.findMany({ where: { role: { in: [...ROLES_REFERENT] }, active: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
   ]);
 
