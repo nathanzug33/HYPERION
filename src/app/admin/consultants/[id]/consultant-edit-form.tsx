@@ -573,6 +573,7 @@ export default function ConsultantEditForm({
       </div>
 
       <FichierPreviewModal
+        key={previewFichier?.id ?? "closed"}
         consultantId={consultant.id}
         fichier={previewFichier}
         onClose={() => setPreviewFichier(null)}

@@ -29,11 +29,12 @@ export default function FichierPreviewModal({
   const ext = fichier ? extensionOf(fichier.nomOriginal) : "";
   const url = fichier ? `/admin/consultants/${consultantId}/fichiers/${fichier.id}` : "";
 
+  // L'instance est remontée à chaque changement de fichier (clé posée sur
+  // <FichierPreviewModal> côté appelant) : l'état part donc déjà à neuf
+  // ("loading", texte vide, conteneur vide) sans qu'il faille le
+  // réinitialiser ici.
   useEffect(() => {
     if (!fichier) return;
-    setState("loading");
-    setText("");
-    if (containerRef.current) containerRef.current.innerHTML = "";
 
     let cancelled = false;
 

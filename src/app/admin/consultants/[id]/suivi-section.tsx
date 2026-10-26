@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   SUIVI_TYPE,
   SUIVI_TYPE_LABELS,
@@ -67,11 +67,14 @@ export default function SuiviSection({
   // Propose automatiquement un titre (repris comme sujet de l'email
   // d'invitation) dès le passage en "Entretien" — reste librement
   // modifiable, on ne touche jamais à un titre déjà saisi par l'utilisateur.
-  useEffect(() => {
-    if (type === SUIVI_TYPE.RDV && !titre && consultantPrenom && consultantNom) {
+  // Déclenché depuis le handler du select plutôt que via un effet, pour
+  // éviter un rendu en cascade au chargement du formulaire.
+  function handleTypeChange(value: string) {
+    setType(value);
+    if (value === SUIVI_TYPE.RDV && !titre && consultantPrenom && consultantNom) {
       setTitre(`Entretien ${consultantPrenom} ${consultantNom} x Hyperion`);
     }
-  }, [type, titre, consultantPrenom, consultantNom]);
+  }
 
   return (
     <div>
@@ -81,7 +84,7 @@ export default function SuiviSection({
           <select
             name="type"
             value={type}
-            onChange={(e) => setType(e.target.value)}
+            onChange={(e) => handleTypeChange(e.target.value)}
             className="input text-xs"
           >
             {SUIVI_TYPE_SAISISSABLES.map((t) => (

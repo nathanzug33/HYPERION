@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   SUIVI_COMMERCIAL_TYPE_LABELS,
   SUIVI_COMMERCIAL_TYPE_SAISISSABLES,
@@ -74,28 +74,42 @@ export default function SuiviSection({
   const estRdvOuRt = type === SUIVI_COMMERCIAL_TYPE.RDV || estRt;
   const avecMeetPossible = estRdvOuRt && modalite === MODALITE_RDV.VISIO;
   const avecAdressePossible = estRdvOuRt && modalite === MODALITE_RDV.PHYSIQUE;
-  const candidatSelectionne = candidats.find((c) => c.id === consultantId);
-
   // Propose automatiquement un titre (repris comme sujet de l'email
   // d'invitation) dès le passage en "RDV" + "Visio", ou dès qu'un candidat
   // est choisi pour un RT — reste librement modifiable, on ne touche jamais
-  // à un titre déjà saisi par l'utilisateur.
-  useEffect(() => {
-    if (avecMeetPossible && !estRt && !titre && entrepriseNom) {
+  // à un titre déjà saisi par l'utilisateur. Déclenché directement depuis
+  // les handlers qui changent type/modalité/candidat plutôt que via un
+  // effet, pour éviter un rendu en cascade au chargement du formulaire.
+  function suggestTitre(nextType: string, nextModalite: string, nextConsultantId: string) {
+    if (titre) return;
+    const rt = nextType === SUIVI_COMMERCIAL_TYPE.RDV_TECHNIQUE;
+    if (rt) {
+      const c = candidats.find((c) => c.id === nextConsultantId);
+      if (c) setTitre(`RT ${c.referenceAnonyme} x ${entrepriseNom ?? "client"}`);
+      return;
+    }
+    const rdvOuRt = nextType === SUIVI_COMMERCIAL_TYPE.RDV || rt;
+    if (rdvOuRt && nextModalite === MODALITE_RDV.VISIO && entrepriseNom) {
       setTitre(`Présentation Hyperion x ${entrepriseNom}`);
     }
-  }, [avecMeetPossible, estRt, titre, entrepriseNom]);
+  }
 
-  useEffect(() => {
-    if (estRt && candidatSelectionne && !titre) {
-      setTitre(`RT ${candidatSelectionne.referenceAnonyme} x ${entrepriseNom ?? "client"}`);
-    }
-  }, [estRt, candidatSelectionne, titre, entrepriseNom]);
+  function handleTypeChange(value: string) {
+    setType(value);
+    suggestTitre(value, modalite, consultantId);
+  }
+
+  function handleModaliteChange(value: string) {
+    setModalite(value);
+    suggestTitre(type, value, consultantId);
+  }
 
   function handleCandidatQueryChange(value: string) {
     setCandidatQuery(value);
     const match = candidats.find((c) => candidatLabel(c) === value);
-    setConsultantId(match?.id ?? "");
+    const matchId = match?.id ?? "";
+    setConsultantId(matchId);
+    suggestTitre(type, modalite, matchId);
   }
 
   return (
@@ -111,7 +125,7 @@ export default function SuiviSection({
           <select
             name="type"
             value={type}
-            onChange={(e) => setType(e.target.value)}
+            onChange={(e) => handleTypeChange(e.target.value)}
             className="input text-xs"
           >
             {SUIVI_COMMERCIAL_TYPE_SAISISSABLES.map((t) => (
@@ -123,7 +137,7 @@ export default function SuiviSection({
           <select
             name="modalite"
             value={modalite}
-            onChange={(e) => setModalite(e.target.value)}
+            onChange={(e) => handleModaliteChange(e.target.value)}
             className="input text-xs"
             title="Modalité (RDV / appel)"
           >
