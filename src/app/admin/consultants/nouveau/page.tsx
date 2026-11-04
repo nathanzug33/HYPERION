@@ -1,6 +1,5 @@
 import { requireStaff } from "@/lib/guards";
-import { CIVILITE_LABELS } from "@/lib/constants";
-import { createConsultantAction } from "../actions";
+import NouveauConsultantForm from "./nouveau-form";
 
 export default async function NouveauConsultantPage() {
   await requireStaff();
@@ -13,54 +12,7 @@ export default async function NouveauConsultantPage() {
         </h1>
       </div>
 
-      <form action={createConsultantAction} className="card space-y-4 p-5">
-        <div>
-          <label className="block text-xs font-medium text-brand-body">Civilité</label>
-          <select name="civilite" defaultValue="" className="input mt-1.5">
-            <option value="">—</option>
-            {Object.entries(CIVILITE_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-brand-body">Prénom</label>
-            <input name="prenom" required className="input mt-1.5" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-brand-body">Nom</label>
-            <input name="nom" required className="input mt-1.5" />
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-brand-body">Email</label>
-          <input name="email" type="email" className="input mt-1.5" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-brand-body">Téléphone</label>
-          <input name="telephone" className="input mt-1.5" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-brand-body">
-            CV (optionnel)
-          </label>
-          <input
-            type="file"
-            name="cvFile"
-            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            className="mt-1.5 block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-3 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
-          />
-          <p className="mt-1 text-xs text-brand-gray">
-            Peut aussi être ajouté ou remplacé plus tard depuis la fiche.
-          </p>
-        </div>
-        <button type="submit" className="btn btn-primary w-full py-2.5">
-          Créer le dossier
-        </button>
-      </form>
+      <NouveauConsultantForm />
     </div>
   );
 }

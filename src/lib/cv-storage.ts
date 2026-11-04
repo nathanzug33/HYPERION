@@ -1,4 +1,11 @@
-import { uploadObject, readObject, deleteObject, generateStoredName } from "@/lib/object-storage";
+import {
+  uploadObject,
+  readObject,
+  deleteObject,
+  generateStoredName,
+  createSignedUploadObjectUrl,
+  BUCKET,
+} from "@/lib/object-storage";
 
 // Stockage du fichier CV original (PDF/Word), séparé du texte extrait
 // (Consultant.sourceCvTexte, utilisé par la génération IA). Jamais servi
@@ -46,6 +53,21 @@ export async function saveCvFile(
   await uploadObject(FOLDER, storedName, buffer);
 
   return { storedName, originalName: file.name };
+}
+
+/** Prépare un upload direct depuis le navigateur (voir
+ * createSignedUploadObjectUrl) : réserve un nom de fichier stocké et un
+ * jeton d'upload, sans jamais faire transiter le contenu du fichier par
+ * notre fonction serverless — nécessaire au-delà de 4,5 Mo (limite Vercel,
+ * cf. le commentaire sur createSignedUploadObjectUrl). */
+export async function prepareCvUpload(
+  originalFilename: string
+): Promise<{ storedName: string; originalName: string; token: string; bucket: string; folder: string } | null> {
+  const ext = extensionOf(originalFilename);
+  if (!ext) return null;
+  const storedName = generateStoredName(ext);
+  const { token } = await createSignedUploadObjectUrl(FOLDER, storedName);
+  return { storedName, originalName: originalFilename, token, bucket: BUCKET, folder: FOLDER };
 }
 
 export async function readCvFile(storedName: string): Promise<Buffer | null> {

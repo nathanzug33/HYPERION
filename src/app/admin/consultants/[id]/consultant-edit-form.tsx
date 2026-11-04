@@ -26,7 +26,8 @@ import {
   TYPE_CONTRAT_LABELS,
   CIVILITE_LABELS,
 } from "@/lib/constants";
-import { updateConsultantAction, deleteFichierAction } from "../actions";
+import { updateConsultantAction, deleteFichierAction, requestCvUploadAction } from "../actions";
+import CvUploadField from "@/components/CvUploadField";
 import { VILLES_FRANCE } from "@/lib/villes-france";
 import SuiviSection from "./suivi-section";
 import FichierPreviewModal from "./fichier-preview-modal";
@@ -424,18 +425,12 @@ export default function ConsultantEditForm({
           <div className="space-y-4">
             <div className="card p-5 space-y-2">
               <h3 className="text-sm font-semibold text-brand-ink">CV</h3>
-              <Field label="Ajouter un CV">
-                <input
-                  type="file"
-                  name="cvFile"
-                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  className="block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-3 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
-                />
-              </Field>
-              <p className="text-xs text-brand-gray">
-                S&apos;ajoute aux CV déjà enregistrés (à droite) — aucun n&apos;est jamais
-                remplacé. Nécessite d&apos;enregistrer les modifications.
-              </p>
+              <CvUploadField
+                label="Ajouter un CV"
+                requestUpload={requestCvUploadAction}
+                helpText="S'ajoute aux CV déjà enregistrés (à droite) — aucun n'est jamais remplacé. Nécessite d'enregistrer les modifications."
+                inputClassName="block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-3 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white disabled:opacity-60"
+              />
             </div>
 
             <div className="card p-5 space-y-2">

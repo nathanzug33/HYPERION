@@ -9,7 +9,9 @@ import { randomUUID } from "node:crypto";
 // qui restent les points d'entrée métier (extensions autorisées, validation
 // du nom stocké) et délèguent la lecture/écriture/suppression physique ici.
 
-const BUCKET = "hyperion-storage";
+// Exporté : le nom du bucket n'est pas sensible, le client (navigateur) en a
+// besoin pour l'upload direct (voir createSignedUploadObjectUrl ci-dessous).
+export const BUCKET = "hyperion-storage";
 
 function client() {
   const url = process.env.SUPABASE_URL;
@@ -48,4 +50,27 @@ export async function deleteObject(folder: string, storedName: string): Promise<
 
 export function generateStoredName(extension: string): string {
   return `${randomUUID()}.${extension}`;
+}
+
+/** Jeton d'upload à usage unique (Supabase Storage "signed upload URL") —
+ * permet au navigateur d'envoyer un fichier directement vers le bucket,
+ * sans passer par notre fonction serverless. Nécessaire pour les fichiers
+ * volumineux (CV avec photos/mise en forme) : Vercel plafonne à 4,5 Mo le
+ * corps d'une requête reçue par une Server Action/Route Handler, une limite
+ * d'infrastructure qu'aucune configuration applicative ne peut lever — le
+ * fichier doit donc éviter ce chemin entièrement. Le jeton est généré ici
+ * avec la clé de service (jamais exposée) ; l'upload lui-même, côté
+ * navigateur, n'a besoin que de ce jeton (voir StorageFileApi.uploadToSignedUrl
+ * — aucune permission RLS supplémentaire requise sur storage.objects). */
+export async function createSignedUploadObjectUrl(
+  folder: string,
+  storedName: string
+): Promise<{ token: string; path: string }> {
+  const { data, error } = await client()
+    .storage.from(BUCKET)
+    .createSignedUploadUrl(`${folder}/${storedName}`);
+  if (error || !data) {
+    throw new Error(`Échec de préparation de l'upload : ${error?.message ?? "inconnu"}`);
+  }
+  return { token: data.token, path: data.path };
 }

@@ -13,16 +13,43 @@ import {
 } from "@/lib/constants";
 import { findVille } from "@/lib/villes-france";
 import { canAccessConsultant } from "@/lib/consultant-access";
-import { saveCvFile, deleteCvFile } from "@/lib/cv-storage";
+import { prepareCvUpload, readCvFile, deleteCvFile } from "@/lib/cv-storage";
 import { deleteDcFile } from "@/lib/dc-storage";
 import { saveTranscriptFile, saveTranscriptText, deleteTranscriptFile } from "@/lib/transcript-storage";
-import { extractFileText } from "@/lib/cv-text";
+import { extractTextFromBuffer } from "@/lib/cv-text";
 import { findConsultantDuplicates } from "@/lib/duplicate-detection";
 import { deriveSeniorityId } from "@/lib/ai-dc-match";
 import { ensureReferenceAnonyme } from "@/lib/reference-generator";
 
 function getMulti(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
+}
+
+/** Appelée directement depuis un composant client (pas via <form action>) :
+ * réserve un emplacement de stockage et un jeton d'upload pour que le CV
+ * soit envoyé directement du navigateur vers Supabase Storage, avant même
+ * la soumission du formulaire — voir src/lib/cv-upload-client.ts et le
+ * commentaire sur createSignedUploadObjectUrl (limite de 4,5 Mo Vercel). */
+export async function requestCvUploadAction(filename: string) {
+  await requireStaff();
+  const prepared = await prepareCvUpload(filename);
+  if (!prepared) {
+    return { error: "Format de CV non supporté (pdf, doc, docx uniquement)." };
+  }
+  return prepared;
+}
+
+/** Relit un CV déjà envoyé en direct au stockage (voir requestCvUploadAction)
+ * pour en extraire le texte — best-effort, un échec ne doit jamais empêcher
+ * la création/mise à jour du dossier. */
+async function extractUploadedCvText(storedName: string, originalName: string): Promise<string> {
+  try {
+    const buffer = await readCvFile(storedName);
+    if (!buffer) return "";
+    return await extractTextFromBuffer(buffer, originalName);
+  } catch {
+    return "";
+  }
 }
 
 function computeRetentionDate(dateCollecte: Date, dureeMois: number): Date {
@@ -71,20 +98,15 @@ export async function createConsultantAction(formData: FormData) {
 
   const dateCollecte = new Date();
 
-  const cvFile = formData.get("cvFile");
-  // Best-effort sur les deux fronts : ni un échec de stockage (Storage
-  // indisponible) ni un échec d'extraction (fichier corrompu, format
-  // inhabituel) ne doit empêcher la création du dossier. Lancés en
-  // parallèle — ils lisent le même fichier indépendamment l'un de
-  // l'autre — plutôt qu'enchaînés, pour limiter le temps total
-  // d'exécution sur un CV volumineux (plusieurs dizaines de pages).
-  const [savedCv, cvText] =
-    cvFile instanceof File && cvFile.size > 0
-      ? await Promise.all([
-          saveCvFile(cvFile).catch(() => null),
-          extractFileText(cvFile).catch(() => ""),
-        ])
-      : [null, ""];
+  // Le CV a déjà été envoyé directement vers Supabase Storage depuis le
+  // navigateur (voir requestCvUploadAction) — son contenu ne transite
+  // jamais par cette Server Action, uniquement son nom stocké, pour rester
+  // sous la limite de taille de requête de Vercel (4,5 Mo, non
+  // contournable par configuration). Le texte est extrait en relisant le
+  // fichier depuis le stockage, best-effort.
+  const cvStoredName = String(formData.get("cvStoredName") ?? "").trim() || null;
+  const cvOriginalName = String(formData.get("cvOriginalName") ?? "").trim() || cvStoredName;
+  const cvText = cvStoredName ? await extractUploadedCvText(cvStoredName, cvOriginalName!) : "";
 
   const email = String(formData.get("email") ?? "") || null;
 
@@ -106,14 +128,14 @@ export async function createConsultantAction(formData: FormData) {
       dateConservationLimite: computeRetentionDate(dateCollecte, 24),
       statutPublication: STATUT_PUBLICATION.BROUILLON,
       sourceCvTexte: cvText || null,
-      ...(savedCv
+      ...(cvStoredName
         ? {
             fichiers: {
               create: [
                 {
                   type: "CV",
-                  storedName: savedCv.storedName,
-                  nomOriginal: savedCv.originalName,
+                  storedName: cvStoredName,
+                  nomOriginal: cvOriginalName!,
                   createdById: businessManagerId,
                 },
               ],
@@ -137,13 +159,14 @@ export async function updateConsultantAction(formData: FormData) {
   const dureeConservationMois =
     Number(formData.get("dureeConservationMois")) || 24;
 
-  const cvFile = formData.get("cvFile");
   // Un nouveau CV s'ajoute à l'historique, il ne remplace/supprime jamais
   // les précédents (plusieurs versions du CV peuvent coexister, voir
-  // l'onglet "Pièces jointes").
-  const savedCv =
-    cvFile instanceof File && cvFile.size > 0 ? await saveCvFile(cvFile) : null;
-  const cvText = savedCv ? await extractFileText(cvFile).catch(() => "") : "";
+  // l'onglet "Pièces jointes"). Déjà envoyé directement vers le stockage
+  // depuis le navigateur (voir requestCvUploadAction) — même raison qu'en
+  // création : rester sous la limite de 4,5 Mo d'une Server Action Vercel.
+  const cvStoredName = String(formData.get("cvStoredName") ?? "").trim() || null;
+  const cvOriginalName = String(formData.get("cvOriginalName") ?? "").trim() || cvStoredName;
+  const cvText = cvStoredName ? await extractUploadedCvText(cvStoredName, cvOriginalName!) : "";
 
   // Transcript d'entretien : soit un fichier déposé, soit des notes tapées
   // directement (converties en .txt) — un entretien n'a pas toujours donné
@@ -220,7 +243,7 @@ export async function updateConsultantAction(formData: FormData) {
     rayonKm: formData.get("rayonKm") ? Number(formData.get("rayonKm")) : null,
     ouvertGrandDeplacement: formData.get("ouvertGrandDeplacement") === "on",
     ...resolveVille(String(formData.get("villeRattachement") ?? "")),
-    ...(savedCv ? { sourceCvTexte: cvText || null } : {}),
+    ...(cvStoredName ? { sourceCvTexte: cvText || null } : {}),
   };
 
   const secteurIds = getMulti(formData, "secteurIds");
@@ -264,14 +287,14 @@ export async function updateConsultantAction(formData: FormData) {
 
   await prisma.$transaction([
     prisma.consultant.update({ where: { id }, data }),
-    ...(savedCv
+    ...(cvStoredName
       ? [
           prisma.consultantFichier.create({
             data: {
               consultantId: id,
               type: "CV",
-              storedName: savedCv.storedName,
-              nomOriginal: savedCv.originalName,
+              storedName: cvStoredName,
+              nomOriginal: cvOriginalName!,
               createdById: session.user.id,
             },
           }),

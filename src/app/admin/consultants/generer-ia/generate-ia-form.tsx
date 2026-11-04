@@ -1,7 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useActionState } from "react";
 import { generateConsultantFromAI, type GenerateIaState } from "./actions";
+import { requestCvUploadAction } from "../actions";
+import CvUploadField from "@/components/CvUploadField";
 
 const initialState: GenerateIaState = {};
 
@@ -13,24 +15,18 @@ export default function GenerateIaForm() {
     generateConsultantFromAI,
     initialState
   );
+  const [cvReady, setCvReady] = useState(false);
 
   return (
     <form action={formAction} className="card space-y-5 p-5">
       <div>
-        <label className="block text-xs font-medium text-brand-body mb-1">
-          CV ou dossier existant (obligatoire)
-        </label>
-        <input
-          type="file"
-          name="cvFile"
+        <CvUploadField
+          label="CV ou dossier existant (obligatoire)"
+          requestUpload={requestCvUploadAction}
           required
-          accept={ACCEPT}
-          className="block w-full rounded-lg border border-dashed border-brand-blue-light/60 bg-brand-blue-bg-soft/40 px-3 py-3 text-xs text-brand-gray transition-colors hover:border-brand-blue file:mr-3 file:rounded-md file:border-0 file:bg-brand-blue file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
+          helpText="Un CV brut ou un dossier déjà rédigé par une autre société, dans un autre format que le gabarit HYPERION — les deux fonctionnent."
+          onStatusChange={(s) => setCvReady(s === "done")}
         />
-        <p className="mt-1 text-xs text-brand-gray">
-          Un CV brut ou un dossier déjà rédigé par une autre société, dans un
-          autre format que le gabarit HYPERION — les deux fonctionnent.
-        </p>
       </div>
 
       <div>
@@ -58,10 +54,14 @@ export default function GenerateIaForm() {
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || !cvReady}
         className="btn btn-primary w-full py-2.5 disabled:opacity-60"
       >
-        {pending ? "Génération en cours… (peut prendre une minute)" : "Générer le dossier"}
+        {pending
+          ? "Génération en cours… (peut prendre une minute)"
+          : !cvReady
+            ? "Sélectionnez un CV pour continuer"
+            : "Générer le dossier"}
       </button>
     </form>
   );

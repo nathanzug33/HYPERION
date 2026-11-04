@@ -6,8 +6,8 @@ import { requireStaff } from "@/lib/guards";
 import { STATUT_PUBLICATION } from "@/lib/constants";
 import { generateDCFromCvAndTranscript, isAiGenerationConfigured } from "@/lib/ai-dc";
 import { findVille } from "@/lib/villes-france";
-import { saveCvFile } from "@/lib/cv-storage";
-import { extractFileText } from "@/lib/cv-text";
+import { readCvFile } from "@/lib/cv-storage";
+import { extractFileText, extractTextFromBuffer } from "@/lib/cv-text";
 import { findConsultantDuplicates } from "@/lib/duplicate-detection";
 import { findOrCreateByLabel, matchIds, deriveSeniorityId } from "@/lib/ai-dc-match";
 import { resolveCompetencesCles } from "@/lib/competences-cles";
@@ -43,11 +43,20 @@ export async function generateConsultantFromAI(
   // Qui génère le dossier en devient le référent — quel que soit son rôle.
   const businessManagerId = session.user.id;
 
-  const cvFileValue = formData.get("cvFile");
+  // Le CV a déjà été envoyé directement vers Supabase Storage depuis le
+  // navigateur (voir requestCvUploadAction dans ../actions.ts) — son
+  // contenu ne transite jamais par cette Server Action, pour rester sous
+  // la limite de 4,5 Mo que Vercel impose au corps d'une requête (limite
+  // d'infrastructure, non contournable par configuration). On le relit
+  // depuis le stockage pour l'extraction de texte.
+  const cvStoredName = String(formData.get("cvStoredName") ?? "").trim() || null;
+  const cvOriginalName = String(formData.get("cvOriginalName") ?? "").trim() || cvStoredName;
 
   let cvText: string;
   try {
-    cvText = await extractFileText(cvFileValue);
+    const buffer = cvStoredName ? await readCvFile(cvStoredName) : null;
+    if (!buffer) throw new Error("CV introuvable dans le stockage — merci de le réimporter.");
+    cvText = await extractTextFromBuffer(buffer, cvOriginalName!);
   } catch (err) {
     console.error("[generation-ia] échec lecture CV", err);
     const message = err instanceof Error ? err.message : String(err);
@@ -116,14 +125,6 @@ export async function generateConsultantFromAI(
   const dateCollecte = new Date();
   const cles = resolveCompetencesCles(generated.competencesTechnologies, generated.competencesCles);
 
-  // Best-effort : la génération IA a déjà réussi à ce stade (et déjà coûté
-  // un appel API) — un échec de stockage du CV ne doit pas faire perdre le
-  // dossier généré, l'original pourra être rattaché plus tard depuis la fiche.
-  const savedCv =
-    cvFileValue instanceof File && cvFileValue.size > 0
-      ? await saveCvFile(cvFileValue).catch(() => null)
-      : null;
-
   const consultant = await prisma.consultant.create({
     data: {
       nom: generated.nom?.trim() || "À renseigner",
@@ -154,14 +155,14 @@ export async function generateConsultantFromAI(
       genereParIA: true,
       sourceCvTexte: cvText,
       sourceTranscriptTexte: transcriptText || null,
-      ...(savedCv
+      ...(cvStoredName
         ? {
             fichiers: {
               create: [
                 {
                   type: "CV",
-                  storedName: savedCv.storedName,
-                  nomOriginal: savedCv.originalName,
+                  storedName: cvStoredName,
+                  nomOriginal: cvOriginalName!,
                   createdById: businessManagerId,
                 },
               ],

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { CIVILITE_LABELS } from "@/lib/constants";
-import { createConsultantAction } from "./actions";
+import { createConsultantAction, requestCvUploadAction } from "./actions";
+import CvUploadField from "@/components/CvUploadField";
 
 export default function NouveauCandidatPopover() {
   const [open, setOpen] = useState(false);
@@ -57,18 +58,11 @@ export default function NouveauCandidatPopover() {
               <label className="block text-[11px] text-brand-gray">Téléphone</label>
               <input name="telephone" className="input text-xs" />
             </div>
-            <div>
-              <label className="block text-[11px] text-brand-gray">CV (optionnel)</label>
-              <input
-                type="file"
-                name="cvFile"
-                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                className="mt-1 block w-full text-xs text-brand-gray file:mr-2 file:rounded-md file:border-0 file:bg-brand-blue file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-white"
-              />
-              <p className="mt-0.5 text-[11px] text-brand-gray">
-                Peut aussi être ajouté ou remplacé plus tard depuis la fiche.
-              </p>
-            </div>
+            <CvUploadField
+              label="CV (optionnel)"
+              requestUpload={requestCvUploadAction}
+              inputClassName="mt-1 block w-full text-xs text-brand-gray file:mr-2 file:rounded-md file:border-0 file:bg-brand-blue file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-white disabled:opacity-60"
+            />
             <button type="submit" className="btn btn-primary w-full py-1.5 text-xs">
               Créer le dossier
             </button>
