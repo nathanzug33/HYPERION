@@ -72,12 +72,19 @@ export async function createConsultantAction(formData: FormData) {
   const dateCollecte = new Date();
 
   const cvFile = formData.get("cvFile");
-  const savedCv =
-    cvFile instanceof File && cvFile.size > 0 ? await saveCvFile(cvFile) : null;
-  // Best-effort : le texte extrait alimente la recherche interne, mais un
-  // échec d'extraction (fichier corrompu, format inhabituel) ne doit pas
-  // empêcher la création du dossier.
-  const cvText = savedCv ? await extractFileText(cvFile).catch(() => "") : "";
+  // Best-effort sur les deux fronts : ni un échec de stockage (Storage
+  // indisponible) ni un échec d'extraction (fichier corrompu, format
+  // inhabituel) ne doit empêcher la création du dossier. Lancés en
+  // parallèle — ils lisent le même fichier indépendamment l'un de
+  // l'autre — plutôt qu'enchaînés, pour limiter le temps total
+  // d'exécution sur un CV volumineux (plusieurs dizaines de pages).
+  const [savedCv, cvText] =
+    cvFile instanceof File && cvFile.size > 0
+      ? await Promise.all([
+          saveCvFile(cvFile).catch(() => null),
+          extractFileText(cvFile).catch(() => ""),
+        ])
+      : [null, ""];
 
   const email = String(formData.get("email") ?? "") || null;
 

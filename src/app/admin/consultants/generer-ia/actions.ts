@@ -116,9 +116,12 @@ export async function generateConsultantFromAI(
   const dateCollecte = new Date();
   const cles = resolveCompetencesCles(generated.competencesTechnologies, generated.competencesCles);
 
+  // Best-effort : la génération IA a déjà réussi à ce stade (et déjà coûté
+  // un appel API) — un échec de stockage du CV ne doit pas faire perdre le
+  // dossier généré, l'original pourra être rattaché plus tard depuis la fiche.
   const savedCv =
     cvFileValue instanceof File && cvFileValue.size > 0
-      ? await saveCvFile(cvFileValue)
+      ? await saveCvFile(cvFileValue).catch(() => null)
       : null;
 
   const consultant = await prisma.consultant.create({
