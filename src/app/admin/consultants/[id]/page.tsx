@@ -27,11 +27,12 @@ export default async function ConsultantEditPage({
     propose?: string;
     pushedMany?: string;
     dcRegenerated?: string;
+    dcFichierEchec?: string;
   }>;
 }) {
   const session = await requireStaff();
   const { id } = await params;
-  const { error, ia, doublons, propose, pushedMany, dcRegenerated } = await searchParams;
+  const { error, ia, doublons, propose, pushedMany, dcRegenerated, dcFichierEchec } = await searchParams;
 
   const doublonsCandidats = doublons
     ? await prisma.consultant.findMany({
@@ -222,10 +223,19 @@ export default async function ConsultantEditPage({
         </div>
       )}
 
-      {dcRegenerated && (
+      {dcRegenerated && !dcFichierEchec && (
         <div className="rounded-xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-brand-green">
           ✅ DC régénéré à partir du CV{consultant.sourceTranscriptTexte ? " et de la transcription" : ""}
           — vérifiez le contenu (onglets Informations / Compétences / Secteurs) avant de publier.
+        </div>
+      )}
+
+      {dcRegenerated && dcFichierEchec && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          ⚠️ Les informations du dossier ont bien été mises à jour (onglets
+          Informations / Compétences / Secteurs), mais le fichier Word du DC
+          n&apos;a pas pu être généré ou enregistré en pièce jointe — réessayez
+          dans quelques minutes, ou contactez un admin si ça persiste.
         </div>
       )}
 

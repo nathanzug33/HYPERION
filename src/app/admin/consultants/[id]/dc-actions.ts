@@ -521,9 +521,14 @@ export async function applyGenererDcIaAction(
     }),
   ]);
 
-  // Génère et conserve un nouveau DC (Word) en pièce jointe — best-effort :
-  // un échec de génération/stockage ne doit jamais faire perdre le reste des
-  // données déjà appliquées ci-dessus.
+  // Génère et conserve un nouveau DC (Word) en pièce jointe — un échec ici
+  // (Storage indisponible/plein, erreur de génération du document) ne doit
+  // jamais faire perdre le reste des données déjà appliquées ci-dessus,
+  // mais ne doit pas non plus être avalé silencieusement : sans ça
+  // l'utilisateur voit un message de succès alors que le fichier n'a
+  // jamais été attaché, et ne comprend pas pourquoi il manque en pièce
+  // jointe (voir l'incident du 25/11).
+  let dcFichierEchec = false;
   try {
     await ensureReferenceAnonyme(id);
     const updated = await prisma.consultant.findUnique({ where: { id }, include: dcConsultantInclude });
@@ -543,8 +548,11 @@ export async function applyGenererDcIaAction(
     }
   } catch (err) {
     console.error("[generer-dc-ia] Échec de l'enregistrement du DC en pièce jointe :", err);
+    dcFichierEchec = true;
   }
 
   revalidatePath(`/admin/consultants/${id}`);
-  redirect(`/admin/consultants/${id}?dcRegenerated=1`);
+  redirect(
+    `/admin/consultants/${id}?dcRegenerated=1${dcFichierEchec ? "&dcFichierEchec=1" : ""}`
+  );
 }
