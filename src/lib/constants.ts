@@ -129,6 +129,10 @@ export const SUIVI_TYPE = {
   PLUS_DISPONIBLE: "PLUS_DISPONIBLE",
   REFUS: "REFUS",
   STATUT: "STATUT", // généré automatiquement, jamais saisi manuellement
+  // Reflet en lecture seule d'un RT programmé côté CRM (SuiviCommercial),
+  // jamais saisi manuellement ici — les notes du RT restent saisies côté
+  // CRM, voir consultant-edit-form.tsx.
+  RDV_TECHNIQUE: "RDV_TECHNIQUE",
 } as const;
 export type SuiviType = (typeof SUIVI_TYPE)[keyof typeof SUIVI_TYPE];
 
@@ -141,6 +145,7 @@ export const SUIVI_TYPE_LABELS: Record<SuiviType, string> = {
   PLUS_DISPONIBLE: "Plus disponible",
   REFUS: "Refus / pas intéressé",
   STATUT: "Changement de statut",
+  RDV_TECHNIQUE: "Rendez-vous technique (RT)",
 };
 
 // Types saisissables manuellement (STATUT est réservé au log automatique).

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   SUIVI_TYPE,
   SUIVI_TYPE_LABELS,
@@ -22,6 +23,9 @@ type Suivi = {
   fait: boolean;
   createdAt: Date;
   createdBy: { name: string };
+  // Présent uniquement pour le reflet en lecture seule d'un RT programmé
+  // côté CRM (voir page.tsx) — absente pour les suivis saisis ici.
+  lienCrm?: { entrepriseId: string; contactId: string | null };
 };
 
 const TYPE_STYLES: Record<string, string> = {
@@ -33,6 +37,7 @@ const TYPE_STYLES: Record<string, string> = {
   PLUS_DISPONIBLE: "bg-red-50 text-red-700",
   REFUS: "bg-slate-200 text-brand-body",
   STATUT: "bg-brand-green/10 text-brand-green",
+  RDV_TECHNIQUE: "bg-purple-100 text-purple-700",
 };
 
 // Seuls ces types correspondent à une action future planifiée (RDV/rappel) —
@@ -184,7 +189,8 @@ export default function SuiviSection({
         >
           {suivis.map((s) => {
             const overdue = s.dateProgrammee != null && !s.fait && s.dateProgrammee < now;
-            const actionable = s.dateProgrammee != null && s.type !== "STATUT";
+            const actionable =
+              s.dateProgrammee != null && s.type !== "STATUT" && s.type !== "RDV_TECHNIQUE";
             return (
               <li
                 key={s.id}
@@ -238,8 +244,23 @@ export default function SuiviSection({
                         {overdue ? " · en retard" : ""}
                       </div>
                     )}
+                    {s.lienCrm && (
+                      <div className="mt-1 text-[10px] text-brand-gray">
+                        Programmé côté CRM — notes à ajouter sur la fiche du contact.{" "}
+                        <Link
+                          href={
+                            s.lienCrm.contactId
+                              ? `/admin/crm/${s.lienCrm.entrepriseId}/contacts/${s.lienCrm.contactId}`
+                              : `/admin/crm/${s.lienCrm.entrepriseId}`
+                          }
+                          className="link-underline text-brand-blue-dark"
+                        >
+                          Voir côté CRM →
+                        </Link>
+                      </div>
+                    )}
                   </div>
-                  {s.type !== "STATUT" && (
+                  {s.type !== "STATUT" && s.type !== "RDV_TECHNIQUE" && (
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       {actionable && (
                         <form action={toggleSuiviFaitAction}>

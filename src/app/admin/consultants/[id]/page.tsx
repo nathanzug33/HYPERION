@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/guards";
-import { ROLES, ROLES_REFERENT } from "@/lib/constants";
+import { ROLES, ROLES_REFERENT, SUIVI_TYPE, SUIVI_COMMERCIAL_TYPE } from "@/lib/constants";
 import { consultantPublicSelect } from "@/lib/consultant-view";
 import ConsultantEditForm from "./consultant-edit-form";
 import { formatStatutBibliotheque, canReassignReferent } from "@/lib/constants";
@@ -111,11 +111,37 @@ export default async function ConsultantEditPage({
       include: {
         entreprise: { select: { id: true, nom: true } },
         contact: { select: { id: true, prenom: true, nom: true } },
+        createdBy: { select: { name: true } },
       },
     }),
   ]);
 
   const entreprisesPourPush = entreprisesAvecContacts;
+
+  // Reflet en lecture seule des RT programmés côté CRM dans le "Suivi" du
+  // candidat — sans les notes, saisies et modifiables uniquement côté
+  // fiche contact CRM (voir suivi-section.tsx côté CRM). Fusionné et trié
+  // avec les vrais SuiviCandidat uniquement pour cet affichage ; la liste
+  // `suivis` elle-même reste pure (utilisée ailleurs, ex. calcul des
+  // relances) pour ne pas fausser cette logique avec des entrées qui ne
+  // sont pas de vrais suivis ATS.
+  const rtRefletes = propositions
+    .filter((p) => p.type === SUIVI_COMMERCIAL_TYPE.RDV_TECHNIQUE)
+    .map((p) => ({
+      id: p.id,
+      type: SUIVI_TYPE.RDV_TECHNIQUE,
+      modalite: p.modalite,
+      titre: p.titre,
+      notes: null,
+      dateProgrammee: p.dateProgrammee,
+      fait: p.fait,
+      createdAt: p.createdAt,
+      createdBy: p.createdBy,
+      lienCrm: { entrepriseId: p.entrepriseId, contactId: p.contactId },
+    }));
+  const suivisAffiches = [...suivis, ...rtRefletes].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+  );
 
   const consultantSecteurIds = consultant.secteurs.map((s) => s.secteurId);
   const consultantExpertiseIds = consultant.expertises.map((e) => e.expertiseId);
@@ -276,7 +302,7 @@ export default async function ConsultantEditPage({
         consultant={consultant}
         referentials={{ secteurs, expertises, typesMobilite, zones, competences, langues, bms }}
         canReassignReferent={canReassignReferent(session.user)}
-        suivis={suivis}
+        suivis={suivisAffiches}
       />
     </div>
   );
