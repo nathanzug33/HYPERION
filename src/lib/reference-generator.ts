@@ -17,18 +17,26 @@ export async function ensureReferenceAnonyme(consultantId: string): Promise<stri
 }
 
 // Génère une référence anonyme du type IND-018 qui ne trahit pas l'identité.
+//
+// Doit trouver le plus grand numéro RÉELLEMENT UTILISÉ, pas "le dernier
+// candidat créé qui en a une" : depuis que la référence est générée à la
+// volée (voir ensureReferenceAnonyme) plutôt qu'à la création, l'ordre
+// d'attribution des références ne correspond plus à l'ordre de création
+// des candidats — un candidat ancien peut recevoir sa référence après un
+// candidat plus récent. Trier par date de création (comme avant) pouvait
+// donc renvoyer un numéro inférieur au vrai maximum et en reproduire un
+// déjà pris (contrainte d'unicité violée, de façon systématique et non
+// transitoire — un nouvel essai retombe sur le même calcul erroné).
 export async function generateNextReference(): Promise<string> {
-  const last = await prisma.consultant.findFirst({
+  const existing = await prisma.consultant.findMany({
     where: { referenceAnonyme: { startsWith: "IND-" } },
-    orderBy: { createdAt: "desc" },
     select: { referenceAnonyme: true },
   });
-  const lastNumber = last
-    ? Number((last.referenceAnonyme ?? "").replace("IND-", "")) || 0
-    : 0;
-  const count = await prisma.consultant.count();
-  const next = Math.max(lastNumber, count) + 1;
-  return `IND-${String(next).padStart(3, "0")}`;
+  const maxNumber = existing.reduce((max, c) => {
+    const n = Number((c.referenceAnonyme ?? "").replace("IND-", "")) || 0;
+    return Math.max(max, n);
+  }, 0);
+  return `IND-${String(maxNumber + 1).padStart(3, "0")}`;
 }
 
 // Génère une référence courte du type OFF-012 pour une offre — utilisée
