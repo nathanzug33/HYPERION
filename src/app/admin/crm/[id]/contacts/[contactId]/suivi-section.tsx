@@ -75,6 +75,16 @@ export default function SuiviSection({
   const [candidatRechercheOuverte, setCandidatRechercheOuverte] = useState(false);
   const candidatDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [formOuvert, setFormOuvert] = useState(false);
+  const [notesOuvertes, setNotesOuvertes] = useState<Set<string>>(new Set());
+  function toggleNotesOuvertes(id: string) {
+    setNotesOuvertes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
   const estRt = type === SUIVI_COMMERCIAL_TYPE.RDV_TECHNIQUE;
   const estRdvOuRt = type === SUIVI_COMMERCIAL_TYPE.RDV || estRt;
   const avecMeetPossible = estRdvOuRt && modalite === MODALITE_RDV.VISIO;
@@ -141,7 +151,20 @@ export default function SuiviSection({
         Historique &amp; actions
       </h2>
 
-      <form action={createSuiviCommercialAction} className="space-y-2 border-b border-slate-100 pb-4">
+      <button
+        type="button"
+        onClick={() => setFormOuvert((o) => !o)}
+        className="btn btn-secondary w-full py-1.5 text-xs"
+      >
+        {formOuvert ? "✕ Fermer" : "+ Ajouter une action"}
+      </button>
+
+      {formOuvert && (
+      <form
+        action={createSuiviCommercialAction}
+        onSubmit={() => setFormOuvert(false)}
+        className="mt-2 space-y-2 border-b border-slate-100 pb-4"
+      >
         <input type="hidden" name="entrepriseId" value={entrepriseId} />
         <input type="hidden" name="contactId" value={contactId} />
         <div className="grid grid-cols-2 gap-2">
@@ -282,10 +305,11 @@ export default function SuiviSection({
             className="mt-1 block w-full text-xs text-brand-gray file:mr-2 file:rounded-md file:border-0 file:bg-brand-blue file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-white"
           />
         </div>
-        <button type="submit" className="btn btn-secondary w-full py-1.5 text-xs">
-          + Ajouter une action
+        <button type="submit" className="btn btn-primary w-full py-1.5 text-xs">
+          Enregistrer l&apos;action
         </button>
       </form>
+      )}
 
       {suivis.length === 0 ? (
         <p className="mt-3 text-xs text-brand-gray">Aucune action pour le moment.</p>
@@ -332,9 +356,27 @@ export default function SuiviSection({
                       })}{" "}
                       · {s.createdBy.name}
                     </div>
-                    {s.notes && editingNotesId !== s.id && (
-                      <div className="mt-1 whitespace-pre-line text-brand-body">{s.notes}</div>
-                    )}
+                    {s.notes && editingNotesId !== s.id && (() => {
+                      const seuil = 180;
+                      const longue = s.notes.length > seuil;
+                      const ouverte = notesOuvertes.has(s.id);
+                      return (
+                        <>
+                          <div className="mt-1 whitespace-pre-line text-brand-body">
+                            {longue && !ouverte ? `${s.notes.slice(0, seuil).trimEnd()}…` : s.notes}
+                          </div>
+                          {longue && (
+                            <button
+                              type="button"
+                              onClick={() => toggleNotesOuvertes(s.id)}
+                              className="link-underline mt-0.5 text-[11px] text-brand-blue-dark"
+                            >
+                              {ouverte ? "Voir moins" : "Voir plus"}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                     {editingNotesId === s.id ? (
                       <form
                         action={updateSuiviCommercialNotesAction}
