@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   SUIVI_COMMERCIAL_TYPE_LABELS,
   SUIVI_COMMERCIAL_TYPE_SAISISSABLES,
@@ -14,6 +14,8 @@ import {
   createSuiviCommercialAction,
   toggleSuiviCommercialFaitAction,
   deleteSuiviCommercialAction,
+  updateSuiviCommercialNotesAction,
+  searchConsultantsAction,
 } from "../../suivi-actions";
 
 type Suivi = {
@@ -55,14 +57,12 @@ export default function SuiviSection({
   contactEmail,
   entrepriseNom,
   suivis,
-  candidats,
 }: {
   entrepriseId: string;
   contactId: string;
   contactEmail?: string | null;
   entrepriseNom?: string;
   suivis: Suivi[];
-  candidats: CandidatOption[];
 }) {
   const now = new Date();
   const [type, setType] = useState<string>("NOTE");
@@ -70,6 +70,11 @@ export default function SuiviSection({
   const [titre, setTitre] = useState("");
   const [candidatQuery, setCandidatQuery] = useState("");
   const [consultantId, setConsultantId] = useState("");
+  const [candidatSelectionne, setCandidatSelectionne] = useState<CandidatOption | null>(null);
+  const [candidatResultats, setCandidatResultats] = useState<CandidatOption[]>([]);
+  const [candidatRechercheOuverte, setCandidatRechercheOuverte] = useState(false);
+  const candidatDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
   const estRt = type === SUIVI_COMMERCIAL_TYPE.RDV_TECHNIQUE;
   const estRdvOuRt = type === SUIVI_COMMERCIAL_TYPE.RDV || estRt;
   const avecMeetPossible = estRdvOuRt && modalite === MODALITE_RDV.VISIO;
@@ -80,12 +85,11 @@ export default function SuiviSection({
   // à un titre déjà saisi par l'utilisateur. Déclenché directement depuis
   // les handlers qui changent type/modalité/candidat plutôt que via un
   // effet, pour éviter un rendu en cascade au chargement du formulaire.
-  function suggestTitre(nextType: string, nextModalite: string, nextConsultantId: string) {
+  function suggestTitre(nextType: string, nextModalite: string, nextCandidat: CandidatOption | null) {
     if (titre) return;
     const rt = nextType === SUIVI_COMMERCIAL_TYPE.RDV_TECHNIQUE;
     if (rt) {
-      const c = candidats.find((c) => c.id === nextConsultantId);
-      if (c) setTitre(`RT ${candidatLabel(c)} x ${entrepriseNom ?? "client"}`);
+      if (nextCandidat) setTitre(`RT ${candidatLabel(nextCandidat)} x ${entrepriseNom ?? "client"}`);
       return;
     }
     const rdvOuRt = nextType === SUIVI_COMMERCIAL_TYPE.RDV || rt;
@@ -96,20 +100,39 @@ export default function SuiviSection({
 
   function handleTypeChange(value: string) {
     setType(value);
-    suggestTitre(value, modalite, consultantId);
+    suggestTitre(value, modalite, candidatSelectionne);
   }
 
   function handleModaliteChange(value: string) {
     setModalite(value);
-    suggestTitre(type, value, consultantId);
+    suggestTitre(type, value, candidatSelectionne);
   }
 
+  // Recherche de candidat au fil de la saisie (debounce) — plutôt qu'une
+  // liste préchargée de tout le vivier ATS, qui ne tiendrait pas à l'échelle
+  // (voir searchConsultantsAction).
   function handleCandidatQueryChange(value: string) {
     setCandidatQuery(value);
-    const match = candidats.find((c) => candidatLabel(c) === value);
-    const matchId = match?.id ?? "";
-    setConsultantId(matchId);
-    suggestTitre(type, modalite, matchId);
+    setConsultantId("");
+    setCandidatSelectionne(null);
+    setCandidatRechercheOuverte(true);
+    if (candidatDebounceRef.current) clearTimeout(candidatDebounceRef.current);
+    if (value.trim().length < 2) {
+      setCandidatResultats([]);
+      return;
+    }
+    candidatDebounceRef.current = setTimeout(async () => {
+      setCandidatResultats(await searchConsultantsAction(value));
+    }, 250);
+  }
+
+  function handleCandidatSelect(c: CandidatOption) {
+    setConsultantId(c.id);
+    setCandidatSelectionne(c);
+    setCandidatQuery(candidatLabel(c));
+    setCandidatResultats([]);
+    setCandidatRechercheOuverte(false);
+    suggestTitre(type, modalite, c);
   }
 
   return (
@@ -150,26 +173,41 @@ export default function SuiviSection({
           </select>
         </div>
         {estRt && (
-          <div>
+          <div className="relative">
             <input type="hidden" name="consultantId" value={consultantId} />
             <label className="block text-[11px] text-brand-gray">
               Candidat (ATS) associé au RT
             </label>
             <input
               type="text"
-              list="candidats-datalist"
               value={candidatQuery}
               onChange={(e) => handleCandidatQueryChange(e.target.value)}
+              onFocus={() => setCandidatRechercheOuverte(true)}
+              onBlur={() => setTimeout(() => setCandidatRechercheOuverte(false), 150)}
               placeholder="Rechercher un candidat par nom…"
+              autoComplete="off"
               required
               className="input text-xs"
             />
-            <datalist id="candidats-datalist">
-              {candidats.map((c) => (
-                <option key={c.id} value={candidatLabel(c)} />
-              ))}
-            </datalist>
-            {candidatQuery && !consultantId && (
+            {candidatRechercheOuverte && candidatResultats.length > 0 && (
+              <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                {candidatResultats.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleCandidatSelect(c);
+                      }}
+                      className="block w-full px-2 py-1.5 text-left text-xs hover:bg-brand-blue-bg-soft"
+                    >
+                      {candidatLabel(c)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {candidatQuery && !consultantId && !candidatRechercheOuverte && (
               <p className="mt-1 text-[10px] text-amber-700">
                 Choisissez un candidat dans la liste proposée.
               </p>
@@ -294,8 +332,44 @@ export default function SuiviSection({
                       })}{" "}
                       · {s.createdBy.name}
                     </div>
-                    {s.notes && (
+                    {s.notes && editingNotesId !== s.id && (
                       <div className="mt-1 whitespace-pre-line text-brand-body">{s.notes}</div>
+                    )}
+                    {editingNotesId === s.id ? (
+                      <form
+                        action={updateSuiviCommercialNotesAction}
+                        className="mt-1 space-y-1"
+                        onSubmit={() => setEditingNotesId(null)}
+                      >
+                        <input type="hidden" name="id" value={s.id} />
+                        <textarea
+                          name="notes"
+                          rows={2}
+                          defaultValue={s.notes ?? ""}
+                          placeholder="Notes du rendez-vous…"
+                          className="input text-xs"
+                        />
+                        <div className="flex gap-2">
+                          <button type="submit" className="link-underline text-brand-blue-dark">
+                            Enregistrer
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingNotesId(null)}
+                            className="link-underline text-brand-gray"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setEditingNotesId(s.id)}
+                        className="link-underline mt-1 text-[11px] text-brand-blue-dark"
+                      >
+                        {s.notes ? "Modifier les notes" : "+ Ajouter des notes"}
+                      </button>
                     )}
                     {s.fichierUrl && (
                       <a

@@ -16,12 +16,26 @@ export async function GET(req: Request) {
     return NextResponse.json({ candidats: [], contacts: [], entreprises: [] });
   }
 
+  // Recherche par téléphone (ex. numéro inconnu qui appelle) : en plus du
+  // numéro tel que tapé, on compare aussi sa version "chiffres seulement"
+  // (espaces/points/tirets retirés) pour couvrir le cas où il est tapé
+  // sans la mise en forme utilisée au moment de la saisie du dossier.
+  // Ne couvre pas le cas inverse (tapé sans espaces, stocké avec) sans
+  // normaliser aussi la colonne en base — à durcir si ça s'avère
+  // insuffisant en usage réel.
+  const qDigits = q.replace(/\D/g, "");
+  const telephoneOr =
+    qDigits.length >= 4
+      ? [{ telephone: { contains: q } }, { telephone: { contains: qDigits } }]
+      : [{ telephone: { contains: q } }];
+
   const [candidats, contacts, entreprises] = await Promise.all([
     prisma.consultant.findMany({
       where: {
         OR: [
           { nom: { contains: q, mode: "insensitive" } },
           { prenom: { contains: q, mode: "insensitive" } },
+          ...telephoneOr,
         ],
       },
       select: { id: true, nom: true, prenom: true, referenceAnonyme: true },
@@ -33,6 +47,7 @@ export async function GET(req: Request) {
         OR: [
           { nom: { contains: q, mode: "insensitive" } },
           { prenom: { contains: q, mode: "insensitive" } },
+          ...telephoneOr,
         ],
         entreprise: entrepriseVisibilityWhere(session.user),
       },

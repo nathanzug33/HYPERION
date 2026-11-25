@@ -34,17 +34,11 @@ export default async function ContactDetailPage({
   const contact = await prisma.contact.findUnique({ where: { id: contactId } });
   if (!contact || contact.entrepriseId !== id) notFound();
 
-  const [suivis, candidats, secteurs, expertises, consultantsPublies] = await Promise.all([
+  const [suivis, secteurs, expertises, consultantsPublies] = await Promise.all([
     prisma.suiviCommercial.findMany({
       where: { contactId },
       orderBy: { createdAt: "desc" },
       include: { createdBy: { select: { name: true } } },
-    }),
-    // Pour la recherche de candidat lors de la saisie d'un Rendez-vous
-    // technique (RT) — voir suivi-section.tsx.
-    prisma.consultant.findMany({
-      orderBy: { nom: "asc" },
-      select: { id: true, prenom: true, nom: true },
     }),
     prisma.secteur.findMany({ where: { active: true }, select: { id: true, label: true } }),
     prisma.expertise.findMany({ where: { active: true }, select: { id: true, label: true } }),
@@ -160,7 +154,6 @@ export default async function ContactDetailPage({
             contactEmail={contact.email}
             entrepriseNom={entreprise.nom}
             suivis={suivis}
-            candidats={candidats}
           />
         </div>
       </div>

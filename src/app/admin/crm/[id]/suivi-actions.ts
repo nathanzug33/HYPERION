@@ -33,6 +33,28 @@ async function assertEntrepriseAccess(entrepriseId: string) {
   return { session, entreprise };
 }
 
+/** Recherche de candidat pour l'association à un RT — appelée directement
+ * depuis le composant client au fil de la saisie (pas via <form action>),
+ * plutôt que de précharger tout le vivier ATS côté page : ne tient plus au
+ * nombre de candidats en base (voir l'ancien <datalist>, qui chargeait tous
+ * les candidats d'un coup). */
+export async function searchConsultantsAction(query: string) {
+  await requireStaff();
+  const q = query.trim();
+  if (q.length < 2) return [];
+  return prisma.consultant.findMany({
+    where: {
+      OR: [
+        { nom: { contains: q, mode: "insensitive" } },
+        { prenom: { contains: q, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true, prenom: true, nom: true },
+    orderBy: { nom: "asc" },
+    take: 8,
+  });
+}
+
 export async function createSuiviCommercialAction(formData: FormData) {
   const entrepriseId = String(formData.get("entrepriseId") ?? "");
   const { session } = await assertEntrepriseAccess(entrepriseId);
@@ -261,6 +283,24 @@ export async function toggleSuiviCommercialFaitAction(formData: FormData) {
   }
   revalidatePath("/admin/crm/activites");
   revalidatePath("/admin");
+}
+
+/** Ajoute/modifie les notes d'un suivi déjà créé (ex. compte-rendu d'un RT
+ * une fois le rendez-vous passé) — le reste (type, échéance, titre...)
+ * n'est volontairement pas modifiable ici, seules les notes le sont. */
+export async function updateSuiviCommercialNotesAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const suivi = await prisma.suiviCommercial.findUnique({ where: { id } });
+  if (!suivi) return;
+  await assertEntrepriseAccess(suivi.entrepriseId);
+
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  await prisma.suiviCommercial.update({ where: { id }, data: { notes } });
+
+  if (suivi.contactId) {
+    revalidatePath(`/admin/crm/${suivi.entrepriseId}/contacts/${suivi.contactId}`);
+  }
+  revalidatePath("/admin/crm/activites");
 }
 
 export async function deleteSuiviCommercialAction(formData: FormData) {
